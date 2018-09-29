@@ -12,7 +12,11 @@
 
 #include "../company_type.h"
 #include "../textfile_type.h"
+#include "script_config.hpp"
 
+typedef std::vector<const ScriptConfigItem *> VisibleSettingsList;
+VisibleSettingsList GetVisibleSettingsList(CompanyID slot);
+bool IsConsideredDead(CompanyID slot);
 void ShowScriptListWindow(CompanyID slot);
 Window *ShowScriptDebugWindow(CompanyID show_company = INVALID_COMPANY);
 void ShowScriptSettingsWindow(CompanyID slot);

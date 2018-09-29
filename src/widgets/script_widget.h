@@ -35,6 +35,7 @@ enum ScriptSettingsWidgets {
 enum ScriptDebugWidgets {
 	WID_SCRD_VIEW,                 ///< The row of company buttons.
 	WID_SCRD_NAME_TEXT,            ///< Name of the current selected.
+	WID_SCRD_SETTINGS_RELOAD_WIDGETS, ///< The panel to handle Settings and Reload AI buttons.
 	WID_SCRD_SETTINGS,             ///< Settings button.
 	WID_SCRD_SCRIPT_GAME,          ///< Game Script button.
 	WID_SCRD_RELOAD_TOGGLE,        ///< Reload button.

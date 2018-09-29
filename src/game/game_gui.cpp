@@ -23,6 +23,7 @@
 #include "../script/script_gui.h"
 #include "../script_config.hpp"
 #include "../table/strings.h"
+#include "../table/sprites.h"
 
 #include "../safeguards.h"
 
@@ -86,7 +87,6 @@ struct GSConfigWindow : public Window {
 	GUITimer timeout;        ///< Timeout for unclicking the button.
 	int clicked_row;         ///< The clicked row of settings.
 	Scrollbar *vscroll;      ///< Cache of the vertical scrollbar.
-	typedef std::vector<const ScriptConfigItem *> VisibleSettingsList; ///< typdef for a vector of script settings
 	VisibleSettingsList visible_settings; ///< List of visible GS settings
 
 	GSConfigWindow() : Window(&_gs_config_desc),
@@ -101,6 +101,8 @@ struct GSConfigWindow : public Window {
 		this->vscroll = this->GetScrollbar(WID_GSC_SCROLLBAR);
 		this->FinishInitNested(WN_GAME_OPTIONS_GS);
 		this->OnInvalidateData(0);
+
+		this->SetWidgetDisabledState(WID_GSC_RESET, _game_mode == GM_EDITOR && !IsConsideredDead(OWNER_DEITY));
 
 		this->RebuildVisibleSettings();
 	}
@@ -119,13 +121,7 @@ struct GSConfigWindow : public Window {
 	void RebuildVisibleSettings()
 	{
 		visible_settings.clear();
-
-		for (const auto &item : *this->gs_config->GetConfigList()) {
-			bool no_hide = (item.flags & SCRIPTCONFIG_DEVELOPER) == 0;
-			if (no_hide || _settings_client.gui.ai_developer_tools) {
-				visible_settings.push_back(&item);
-			}
-		}
+		visible_settings = GetVisibleSettingsList(OWNER_DEITY);
 
 		this->vscroll->SetCount((int)this->visible_settings.size());
 	}
@@ -140,10 +136,16 @@ struct GSConfigWindow : public Window {
 				size->height = 5 * this->line_height;
 				break;
 
-			case WID_GSC_GSLIST:
-				this->line_height = FONT_HEIGHT_NORMAL + padding.height;
+			case WID_GSC_GSLIST: {
+				uint highest_icon = 0;
+				static const SpriteID icons[] = { SPR_SCRIPT_DEAD, SPR_SCRIPT_ELIGIBLE, SPR_SCRIPT_ALIVE };
+				for (uint i = 0; i < lengthof(icons); i++) {
+					highest_icon = std::max(highest_icon, GetSpriteSize(icons[i]).height);
+				}
+				this->line_height = std::max((uint)FONT_HEIGHT_NORMAL, highest_icon) + padding.height;
 				size->height = 1 * this->line_height;
 				break;
+			}
 		}
 	}
 
@@ -153,13 +155,48 @@ struct GSConfigWindow : public Window {
 	 */
 	static bool IsEditable()
 	{
-		return _game_mode != GM_NORMAL || Game::GetInstance() != nullptr;
+		return _game_mode != GM_NORMAL && (_game_mode != GM_EDITOR || Game::GetInstance() == nullptr);
+	}
+
+	/**
+	 * Is the GS config eligible to start?
+	 * @return True if and only if the given GS Config can start.
+	 */
+	static bool IsEligible()
+	{
+		return _game_mode != GM_NORMAL && GameConfig::GetConfig()->GetInfo() != nullptr && (Game::GetInstance() == nullptr || _game_mode == GM_MENU);
 	}
 
 	void DrawWidget(const Rect &r, int widget) const override
 	{
 		switch (widget) {
 			case WID_GSC_GSLIST: {
+				uint widest_icon = 0;
+				static const SpriteID icons[] = { SPR_SCRIPT_DEAD, SPR_SCRIPT_ELIGIBLE, SPR_SCRIPT_ALIVE };
+				for (uint i = 0; i < lengthof(icons); i++) {
+					widest_icon = std::max(widest_icon, GetSpriteSize(icons[i]).width);
+				}
+				uint dead_x_offset = (widest_icon - GetSpriteSize(SPR_SCRIPT_DEAD).width) / 2;
+				uint eligible_x_offset = (widest_icon - GetSpriteSize(SPR_SCRIPT_ELIGIBLE).width) / 2;
+				uint alive_x_offset = (widest_icon - GetSpriteSize(SPR_SCRIPT_ALIVE).width) / 2;
+
+				Rect tr = r.Shrink(WidgetDimensions::scaled.matrix);
+
+				bool rtl = _current_text_dir == TD_RTL;
+				Rect icon_rect = tr.WithWidth(widest_icon, rtl);
+				Rect gs_rect = tr.Indent(widest_icon + WidgetDimensions::scaled.hsep_wide, rtl);
+
+				if (IsEligible()) {
+					DrawSprite(SPR_SCRIPT_ELIGIBLE, PAL_NONE, icon_rect.left + eligible_x_offset, tr.top);
+				} else {
+					if (Game::GetInstance() != nullptr) {
+						if (!IsConsideredDead(OWNER_DEITY)) {
+							DrawSprite(SPR_SCRIPT_ALIVE, PAL_NONE, icon_rect.left + alive_x_offset, tr.top);
+						} else {
+							DrawSprite(SPR_SCRIPT_DEAD, PAL_NONE, icon_rect.left + dead_x_offset, tr.top);
+						}
+					}
+				}
 				StringID text = STR_AI_CONFIG_NONE;
 
 				if (GameConfig::GetConfig()->GetInfo() != nullptr) {
@@ -168,7 +205,7 @@ struct GSConfigWindow : public Window {
 				}
 
 				/* There is only one slot, unlike with the GS GUI, so it should never be white */
-				DrawString(r.Shrink(WidgetDimensions::scaled.matrix), text, (IsEditable() ? TC_ORANGE : TC_SILVER));
+				DrawString(gs_rect.left, gs_rect.right, tr.top, text, (IsEditable() ? TC_ORANGE : TC_SILVER));
 				break;
 			}
 			case WID_GSC_SETTINGS: {
@@ -242,19 +279,19 @@ struct GSConfigWindow : public Window {
 		if (widget >= WID_GSC_TEXTFILE && widget < WID_GSC_TEXTFILE + TFT_END) {
 			if (GameConfig::GetConfig() == nullptr) return;
 
-			ShowScriptTextfileWindow((TextfileType)(widget - WID_GSC_TEXTFILE), (CompanyID)OWNER_DEITY);
+			ShowScriptTextfileWindow((TextfileType)(widget - WID_GSC_TEXTFILE), OWNER_DEITY);
 			return;
 		}
 
 		switch (widget) {
 			case WID_GSC_GSLIST: {
 				this->InvalidateData();
-				if (click_count > 1 && _game_mode != GM_NORMAL) ShowScriptListWindow((CompanyID)OWNER_DEITY);
+				if (click_count > 1 && Game::GetInstance() == nullptr) ShowScriptListWindow(OWNER_DEITY);
 				break;
 			}
 
 			case WID_GSC_CHANGE:  // choose other Game Script
-				ShowScriptListWindow((CompanyID)OWNER_DEITY);
+				ShowScriptListWindow(OWNER_DEITY);
 				break;
 
 			case WID_GSC_CONTENT_DOWNLOAD:
@@ -352,8 +389,10 @@ struct GSConfigWindow : public Window {
 				break;
 
 			case WID_GSC_RESET:
-				this->gs_config->ResetEditableSettings(_game_mode == GM_MENU);
-				this->SetDirty();
+				if (_game_mode != GM_EDITOR || IsConsideredDead(OWNER_DEITY)) {
+					this->gs_config->ResetEditableSettings(IsConsideredDead(OWNER_DEITY));
+					this->SetDirty();
+				}
 				break;
 		}
 	}
@@ -404,7 +443,7 @@ struct GSConfigWindow : public Window {
 	{
 		if (!gui_scope) return;
 
-		this->SetWidgetDisabledState(WID_GSC_CHANGE, (_game_mode == GM_NORMAL) || !IsEditable());
+		this->SetWidgetDisabledState(WID_GSC_CHANGE, !IsEditable());
 
 		for (TextfileType tft = TFT_BEGIN; tft < TFT_END; tft++) {
 			this->SetWidgetDisabledState(WID_GSC_TEXTFILE + tft, GameConfig::GetConfig()->GetTextfile(tft, (CompanyID)OWNER_DEITY) == nullptr);
@@ -416,10 +455,19 @@ struct GSConfigWindow : public Window {
 private:
 	bool IsEditableItem(const ScriptConfigItem &config_item) const
 	{
-		return _game_mode == GM_MENU
-		    || _game_mode == GM_EDITOR
-		    || (config_item.flags & SCRIPTCONFIG_INGAME) != 0
-		    || _settings_client.gui.ai_developer_tools;
+		if (_game_mode == GM_MENU) return true;
+
+		if (_game_mode == GM_NORMAL) {
+			if (IsConsideredDead(OWNER_DEITY)) return true;
+			if (config_item.flags & SCRIPTCONFIG_INGAME) return true;
+		}
+
+		if (IsConsideredDead(OWNER_DEITY)) {
+			if (Game::GetInstance() == nullptr) return true;
+			return true;
+		}
+
+		return false;
 	}
 
 	void SetValue(int value)
@@ -427,7 +475,7 @@ private:
 		VisibleSettingsList::const_iterator it = this->visible_settings.begin();
 		for (int i = 0; i < this->clicked_row; i++) it++;
 		const ScriptConfigItem config_item = **it;
-		if (_game_mode == GM_NORMAL && (config_item.flags & SCRIPTCONFIG_INGAME) == 0) return;
+		if (_game_mode != GM_MENU && !IsConsideredDead(OWNER_DEITY) && (config_item.flags & SCRIPTCONFIG_INGAME) == 0) return;
 		this->gs_config->SetSetting(config_item.name, value);
 		this->SetDirty();
 	}
