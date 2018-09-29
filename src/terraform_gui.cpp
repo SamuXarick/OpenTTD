@@ -509,6 +509,7 @@ static void ResetLandscapeConfirmationCallback(Window *w, bool confirmed)
 			ChangeOwnershipOfCompanyItems(c->index, INVALID_OWNER);
 			delete c;
 		}
+		InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_AI);
 
 		old_generating_world.Restore();
 

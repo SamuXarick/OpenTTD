@@ -276,6 +276,13 @@ static void SpriteZoomMinChanged(int32 new_value)
 	MarkWholeScreenDirty();
 }
 
+static void InvalidateAISettingsWindow(int32 new_value)
+{
+	InvalidateWindowClassesData(WC_AI_SETTINGS);
+	InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_AI);
+	InvalidateWindowClassesData(WC_AI_DEBUG);
+}
+
 /**
  * Update any possible saveload window and delete any newgrf dialogue as
  * its widget parts might change. Reinit all windows as it allows access to the
