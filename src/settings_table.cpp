@@ -387,6 +387,14 @@ static void SpriteZoomMinChanged(int32_t)
 	MarkWholeScreenDirty();
 }
 
+static void InvalidateScriptSettingsWindow([[maybe_unused]] int32_t new_value)
+{
+	InvalidateWindowClassesData(WC_SCRIPT_SETTINGS);
+	InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_AI);
+	InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_GS);
+	InvalidateWindowClassesData(WC_SCRIPT_DEBUG);
+}
+
 /**
  * Update any possible saveload window and delete any newgrf dialogue as
  * its widget parts might change. Reinit all windows as it allows access to the

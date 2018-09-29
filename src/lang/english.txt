@@ -4929,12 +4929,11 @@ STR_ERROR_AI_PLEASE_REPORT_CRASH                                :{WHITE}One of t
 STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}AI/Game Script Debug window is only available for the server
 
 # AI configuration window
-STR_AI_CONFIG_CAPTION_AI                                        :{WHITE}AI Settings
-STR_AI_CONFIG_CAPTION_GAMESCRIPT                                :{WHITE}Game Script Settings
-STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}The Game Script that will be loaded in the next game
-STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}The AIs that will be loaded in the next game
-STR_AI_CONFIG_HUMAN_PLAYER                                      :Human player
-STR_AI_CONFIG_RANDOM_AI                                         :Random AI
+STR_AI_CONFIG_CAPTION_AI                                        :{WHITE}AI Configuration
+STR_AI_CONFIG_CAPTION_GAMESCRIPT                                :{WHITE}Game Script Configuration
+STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}The Game Script that is loaded or will be loaded in the next game
+STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}The AIs that are currently loaded or will be loaded next time they start on these Company IDs while in a game
+STR_AI_CONFIG_RANDOM_AI                                         :(random)
 STR_AI_CONFIG_NONE                                              :(none)
 STR_AI_CONFIG_NAME_VERSION                                      :{RAW_STRING} {YELLOW}v{NUM}
 STR_AI_CONFIG_MAX_COMPETITORS                                   :{LTBLUE}Maximum no. competitors: {ORANGE}{COMMA}
@@ -4953,7 +4952,14 @@ STR_AI_CONFIG_CHANGE_AI                                         :{BLACK}Select A
 STR_AI_CONFIG_CHANGE_GAMESCRIPT                                 :{BLACK}Select Game Script
 STR_AI_CONFIG_CHANGE_TOOLTIP                                    :{BLACK}Load another script. Ctrl+Click to show all available versions
 STR_AI_CONFIG_CONFIGURE                                         :{BLACK}Configure
-STR_AI_CONFIG_CONFIGURE_TOOLTIP                                 :{BLACK}Configure the parameters of the Script
+STR_AI_CONFIG_CONFIGURE_TOOLTIP                                 :{BLACK}Configure the parameters of the script
+STR_AI_CONFIG_START                                             :{BLACK}Start AI
+STR_AI_CONFIG_START_TOOLTIP                                     :{BLACK}Load the selected script, and start an AI Company in the selected Company ID
+STR_AI_CONFIG_STOP                                              :{BLACK}Stop AI
+STR_AI_CONFIG_STOP_TOOLTIP                                      :{BLACK}Kill the selected AI, and remove its Company
+
+STR_ERROR_AI_CAN_T_START                                        :{WHITE}Can't start AI...
+STR_ERROR_AI_ALLOW_IN_MULTIPLAYER                               :Make sure to allow AI computer players to participate in multiplayer games first.
 
 # Available AIs window
 STR_AI_LIST_CAPTION                                             :{WHITE}Available {STRING}
@@ -4977,8 +4983,8 @@ STR_SCREENSHOT_HEIGHTMAP_SCREENSHOT                             :{BLACK}Heightma
 STR_SCREENSHOT_MINIMAP_SCREENSHOT                               :{BLACK}Minimap screenshot
 
 # Script Parameters
-STR_AI_SETTINGS_CAPTION_AI                                      :{WHITE}AI Parameters
-STR_AI_SETTINGS_CAPTION_GAMESCRIPT                              :{WHITE}Game Script Parameters
+STR_AI_SETTINGS_CAPTION_AI                                      :{WHITE}AI Parameters of {RAW_STRING} {STRING1}
+STR_AI_SETTINGS_CAPTION_GAMESCRIPT                              :{WHITE}Game Script Parameters of {RAW_STRING}
 STR_AI_SETTINGS_RESET                                           :{BLACK}Reset
 STR_AI_SETTINGS_SETTING                                         :{RAW_STRING}: {ORANGE}{STRING1}
 
