@@ -118,7 +118,8 @@
 
 	cur_company.Restore();
 
-	InvalidateWindowClassesData(WC_SCRIPT_DEBUG, -1);
+	InvalidateWindowData(WC_SCRIPT_DEBUG, 0, -1);
+	InvalidateWindowData(WC_SCRIPT_SETTINGS, company);
 }
 
 /* static */ void AI::Pause(CompanyID company)
