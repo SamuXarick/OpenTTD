@@ -1127,6 +1127,8 @@ static bool InvalidateIndustryViewWindow(int32 p1)
 static bool InvalidateAISettingsWindow(int32 p1)
 {
 	InvalidateWindowClassesData(WC_AI_SETTINGS);
+	InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_AI);
+	InvalidateWindowClassesData(WC_AI_DEBUG);
 	return true;
 }
 
