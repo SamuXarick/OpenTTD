@@ -229,6 +229,50 @@ public:
 		assert(best_trackdir == td1 || best_trackdir == td2);
 		return best_trackdir == td2;
 	}
+
+	static bool stFindNearestDepot(const Ship *v, TileIndex tile, Trackdir td1, Trackdir td2, int max_penalty, TileIndex *depot_tile, bool *reversed)
+	{
+		Tpf pf;
+		bool result = pf.FindNearestDepot(v, tile, td1, td2, max_penalty, depot_tile, reversed);
+		return result;
+	}
+
+	/**
+	 * Find the best depot for a ship.
+	 * @param v Vehicle
+	 * @param tile Tile of the vehicle.
+	 * @param td1 Trackdir of the vehicle.
+	 * @param td2 reversed Trackdir of the vehicle.
+	 * @param max_cost maximum pathfinder cost.
+	 * @param depot_tile the tile of the depot.
+	 * @param reversed whether the path to depot was found on reversed Trackdir.
+	 */
+	inline bool FindNearestDepot(const Ship *v, TileIndex tile, Trackdir td1, Trackdir td2, int max_cost, TileIndex *depot_tile, bool *reversed)
+	{
+		Tpf pf;
+		/* Set origin. */
+		pf.SetOrigin(tile, TrackdirToTrackdirBits(td1) | TrackdirToTrackdirBits(td2));
+		pf.SetMaxCost(max_cost);
+
+		/* find the best path */
+		bool bFound = pf.FindPath(v);
+		if (!bFound) return false;
+
+		/* some path found
+		 * get found depot tile */
+		Node *n = pf.GetBestNode();
+		*depot_tile = n->m_key.m_tile;
+
+		/* walk through the path back to the origin */
+		Node *pNode = n;
+		while (pNode->m_parent != NULL) {
+			pNode = pNode->m_parent;
+		}
+
+		/* if the origin node is the ship's Trackdir then we didn't reverse */
+		*reversed = (pNode->m_key.m_td != td1);
+		return true;
+	}
 };
 
 /** Cost Provider module of YAPF for ships */
@@ -242,6 +286,10 @@ public:
 	typedef typename Node::Key Key;               ///< key to hash tables
 
 protected:
+	int m_max_cost;
+
+	CYapfCostShipT() : m_max_cost(0) {}
+
 	/** to access inherited path finder */
 	Tpf& Yapf()
 	{
@@ -249,6 +297,11 @@ protected:
 	}
 
 public:
+	inline void SetMaxCost(int max_cost)
+	{
+		m_max_cost = max_cost;
+	}
+
 	inline int CurveCost(Trackdir td1, Trackdir td2)
 	{
 		assert(IsValidTrackdir(td1));
@@ -300,8 +353,45 @@ public:
 		byte speed_frac = (GetEffectiveWaterClass(n.GetTile()) == WATER_CLASS_SEA) ? svi->ocean_speed_frac : svi->canal_speed_frac;
 		if (speed_frac > 0) c += YAPF_TILE_LENGTH * (1 + tf->m_tiles_skipped) * speed_frac / (256 - speed_frac);
 
+		/* Finish if we already exceeded the maximum path cost (i.e. when
+		 * searching for the nearest depot). */
+		if (m_max_cost > 0 && (n.m_parent->m_cost + c) > m_max_cost) return false;
+
 		/* apply it */
 		n.m_cost = n.m_parent->m_cost + c;
+		return true;
+	}
+};
+
+template <class Types>
+class CYapfDestinationAnyDepotShipT
+{
+public:
+	typedef typename Types::Tpf Tpf;                     ///< the pathfinder class (derived from THIS class)
+	typedef typename Types::TrackFollower TrackFollower;
+	typedef typename Types::NodeList::Titem Node;        ///< this will be our node type
+	typedef typename Node::Key Key;                      ///< key to hash tables
+
+	/** to access inherited path finder */
+	Tpf& Yapf()
+	{
+		return *static_cast<Tpf *>(this);
+	}
+
+	/** Called by YAPF to detect if node ends in the desired destination */
+	inline bool PfDetectDestination(Node &n)
+	{
+		bool bDest = (IsShipDepotTile(n.m_key.m_tile) && GetShipDepotPart(n.m_key.m_tile) == DEPOT_PART_NORTH) && IsTileOwner(n.m_key.m_tile, Yapf().GetVehicle()->owner);
+		return bDest;
+	}
+
+	/**
+	 * Called by YAPF to calculate cost estimate. Calculates distance to the destination
+	 *  adds it to the actual cost from origin and stores the sum to the Node::m_estimate
+	 */
+	inline bool PfCalcEstimate(Node &n)
+	{
+		n.m_estimate = n.m_cost;
 		return true;
 	}
 };
@@ -310,11 +400,11 @@ public:
  * Config struct of YAPF for ships.
  *  Defines all 6 base YAPF modules as classes providing services for CYapfBaseT.
  */
-template <class Tpf_, class Ttrack_follower, class Tnode_list>
+template <class Tpf_, class Ttrack_follower, class Tnode_list, template <class Types> class CYapfDestinationTileT>
 struct CYapfShip_TypesT
 {
 	/** Types - shortcut for this struct type */
-	typedef CYapfShip_TypesT<Tpf_, Ttrack_follower, Tnode_list>  Types;
+	typedef CYapfShip_TypesT<Tpf_, Ttrack_follower, Tnode_list, CYapfDestinationTileT>  Types;
 
 	/** Tpf - pathfinder type */
 	typedef Tpf_                              Tpf;
@@ -327,15 +417,18 @@ struct CYapfShip_TypesT
 	typedef CYapfBaseT<Types>                 PfBase;        // base pathfinder class
 	typedef CYapfFollowShipT<Types>           PfFollow;      // node follower
 	typedef CYapfOriginTileT<Types>           PfOrigin;      // origin provider
-	typedef CYapfDestinationTileWaterT<Types> PfDestination; // destination/distance provider
+	typedef CYapfDestinationTileT<Types>      PfDestination; // destination/distance provider
 	typedef CYapfSegmentCostCacheNoneT<Types> PfCache;       // segment cost cache provider
 	typedef CYapfCostShipT<Types>             PfCost;        // cost provider
 };
 
 /* YAPF type 1 - uses TileIndex/Trackdir as Node key */
-struct CYapfShip1 : CYapfT<CYapfShip_TypesT<CYapfShip1, CFollowTrackWater    , CShipNodeListTrackDir> > {};
+struct CYapfShip1 : CYapfT<CYapfShip_TypesT<CYapfShip1, CFollowTrackWater    , CShipNodeListTrackDir, CYapfDestinationTileWaterT> > {};
 /* YAPF type 2 - uses TileIndex/DiagDirection as Node key */
-struct CYapfShip2 : CYapfT<CYapfShip_TypesT<CYapfShip2, CFollowTrackWater    , CShipNodeListExitDir > > {};
+struct CYapfShip2 : CYapfT<CYapfShip_TypesT<CYapfShip2, CFollowTrackWater    , CShipNodeListExitDir , CYapfDestinationTileWaterT> > {};
+
+struct CYapfShipAnyDepot1 : CYapfT<CYapfShip_TypesT<CYapfShipAnyDepot1, CFollowTrackWater, CShipNodeListTrackDir, CYapfDestinationAnyDepotShipT> > {};
+struct CYapfShipAnyDepot2 : CYapfT<CYapfShip_TypesT<CYapfShipAnyDepot2, CFollowTrackWater, CShipNodeListExitDir , CYapfDestinationAnyDepotShipT> > {};
 
 static inline bool RequireTrackdirKey()
 {
@@ -361,6 +454,28 @@ Track YapfShipChooseTrack(const Ship *v, TileIndex tile, DiagDirection enterdir,
 
 	Trackdir td_ret = pfnChooseShipTrack(v, tile, enterdir, tracks, path_found, path_cache);
 	return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : INVALID_TRACK;
+}
+
+FindDepotData YapfShipFindNearestDepot(const Ship *v, int max_penalty)
+{
+	FindDepotData fdd;
+
+	Trackdir td = v->GetVehicleTrackdir();
+	Trackdir td_rev = ReverseTrackdir(td);
+	TileIndex tile = v->tile;
+
+	/* default is YAPF type 2 */
+	typedef bool(*PfnFindNearestDepot)(const Ship*, TileIndex, Trackdir, Trackdir, int, TileIndex*, bool*);
+	PfnFindNearestDepot pfnFindNearestDepot = &CYapfShipAnyDepot2::stFindNearestDepot;
+
+	if (_settings_game.pf.yapf.disable_node_optimization || RequireTrackdirKey()) {
+		pfnFindNearestDepot = &CYapfShipAnyDepot1::stFindNearestDepot; // Trackdir
+	}
+
+	bool ret = pfnFindNearestDepot(v, tile, td, td_rev, max_penalty, &fdd.tile, &fdd.reverse);
+
+	fdd.best_length = ret ? DistanceManhattan(tile, fdd.tile) : UINT_MAX; // distance manhattan or NOT_FOUND
+	return fdd;
 }
 
 bool YapfShipCheckReverse(const Ship *v)
