@@ -12,6 +12,7 @@
 
 #include "tile_type.h"
 #include "map_func.h"
+#include "vehicle_type.h"
 
 using TWaterRegionPatchLabel = uint8_t;
 using TWaterRegionIndex = uint;
@@ -19,6 +20,10 @@ using TWaterRegionIndex = uint;
 constexpr int WATER_REGION_EDGE_LENGTH = 16;
 constexpr int WATER_REGION_NUMBER_OF_TILES = WATER_REGION_EDGE_LENGTH * WATER_REGION_EDGE_LENGTH;
 constexpr TWaterRegionPatchLabel INVALID_WATER_REGION_PATCH = 0;
+
+constexpr TWaterRegionPatchLabel WATER_REGION_PATCH_LABEL_NONE = 0;
+constexpr TWaterRegionPatchLabel WATER_REGION_PATCH_LABEL_FIRST = 1;
+constexpr TWaterRegionPatchLabel INVALID_WATER_REGION_PATCH_LABEL = 255;
 
 /**
  * Describes a single interconnected patch of water within a particular water region.
@@ -33,6 +38,7 @@ struct WaterRegionPatchDesc
 	bool operator!=(const WaterRegionPatchDesc &other) const { return !(*this == other); }
 };
 
+constexpr WaterRegionPatchDesc INVALID_WATER_REGION_PATCH_DESC = WaterRegionPatchDesc{ INT_MAX, INT_MAX, INVALID_WATER_REGION_PATCH_LABEL };
 
 /**
  * Describes a single square water region.
@@ -66,5 +72,8 @@ void VisitWaterRegionPatchNeighbors(const WaterRegionPatchDesc &water_region_pat
 void AllocateWaterRegions();
 
 void PrintWaterRegionDebugInfo(TileIndex tile);
+
+using IsShipDepotRegionCallBack = std::function<bool(const TileIndex)>;
+TileIndex GetShipDepotInWaterRegionPatch(IsShipDepotRegionCallBack &callback, const WaterRegionPatchDesc &parent_water_region_patch, const WaterRegionPatchDesc &current_water_region_patch, const Ship *v);
 
 #endif /* WATER_REGIONS_H */

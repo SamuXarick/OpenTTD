@@ -19,9 +19,9 @@
 #include "follow_track.hpp"
 #include "ship.h"
 #include "debug.h"
+#include "yapf/yapf.h"
 
 using TWaterRegionTraversabilityBits = uint16_t;
-constexpr TWaterRegionPatchLabel FIRST_REGION_LABEL = 1;
 
 static_assert(sizeof(TWaterRegionTraversabilityBits) * 8 == WATER_REGION_EDGE_LENGTH);
 static_assert(sizeof(TWaterRegionPatchLabel) == sizeof(byte)); // Important for the hash calculation.
@@ -122,11 +122,11 @@ public:
 		Debug(map, 3, "Updating water region ({},{})", GetWaterRegionX(this->tile_area.tile), GetWaterRegionY(this->tile_area.tile));
 		this->has_cross_region_aqueducts = false;
 
-		this->tile_patch_labels.fill(INVALID_WATER_REGION_PATCH);
+		this->tile_patch_labels.fill(WATER_REGION_PATCH_LABEL_NONE);
 		this->edge_traversability_bits.fill(0);
 
-		TWaterRegionPatchLabel current_label = 1;
-		TWaterRegionPatchLabel highest_assigned_label = 0;
+		TWaterRegionPatchLabel current_label = WATER_REGION_PATCH_LABEL_FIRST;
+		TWaterRegionPatchLabel highest_assigned_label = WATER_REGION_PATCH_LABEL_NONE;
 
 		/* Perform connected component labeling. This uses a flooding algorithm that expands until no
 		 * additional tiles can be added. Only tiles inside the water region are considered. */
@@ -143,7 +143,7 @@ public:
 				const TrackdirBits valid_dirs = TrackBitsToTrackdirBits(GetWaterTracks(tile));
 				if (valid_dirs == TRACKDIR_BIT_NONE) continue;
 
-				if (this->tile_patch_labels[GetLocalIndex(tile)] != INVALID_WATER_REGION_PATCH) continue;
+				if (this->tile_patch_labels[GetLocalIndex(tile)] != WATER_REGION_PATCH_LABEL_NONE) continue;
 
 				this->tile_patch_labels[GetLocalIndex(tile)] = current_label;
 				highest_assigned_label = current_label;
@@ -168,6 +168,7 @@ public:
 			}
 
 			if (increase_label) current_label++;
+			assert(current_label != INVALID_WATER_REGION_PATCH_LABEL);
 		}
 
 		this->number_of_patches = highest_assigned_label;
@@ -197,7 +198,7 @@ public:
 			std::string line{};
 			for (int x = 0; x < WATER_REGION_EDGE_LENGTH; ++x) {
 				const auto label = this->tile_patch_labels[x + y * WATER_REGION_EDGE_LENGTH];
-				const std::string label_str = label == INVALID_WATER_REGION_PATCH ? "." : std::to_string(label);
+				const std::string label_str = label == WATER_REGION_PATCH_LABEL_NONE ? "." : std::to_string(label);
 				line = fmt::format("{:{}}", label_str, max_element_width) + " " + line;
 			}
 			Debug(map, 9, "{} | {}| {}", GB(this->edge_traversability_bits[DIAGDIR_SW], y, 1), line, GB(this->edge_traversability_bits[DIAGDIR_NE], y, 1));
@@ -339,7 +340,7 @@ static inline void VisitAdjacentWaterRegionPatchNeighbors(const WaterRegionPatch
 	if (traversability_bits == 0) return;
 
 	if (current_region.NumberOfPatches() == 1 && neighboring_region.NumberOfPatches() == 1) {
-		func(WaterRegionPatchDesc{ nx, ny, FIRST_REGION_LABEL }); // No further checks needed because we know there is just one patch for both adjacent regions
+		func(WaterRegionPatchDesc{ nx, ny, WATER_REGION_PATCH_LABEL_FIRST }); // No further checks needed because we know there is just one patch for both adjacent regions
 		return;
 	}
 
@@ -407,4 +408,162 @@ void AllocateWaterRegions()
 void PrintWaterRegionDebugInfo(TileIndex tile)
 {
 	GetUpdatedWaterRegion(tile).PrintDebugInfo();
+}
+
+DiagDirection DiagDirBetweenRegions(const WaterRegionPatchDesc &water_region_patch_from, const WaterRegionPatchDesc &water_region_patch_to, bool *is_adjacent_neighbor)
+{
+	if (water_region_patch_from == INVALID_WATER_REGION_PATCH_DESC) return INVALID_DIAGDIR;
+	const int dx = water_region_patch_from.x - water_region_patch_to.x;
+	const int dy = water_region_patch_from.y - water_region_patch_to.y;
+	*is_adjacent_neighbor = (std::abs(dx) == 1 && dy == 0) || (std::abs(dy) == 1 && dx == 0);
+	if (dx > 0 && dy == 0) return DIAGDIR_SW;
+	if (dx < 0 && dy == 0) return DIAGDIR_NE;
+	if (dx == 0 && dy > 0) return DIAGDIR_SE;
+	if (dx == 0 && dy < 0) return DIAGDIR_NW;
+	return INVALID_DIAGDIR;
+}
+
+/**
+ * Find the tile of a cross-region aqueduct based on the given parameters.
+ * @param region_x The x-coordinate of the water region.
+ * @param region_y The y-coordinate of the water region.
+ * @param side The side the aqueduct crosses (DIAGDIR_NE, DIAGDIR_NW, DIAGDIR_SE, DIAGDIR_SW).
+ * @param x_or_y The x or y coordinate within the water region.
+ * @param dist[out] The distance manhattan from the aqueduct to the edge.
+ * @pre The x_or_y parameter must be less than WATER_REGION_EDGE_LENGTH.
+ * @return The tile index of the cross-region aqueduct or INVALID_TILE if not found.
+ */
+TileIndex FindCrossRegionAqueductTileCoordinate(int region_x, int region_y, DiagDirection side, int x_or_y, int *dist)
+{
+	assert(x_or_y >= 0 && x_or_y < WATER_REGION_EDGE_LENGTH);
+
+	int start = (side == DIAGDIR_NE || side == DIAGDIR_NW) ? 0 : WATER_REGION_EDGE_LENGTH - 1;
+	int end = (side == DIAGDIR_NE || side == DIAGDIR_NW) ? WATER_REGION_EDGE_LENGTH : -1;
+	int step = (side == DIAGDIR_NE || side == DIAGDIR_NW) ? 1 : -1;
+
+	int distance = 0;
+	for (int i = start; i != end; i += step) {
+		TileIndex tile = (side == DIAGDIR_NE || side == DIAGDIR_SW) ? GetTileIndexFromLocalCoordinate(region_x, region_y, i, x_or_y) : GetTileIndexFromLocalCoordinate(region_x, region_y, x_or_y, i);
+		if (IsAqueductTile(tile) && GetWaterRegionIndex(region_x, region_y) != GetWaterRegionIndex(GetOtherBridgeEnd(tile)) && GetTunnelBridgeDirection(tile) == side) {
+			*dist = distance;
+			return tile;
+		}
+		distance++;
+	}
+
+	return INVALID_TILE;
+}
+
+/**
+ * Tests the provided callback function on all tiles of the current region, and determines which tile
+ * reached from the neighboring water region patch has the closest ship depot by pathfinding standards.
+ * @param callback The test function that will be called for each neighboring water patch that is found.
+ * @param parent_water_region_patch Water patch from which the current region patch is entered from.
+ * @param current_water_region_patch Water patch within the water region to test the callback.
+ * @param v Ship, used by the pathfinder to extract the pathfinder distances and tiles.
+ * @return closest tile which passed the callback test, or INVALID_TILE if the callback failed.
+ */
+TileIndex GetShipDepotInWaterRegionPatch(IsShipDepotRegionCallBack &callback, const WaterRegionPatchDesc &parent_water_region_patch, const WaterRegionPatchDesc &current_water_region_patch, const Ship *v)
+{
+	const WaterRegion &region = GetUpdatedWaterRegion(current_water_region_patch.x, current_water_region_patch.y);
+	bool is_adjacent_neighbor = false;
+	const DiagDirection enter_side = DiagDirBetweenRegions(parent_water_region_patch, current_water_region_patch, &is_adjacent_neighbor);
+
+	/* Check if the current region has a tile which passes the callback test. */
+	bool has_valid_tile = false;
+	for (const TileIndex tile : region) {
+		if (region.GetLabel(tile) != current_water_region_patch.label || !callback(tile)) continue;
+
+		/* If we don't know from which side we entered this region, it's likely this is the origin node.
+		 * In this situation, return whichever tile passed the callback. */
+		if (!IsValidDiagDirection(enter_side)) return tile;
+		has_valid_tile = true;
+		break;
+	}
+
+	TileIndex best_tile = INVALID_TILE;
+	if (!has_valid_tile) return best_tile;
+
+	/* Collect all entry points, look for the one closest to where a depot is found. */
+	std::vector<std::pair<const TileIndex, int>> tile_dists;
+
+	const WaterRegion &neighboring_region = GetUpdatedWaterRegion(parent_water_region_patch.x, parent_water_region_patch.y);
+	const DiagDirection exit_side = ReverseDiagDir(enter_side);
+
+	/* Visit adjacent water region patch. */
+	const TWaterRegionTraversabilityBits edge_traversability_bits = region.GetEdgeTraversabilityBits(enter_side);
+	if (is_adjacent_neighbor && edge_traversability_bits != 0) {
+		for (int x_or_y = 0; x_or_y < WATER_REGION_EDGE_LENGTH; ++x_or_y) {
+			if (!HasBit(edge_traversability_bits, x_or_y)) continue;
+
+			const TileIndex current_edge_tile = GetEdgeTileCoordinate(current_water_region_patch.x, current_water_region_patch.y, enter_side, x_or_y);
+			const TWaterRegionPatchLabel current_label = region.GetLabel(current_edge_tile);
+			if (current_label != current_water_region_patch.label) continue;
+
+			const TileIndex neighbor_edge_tile = GetEdgeTileCoordinate(parent_water_region_patch.x, parent_water_region_patch.y, exit_side, x_or_y);
+			const TWaterRegionPatchLabel neighbor_label = neighboring_region.GetLabel(neighbor_edge_tile);
+			if (neighbor_label != parent_water_region_patch.label) continue;
+
+			auto tile_dist = std::pair<const TileIndex, int>(current_edge_tile, 0);
+			if (std::find(tile_dists.begin(), tile_dists.end(), tile_dist) == tile_dists.end()) {
+				tile_dists.push_back(tile_dist);
+			}
+		}
+	}
+
+	/* Visit neigboring water patch accessible via cross-region aqueducts. */
+	if (region.HasCrossRegionAqueducts()) {
+		for (int x_or_y = 0; x_or_y < WATER_REGION_EDGE_LENGTH; ++x_or_y) {
+
+			int dist;
+			const TileIndex current_aqueduct_tile = FindCrossRegionAqueductTileCoordinate(current_water_region_patch.x, current_water_region_patch.y, enter_side, x_or_y, &dist);
+			if (!IsValidTile(current_aqueduct_tile)) continue;
+
+			const TWaterRegionPatchLabel current_label = region.GetLabel(current_aqueduct_tile);
+			if (current_label != current_water_region_patch.label) continue;
+
+			const TileIndex neighbor_aqueduct_tile = GetOtherBridgeEnd(current_aqueduct_tile);
+			const WaterRegionPatchDesc &neighbor_patch = GetWaterRegionPatchInfo(neighbor_aqueduct_tile);
+			if (neighbor_patch != parent_water_region_patch) continue;
+
+			const TWaterRegionPatchLabel neighbor_label = neighboring_region.GetLabel(neighbor_aqueduct_tile);
+			if (neighbor_label != parent_water_region_patch.label) continue;
+
+			auto tile_dist = std::pair<const TileIndex, int>(current_aqueduct_tile, dist);
+			if (std::find(tile_dists.begin(), tile_dists.end(), tile_dist) == tile_dists.end()) {
+				tile_dists.push_back(tile_dist);
+			}
+		}
+	}
+
+	assert(!tile_dists.empty());
+
+	/* Compare actual pathfinder distance costs for each of them, then return one with the smallest cost. */
+	int best_cost = INT_MAX;
+	for (const auto &tile_dist : tile_dists) {
+
+		/* Convert tracks to trackdirs */
+		TrackdirBits trackdirs = TrackBitsToTrackdirBits(GetWaterTracks(tile_dist.first));
+		/* Limit to trackdirs reachable from the parent region. */
+		trackdirs &= DiagdirReachesTrackdirs(exit_side);
+
+		const FindDepotData depot = YapfShipFindNearestDepot(v, 0, tile_dist.first, trackdirs);
+		assert(depot.best_length != UINT_MAX);
+		int cost = depot.best_length;
+		if (tile_dist.second != 0) {
+			/* Skipped tile cost for aqueducts. */
+			cost += YAPF_TILE_LENGTH * tile_dist.second;
+
+			/* Aqueduct speed penalty. */
+			const ShipVehicleInfo *svi = ShipVehInfo(v->engine_type);
+			byte speed_frac = svi->canal_speed_frac;
+			if (speed_frac > 0) cost += YAPF_TILE_LENGTH * (1 + tile_dist.second) * speed_frac / (256 - speed_frac);
+		}
+		if (cost >= best_cost) continue;
+
+		best_cost = cost;
+		best_tile = depot.tile;
+	}
+
+	return best_tile;
 }
