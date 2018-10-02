@@ -855,6 +855,70 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 }
 
 /**
+ * Check whether growing on a half-tile coast tile ends up blocking a water connection
+ *
+ * @param tile The target tile
+ * @return true if building here blocks a water connection
+ */
+static bool GrowingBlocksWaterConnection(TileIndex tile)
+{
+	if (!IsValidTile(tile)) return false;
+
+	Slope slope = GetTileSlope(tile);
+	/* Is this a coast tile with one corner raised ? */
+	if (IsSlopeWithOneCornerRaised(slope) && IsCoastTile(tile)) {
+		Corner corner = GetHighestSlopeCorner(slope);
+		Corner opposite_corner = OppositeCorner(corner);
+
+		static const Direction corner_to_direction[] = { DIR_W, DIR_S, DIR_E, DIR_N };
+		extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
+		TileIndexDiffC diffc = _tileoffs_by_dir[corner_to_direction[opposite_corner]];
+
+		TileIndex opposite_tile = TileAddWrap(tile, diffc.x, diffc.y);
+		if (IsValidTile(opposite_tile)) {
+			static const struct { TrackBits track_mask_1, track_mask_2, track_mask_1_90_deg, track_mask_2_90_deg; } track_bit_table[] = {
+				/*         t1x,t1y,t2x,t2y,              track_mask_1          ,        track_mask_2          track_mask_1_90_deg, track_mask_2_90_deg, opposite_tile */
+				/* CORNER_W  0,  1, -1,  0,  */ { TRACK_BIT_X | TRACK_BIT_RIGHT, TRACK_BIT_Y | TRACK_BIT_RIGHT, TRACK_BIT_3WAY_NE, TRACK_BIT_3WAY_SE }, /* -1,  1 */
+				/* CORNER_S  1,  0,  0,  1,  */ { TRACK_BIT_Y | TRACK_BIT_UPPER, TRACK_BIT_X | TRACK_BIT_UPPER, TRACK_BIT_3WAY_NW, TRACK_BIT_3WAY_NE }, /*  1,  1 */
+				/* CORNER_E  0, -1,  1,  0,  */ { TRACK_BIT_X | TRACK_BIT_LEFT , TRACK_BIT_Y | TRACK_BIT_LEFT , TRACK_BIT_3WAY_SW, TRACK_BIT_3WAY_NW }, /*  1, -1 */
+				/* CORNER_N -1,  0,  0, -1,  */ { TRACK_BIT_Y | TRACK_BIT_LOWER, TRACK_BIT_X | TRACK_BIT_LOWER, TRACK_BIT_3WAY_SE, TRACK_BIT_3WAY_SW }, /* -1, -1 */
+			};
+
+			TileIndex tile_1 = TileAddWrap(tile, opposite_corner & 1 ? diffc.x : 0, opposite_corner & 1 ? 0 : diffc.y);
+			TileIndex tile_2 = TileAddWrap(tile, opposite_corner & 1 ? 0 : diffc.x, opposite_corner & 1 ? diffc.y : 0);
+
+			bool forbid_90_deg = _settings_game.pf.forbid_90_deg;
+
+			TrackBits track_1 = TrackStatusToTrackBits(GetTileTrackStatus(tile_1, TRANSPORT_WATER, 0));
+			TrackBits track_2 = TrackStatusToTrackBits(GetTileTrackStatus(tile_2, TRANSPORT_WATER, 0));
+
+			TrackBits next_track_1 = (forbid_90_deg ? track_bit_table[corner].track_mask_1 : track_bit_table[corner].track_mask_1_90_deg) & track_1;
+			TrackBits next_track_2 = (forbid_90_deg ? track_bit_table[corner].track_mask_2 : track_bit_table[corner].track_mask_2_90_deg) & track_2;
+			TrackBits main_track_1 = (forbid_90_deg ? track_bit_table[opposite_corner].track_mask_2 : track_bit_table[opposite_corner].track_mask_2_90_deg) & track_1;
+			TrackBits main_track_2 = (forbid_90_deg ? track_bit_table[opposite_corner].track_mask_1 : track_bit_table[opposite_corner].track_mask_1_90_deg) & track_2;
+
+			/* Is there a connection between tile_1 and tile_2 via tile? */
+			if (main_track_1 && main_track_2) {
+				TrackBits opposite_track = TrackStatusToTrackBits(GetTileTrackStatus(opposite_tile, TRANSPORT_WATER, 0));
+				/* Is there an opposite_track that can be used to try an alternative connection? */
+				if (CornerToTrackBits(corner) & opposite_track) {
+					TrackBits mirror = TRACK_BIT_CROSS | (corner & 1 ? TRACK_BIT_HORZ : TRACK_BIT_VERT);
+					/* Is there a connection between tile_1 and tile_2 via opposite_tile? */
+					if (next_track_1 & (main_track_1 ^ mirror) && next_track_2 & (main_track_2 ^ mirror)) {
+						/* There is an alternative connection. Town can grow on tile. */
+						return false;
+					}
+				}
+				/* There is either no opposite_track, or an incomplete connection via opposite_tile. */
+				return true;
+			}
+		}
+	}
+	/* There was no connection via tile, or it was incomplete, or the opposite_tile is outside the map. */
+	return false;
+}
+
+/**
  * Check if a Road is allowed on a given tile
  *
  * @param t The current town
@@ -878,6 +942,7 @@ static bool IsRoadAllowedHere(Town *t, TileIndex tile, DiagDirection dir)
 				DoCommand(tile, 0, 0, DC_AUTO, CMD_LANDSCAPE_CLEAR).Failed()) {
 			return false;
 		}
+		if (GrowingBlocksWaterConnection(tile)) return false;
 	}
 
 	Slope cur_slope = _settings_game.construction.build_on_slopes ? GetFoundationSlope(tile) : GetTileSlope(tile);
@@ -1101,6 +1166,9 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 	/* no water tiles in between? */
 	if (bridge_length == 1) return false;
 
+	/* Don't build the bridge if the bridge head at the destination is traversable by ships */
+	if (GrowingBlocksWaterConnection(bridge_tile)) return false;
+
 	for (uint8 times = 0; times <= 22; times++) {
 		byte bridge_type = RandomRange(MAX_BRIDGES - 1);
 
@@ -1264,6 +1332,7 @@ static void GrowTownInTile(TileIndex *tile_ptr, RoadBits cur_rb, DiagDirection t
 
 		/* Don't walk into water. */
 		if (HasTileWaterGround(house_tile)) return;
+		if (GrowingBlocksWaterConnection(house_tile)) return;
 
 		if (!IsValidTile(house_tile)) return;
 
@@ -1313,6 +1382,7 @@ static void GrowTownInTile(TileIndex *tile_ptr, RoadBits cur_rb, DiagDirection t
 
 	/* Return if a water tile */
 	if (HasTileWaterGround(tile)) return;
+	if (GrowingBlocksWaterConnection(tile)) return;
 
 	/* Make the roads look nicer */
 	rcmd = CleanUpRoadBits(tile, rcmd);
@@ -1338,6 +1408,7 @@ static bool CanFollowRoad(TileIndex tile, DiagDirection dir)
 	TileIndex target_tile = tile + TileOffsByDiagDir(dir);
 	if (!IsValidTile(target_tile)) return false;
 	if (HasTileWaterGround(target_tile)) return false;
+	if (GrowingBlocksWaterConnection(target_tile)) return false;
 
 	RoadBits target_rb = GetTownRoadBits(target_tile);
 	if (_settings_game.economy.allow_town_roads || _generating_world) {
@@ -2110,6 +2181,9 @@ static inline bool CanBuildHouseHere(TileIndex tile, bool noslope)
 
 	/* building under a bridge? */
 	if (IsBridgeAbove(tile)) return false;
+
+	/* building here blocks a water connection? */
+	if (GrowingBlocksWaterConnection(tile)) return false;
 
 	/* can we clear the land? */
 	return DoCommand(tile, 0, 0, DC_AUTO | DC_NO_WATER, CMD_LANDSCAPE_CLEAR).Succeeded();
