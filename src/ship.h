@@ -17,6 +17,7 @@
 
 void GetShipSpriteSize(EngineID engine, uint &width, uint &height, int &xoffs, int &yoffs, EngineImageType image_type);
 WaterClass GetEffectiveWaterClass(TileIndex tile);
+TrackBits GetTileShipTrackStatus(TileIndex tile);
 
 typedef std::deque<Trackdir> ShipPathCache;
 
