@@ -210,6 +210,22 @@ uint DistanceMaxPlusManhattan(TileIndex t0, TileIndex t1)
 }
 
 /**
+ * Gets the normalised distance between two tiles, for which it
+ * makes diagonal and straight directions equally profitable.
+ * @note called in GetTransportedGoodsIncome
+ * @param t0 the start tile
+ * @param t1 the end tile
+ * @return the distance
+ * @see GetAdvanceDistance
+ */
+uint DistanceTransportedGoodsIncome(TileIndex t0, TileIndex t1)
+{
+	const int dx = Delta(TileX(t0), TileX(t1));
+	const int dy = Delta(TileY(t0), TileY(t1));
+	return 4 * std::min(dx, dy) / 3 + abs(dx - dy);
+}
+
+/**
  * Param the minimum distance to an edge
  * @param tile the tile to get the distance from
  * @return the distance from the edge in tiles

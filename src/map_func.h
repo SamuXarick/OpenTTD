@@ -328,6 +328,7 @@ uint DistanceManhattan(TileIndex, TileIndex); ///< also known as L1-Norm. Is the
 uint DistanceSquare(TileIndex, TileIndex); ///< euclidian- or L2-Norm squared
 uint DistanceMax(TileIndex, TileIndex); ///< also known as L-Infinity-Norm
 uint DistanceMaxPlusManhattan(TileIndex, TileIndex); ///< Max + Manhattan
+uint DistanceTransportedGoodsIncome(TileIndex, TileIndex); ///< Normalised distance which makes diagonal and straight directions equally profitable
 uint DistanceFromEdge(TileIndex); ///< shortest distance from any edge of the map
 uint DistanceFromEdgeDir(TileIndex, DiagDirection); ///< distance from the map edge in given direction
 

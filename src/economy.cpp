@@ -1124,7 +1124,7 @@ static Money DeliverGoods(int num_pieces, CargoID cargo_type, StationID dest, Ti
 	st->town->received[cs->town_effect].new_act += accepted_total;
 
 	/* Determine profit */
-	Money profit = GetTransportedGoodsIncome(accepted_total, DistanceManhattan(source_tile, st->xy), days_in_transit, cargo_type);
+	Money profit = GetTransportedGoodsIncome(accepted_total, DistanceTransportedGoodsIncome(source_tile, st->xy), days_in_transit, cargo_type);
 
 	/* Update the cargo monitor. */
 	AddCargoDelivery(cargo_type, company->index, accepted_total - accepted_ind, src_type, src, st);
@@ -1246,7 +1246,7 @@ Money CargoPayment::PayTransfer(const CargoPacket *cp, uint count)
 			count,
 			/* pay transfer vehicle the difference between the payment for the journey from
 			 * the source to the current point, and the sum of the previous transfer payments */
-			DistanceManhattan(cp->SourceStationXY(), Station::Get(this->current_station)->xy),
+			DistanceTransportedGoodsIncome(cp->SourceStationXY(), Station::Get(this->current_station)->xy),
 			cp->DaysInTransit(),
 			this->ct);
 
