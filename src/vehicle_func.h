@@ -163,6 +163,7 @@ static inline uint32 GetCmdSendToDepot(const BaseVehicle *v)
 
 CommandCost EnsureNoVehicleOnGround(TileIndex tile);
 CommandCost EnsureNoTrainOnTrackBits(TileIndex tile, TrackBits track_bits);
+CommandCost EnsureNoShipOnDiagDirs(TileIndex tile, byte diag_dir_mask = (1 << DIAGDIR_NE | 1 << DIAGDIR_SE | 1 << DIAGDIR_SW | 1 << DIAGDIR_NW));
 
 extern VehicleID _new_vehicle_id;
 extern uint16 _returned_refit_capacity;

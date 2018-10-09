@@ -11,6 +11,7 @@
 #include "road.h"
 #include "road_internal.h" /* Cleaning up road bits */
 #include "road_cmd.h"
+#include "vehicle_func.h"
 #include "landscape.h"
 #include "viewport_func.h"
 #include "viewport_kdtree.h"
@@ -2298,7 +2299,8 @@ static inline bool CanBuildHouseHere(TileIndex tile, bool noslope)
 	if (IsBridgeAbove(tile)) return false;
 
 	/* can we clear the land? */
-	return DoCommand(tile, 0, 0, DC_AUTO | DC_NO_WATER, CMD_LANDSCAPE_CLEAR).Succeeded();
+	if (DoCommand(tile, 0, 0, DC_AUTO | DC_NO_WATER, CMD_LANDSCAPE_CLEAR).Failed()) return false;
+	return EnsureNoShipOnDiagDirs(tile).Succeeded();
 }
 
 

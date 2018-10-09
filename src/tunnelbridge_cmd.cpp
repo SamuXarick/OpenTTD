@@ -387,6 +387,7 @@ CommandCost CmdBuildBridge(TileIndex end_tile, DoCommandFlag flags, uint32 p1, u
 		/* Try and clear the start landscape */
 		CommandCost ret = DoCommand(tile_start, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 		if (ret.Failed()) return ret;
+		if (EnsureNoShipOnDiagDirs(tile_start).Failed()) return_cmd_error(STR_ERROR_SHIP_IN_THE_WAY);
 		cost = ret;
 
 		if (transport_type != TRANSPORT_WATER) {
@@ -442,6 +443,7 @@ CommandCost CmdBuildBridge(TileIndex end_tile, DoCommandFlag flags, uint32 p1, u
 		/* Try and clear the end landscape */
 		ret = DoCommand(tile_end, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 		if (ret.Failed()) return ret;
+		if (EnsureNoShipOnDiagDirs(tile_end).Failed()) return_cmd_error(STR_ERROR_SHIP_IN_THE_WAY);
 		cost.AddCost(ret);
 
 		/* false - end tile slope check */
