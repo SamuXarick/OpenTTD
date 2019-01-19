@@ -292,7 +292,7 @@ static CommandCost RemoveShipDepot(TileIndex tile, DoCommandFlag flags)
 	return CommandCost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_DEPOT_SHIP]);
 }
 
-static bool IsPossibleLockLocation(TileIndex tile)
+bool IsPossibleLockLocation(TileIndex tile)
 {
 	DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile));
 	if (!IsValidDiagDirection(dir)) return false;
