@@ -3465,7 +3465,6 @@ STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}AI/Spul
 STR_AI_CONFIG_CAPTION                                           :{WHITE}AI/Spulskript konfiguraasje
 STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}It spulskript dat yn it folgjende spul laden sil wurde
 STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}AIs dy't yn it folgjende spul laden sille wurde
-STR_AI_CONFIG_HUMAN_PLAYER                                      :Minslike spiler
 STR_AI_CONFIG_RANDOM_AI                                         :Samar in AI
 STR_AI_CONFIG_NONE                                              :(gjin)
 

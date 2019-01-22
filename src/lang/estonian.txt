@@ -4285,7 +4285,6 @@ STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}AI/Game
 STR_AI_CONFIG_CAPTION                                           :{WHITE}AI/Game Script seadistus
 STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}Järgmises mängus laaditav GameScript
 STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}AI-d järgmises mängus
-STR_AI_CONFIG_HUMAN_PLAYER                                      :Inimene
 STR_AI_CONFIG_RANDOM_AI                                         :Suvaline AI
 STR_AI_CONFIG_NONE                                              :(mitte ühtegi)
 

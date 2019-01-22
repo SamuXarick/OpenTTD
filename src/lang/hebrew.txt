@@ -3946,7 +3946,6 @@ STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}חלו�
 STR_AI_CONFIG_CAPTION                                           :{WHITE}הגדרות משחק/בינה מלאכותית
 STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}סקריפט המשחק אשר יטען במשחק הבא
 STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}שחקני המחשב אשר יטענו במשחק הבא
-STR_AI_CONFIG_HUMAN_PLAYER                                      :שחקן אנושי
 STR_AI_CONFIG_RANDOM_AI                                         :בינה מלאכותית אקראית
 STR_AI_CONFIG_NONE                                              :(ללא)
 

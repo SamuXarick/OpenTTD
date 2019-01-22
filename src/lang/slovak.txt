@@ -4297,7 +4297,6 @@ STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}Okno la
 STR_AI_CONFIG_CAPTION                                           :{WHITE}Nastavenia AI/skriptu
 STR_AI_CONFIG_GAMELIST_TOOLTIP                                  :{BLACK}Skript, ktorý bude načítaný v ďalšej hre
 STR_AI_CONFIG_AILIST_TOOLTIP                                    :{BLACK}AI, ktoré budú načítané v ďalšiej hre
-STR_AI_CONFIG_HUMAN_PLAYER                                      :Človek
 STR_AI_CONFIG_RANDOM_AI                                         :Náhodná AI
 STR_AI_CONFIG_NONE                                              :(žiadne)
 
