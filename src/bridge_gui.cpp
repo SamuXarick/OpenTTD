@@ -22,6 +22,7 @@
 #include "core/geometry_func.hpp"
 #include "tunnelbridge_map.h"
 #include "road_gui.h"
+#include "viewport_func.h"
 #include "tunnelbridge_cmd.h"
 
 #include "widgets/bridge_widget.h"
@@ -57,7 +58,12 @@ typedef GUIList<BuildBridgeData> GUIBridgeList; ///< List of bridges, used in #B
  */
 void CcBuildBridge(Commands cmd, const CommandCost &result, TileIndex end_tile, TileIndex tile_start, TransportType transport_type, BridgeType, byte)
 {
-	if (result.Failed()) return;
+	if (result.Failed()) {
+		if (transport_type == TRANSPORT_WATER) {
+			SetRedErrorSquare(_build_tunnel_endtile);
+		}
+		return;
+	}
 	if (_settings_client.sound.confirm) SndPlayTileFx(SND_27_CONSTRUCTION_BRIDGE, end_tile);
 
 	if (transport_type == TRANSPORT_ROAD) {
