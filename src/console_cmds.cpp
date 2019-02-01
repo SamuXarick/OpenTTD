@@ -1479,8 +1479,7 @@ DEF_CONSOLE_CMD(ConReloadAI)
 		return true;
 	}
 
-	/* In singleplayer mode the player can be in an AI company, after cheating or loading network save with an AI in first slot. */
-	if (Company::IsHumanID(company_id) || company_id == _local_company) {
+	if (Company::IsHumanID(company_id)) {
 		IConsolePrint(CC_ERROR, "Company is not controlled by an AI.");
 		return true;
 	}
@@ -1517,8 +1516,7 @@ DEF_CONSOLE_CMD(ConStopAI)
 		return true;
 	}
 
-	/* In singleplayer mode the player can be in an AI company, after cheating or loading network save with an AI in first slot. */
-	if (Company::IsHumanID(company_id) || company_id == _local_company) {
+	if (Company::IsHumanID(company_id)) {
 		IConsolePrint(CC_ERROR, "Company is not controlled by an AI.");
 		return true;
 	}
