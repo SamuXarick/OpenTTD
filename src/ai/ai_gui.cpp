@@ -1660,8 +1660,7 @@ struct AIDebugWindow : public Window {
 			settings_button->SetDataTip(STR_AI_CONFIG_CONFIGURE, STR_AI_CONFIG_CONFIGURE_TOOLTIP);
 		}
 
-		extern CompanyID _local_company;
-		this->SetWidgetDisabledState(WID_AID_RELOAD_TOGGLE, _game_mode != GM_NORMAL || ai_debug_company == INVALID_COMPANY || ai_debug_company == OWNER_DEITY || ai_debug_company == _local_company);
+		this->SetWidgetDisabledState(WID_AID_RELOAD_TOGGLE, _game_mode != GM_NORMAL || ai_debug_company == INVALID_COMPANY || ai_debug_company == OWNER_DEITY);
 		this->SetWidgetDisabledState(WID_AID_CONTINUE_BTN, ai_debug_company == INVALID_COMPANY ||
 				(ai_debug_company == OWNER_DEITY ? !Game::IsPaused() : !AI::IsPaused(ai_debug_company)));
 	}
