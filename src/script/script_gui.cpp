@@ -1091,8 +1091,7 @@ struct ScriptDebugWindow : public Window {
 		this->SetWidgetLoweredState(WID_SCRD_MATCH_CASE_BTN, this->case_sensitive_break_check);
 
 		this->SetWidgetDisabledState(WID_SCRD_SETTINGS, script_debug_company == INVALID_COMPANY);
-		extern CompanyID _local_company;
-		this->SetWidgetDisabledState(WID_SCRD_RELOAD_TOGGLE, script_debug_company == INVALID_COMPANY || script_debug_company == OWNER_DEITY || script_debug_company == _local_company);
+		this->SetWidgetDisabledState(WID_SCRD_RELOAD_TOGGLE, script_debug_company == INVALID_COMPANY || script_debug_company == OWNER_DEITY);
 		this->SetWidgetDisabledState(WID_SCRD_CONTINUE_BTN, script_debug_company == INVALID_COMPANY ||
 			(script_debug_company == OWNER_DEITY ? !Game::IsPaused() : !AI::IsPaused(script_debug_company)));
 	}
