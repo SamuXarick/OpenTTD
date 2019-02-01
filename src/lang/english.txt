@@ -603,6 +603,9 @@ STR_GRAPH_PERFORMANCE_DETAIL_TOOLTIP                            :{BLACK}Show det
 STR_GRAPH_KEY_CAPTION                                           :{WHITE}Key to company graphs
 STR_GRAPH_KEY_COMPANY_SELECTION_TOOLTIP                         :{BLACK}Click here to toggle company's entry on graph on/off
 
+# Company list toolbar dropdown
+STR_COMPANY_LIST_NEW_COMPANY                                    :New company
+
 # Company league window
 STR_COMPANY_LEAGUE_TABLE_CAPTION                                :{WHITE}Company League Table
 STR_COMPANY_LEAGUE_COMPANY_NAME                                 :{ORANGE}{COMPANY} {BLACK}{COMPANY_NUM} '{STRING}'
@@ -782,6 +785,7 @@ STR_STATUSBAR_PAUSED                                            :{YELLOW}*  *  P
 STR_STATUSBAR_PAUSED_LINK_GRAPH                                 :{ORANGE}*  *  PAUSED (waiting for link graph update) *  *
 STR_STATUSBAR_AUTOSAVE                                          :{RED}AUTOSAVE
 STR_STATUSBAR_SAVING_GAME                                       :{RED}*  *  SAVING GAME  *  *
+STR_STATUSBAR_SPECTATOR                                         :{WHITE}- -  Spectator  - -
 
 # News message history
 STR_MESSAGE_HISTORY                                             :{WHITE}Message History

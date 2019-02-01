@@ -173,6 +173,8 @@ struct StatusBarWindow : Window {
 							/* This is the default text */
 							SetDParam(0, _local_company);
 							DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, text_top, STR_STATUSBAR_COMPANY_NAME, TC_FROMSTRING, SA_HOR_CENTER);
+						} else if (_local_company == COMPANY_SPECTATOR) {
+							DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, text_top, STR_STATUSBAR_SPECTATOR, TC_FROMSTRING, SA_HOR_CENTER);
 						}
 					}
 				} else {
@@ -180,6 +182,8 @@ struct StatusBarWindow : Window {
 						/* This is the default text */
 						SetDParam(0, _local_company);
 						DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, text_top, STR_STATUSBAR_COMPANY_NAME, TC_FROMSTRING, SA_HOR_CENTER);
+					} else if (_local_company == COMPANY_SPECTATOR) {
+						DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, text_top, STR_STATUSBAR_SPECTATOR, TC_FROMSTRING, SA_HOR_CENTER);
 					}
 				}
 
