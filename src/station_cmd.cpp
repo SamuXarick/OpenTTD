@@ -4119,14 +4119,17 @@ uint MoveGoodsToStation(CargoID type, uint amount, SourceType source_type, Sourc
 		uint owner = p.first->owner;
 		/* Multiply the amount by (company best / sum of best for each company) to get cargo allocated to a company
 		 * and by (station rating / sum of ratings in a company) to get the result for a single station. */
-		p.second = amount * company_best[owner] * p.first->goods[type].rating / best_sum / company_sum[owner];
+		uint a = amount * company_best[owner] * p.first->goods[type].rating;
+		uint b = best_sum * company_sum[owner];
+		p.second = a / b;
 		moving += p.second;
+		p.second |= (65535 * (a % b) / b) << 16;
 	}
 
-	/* If there is some cargo left due to rounding issues distribute it among the best rated stations.  */
+	/* If there is some cargo left due to rounding issues distribute it according to the highest remainder. */
 	if (amount > moving) {
-		std::sort(used_stations.begin(), used_stations.end(), [type] (const StationInfo &a, const StationInfo &b) {
-			return b.first->goods[type].rating < a.first->goods[type].rating;
+		std::sort(used_stations.begin(), used_stations.end(), [] (const StationInfo &a, const StationInfo &b) {
+			return b.second < a.second;
 		});
 
 		assert(amount - moving <= used_stations.size());
@@ -4137,7 +4140,7 @@ uint MoveGoodsToStation(CargoID type, uint amount, SourceType source_type, Sourc
 
 	uint moved = 0;
 	for (auto &p : used_stations) {
-		moved += UpdateStationWaiting(p.first, type, p.second, source_type, source_id);
+		moved += UpdateStationWaiting(p.first, type, GB(p.second, 0, 16), source_type, source_id);
 	}
 
 	return moved;
