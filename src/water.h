@@ -42,6 +42,8 @@ bool RiverModifyDesertZone(TileIndex tile, void *data);
 void MakeRiverAndModifyDesertZoneAround(TileIndex tile);
 static const uint RIVER_OFFSET_DESERT_DISTANCE = 5; ///< Circular tile search radius to create non-desert around a river tile.
 
+bool IsPossibleLockLocationOnDiagDir(TileIndex tile, DiagDirection dir);
+
 bool IsWateredTile(TileIndex tile, Direction from);
 
 /**
