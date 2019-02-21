@@ -69,7 +69,11 @@
 	for (uint i = 0; i < lengthof(ind->accepts_cargo); i++) {
 		CargoID cid = ind->accepts_cargo[i];
 		if (cid == cargo_id) {
-			return ind->incoming_cargo_waiting[i];
+			uint incoming_cargo_waiting = ind->incoming_cargo_waiting[i][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				incoming_cargo_waiting += ind->incoming_cargo_waiting[i][owner];
+			}
+			return incoming_cargo_waiting;
 		}
 	}
 

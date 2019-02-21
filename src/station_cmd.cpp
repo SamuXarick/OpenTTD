@@ -4014,7 +4014,7 @@ const StationList *StationFinder::GetStations()
 	return &this->stations;
 }
 
-uint MoveGoodsToStation(CargoID type, uint amount, SourceType source_type, SourceID source_id, const StationList *all_stations)
+uint MoveGoodsToStation(CargoID type, uint amount, SourceType source_type, SourceID source_id, const StationList *all_stations, Owner owner)
 {
 	/* Return if nothing to do. Also the rounding below fails for 0. */
 	if (amount == 0) return 0;
@@ -4039,10 +4039,16 @@ uint MoveGoodsToStation(CargoID type, uint amount, SourceType source_type, Sourc
 		}
 
 		/* This station can be used, add it to st1/st2 */
-		if (st1 == nullptr || st->goods[type].rating >= best_rating1) {
-			st2 = st1; best_rating2 = best_rating1; st1 = st; best_rating1 = st->goods[type].rating;
-		} else if (st2 == nullptr || st->goods[type].rating >= best_rating2) {
-			st2 = st; best_rating2 = st->goods[type].rating;
+		if (st1 == nullptr) {
+			st1 = st; best_rating1 = st->goods[type].rating;
+		} else if (owner == MAX_COMPANIES || st1->owner == OWNER_NONE || st->owner == OWNER_NONE || (st->owner == owner && st->owner == st1->owner) || (st->owner != owner && st1->owner != owner)) {
+			if (st->goods[type].rating >= best_rating1) {
+				st2 = st1; best_rating2 = best_rating1; st1 = st; best_rating1 = st->goods[type].rating;
+			} else if (st2 == nullptr || st->goods[type].rating >= best_rating2 || (owner != MAX_COMPANIES && st2->owner != OWNER_NONE && st2->owner != st->owner)) {
+				st2 = st; best_rating2 = st->goods[type].rating;
+			}
+		} else if (st1->owner != owner && st->owner == owner) {
+			st2 = nullptr; best_rating2 = 0; st1 = st; best_rating1 = st->goods[type].rating;
 		}
 	}
 

@@ -530,19 +530,21 @@ static bool TransportIndustryGoods(TileIndex tile)
 	bool moved_cargo = false;
 
 	for (uint j = 0; j < lengthof(i->produced_cargo_waiting); j++) {
-		uint cw = min(i->produced_cargo_waiting[j], 255);
-		if (cw > indspec->minimal_cargo && i->produced_cargo[j] != CT_INVALID) {
-			i->produced_cargo_waiting[j] -= cw;
+		for (Owner owner = COMPANY_FIRST; owner <= MAX_COMPANIES; owner++) {
+			uint cw_o = min(i->produced_cargo_waiting[j][owner], 255);
+			if (cw_o > indspec->minimal_cargo && i->produced_cargo[j] != CT_INVALID) {
+				i->produced_cargo_waiting[j][owner] -= cw_o;
 
-			/* fluctuating economy? */
-			if (EconomyIsInRecession()) cw = (cw + 1) / 2;
+				/* fluctuating economy? */
+				if (EconomyIsInRecession()) cw_o = (cw_o + 1) / 2;
 
-			i->this_month_production[j] += cw;
+				i->this_month_production[j] += cw_o;
 
-			uint am = MoveGoodsToStation(i->produced_cargo[j], cw, ST_INDUSTRY, i->index, &i->stations_near);
-			i->this_month_transported[j] += am;
+				uint am = MoveGoodsToStation(i->produced_cargo[j], cw_o, ST_INDUSTRY, i->index, &i->stations_near);
+				i->this_month_transported[j] += am;
 
-			moved_cargo |= (am != 0);
+				moved_cargo |= (am != 0);
+			}
 		}
 	}
 
@@ -1117,7 +1119,7 @@ static void ChopLumberMillTrees(Industry *i)
 
 	TileIndex tile = i->location.tile;
 	if (CircularTileSearch(&tile, 40, SearchLumberMillTrees, nullptr)) { // 40x40 tiles  to search.
-		i->produced_cargo_waiting[0] = min(0xffff, i->produced_cargo_waiting[0] + 45); // Found a tree, add according value to waiting cargo.
+		i->produced_cargo_waiting[0][MAX_COMPANIES] = min(0xffff, i->produced_cargo_waiting[0][MAX_COMPANIES] + 45); // Found a tree, add according value to waiting cargo.
 	}
 }
 
@@ -1148,8 +1150,8 @@ static void ProduceIndustryGoods(Industry *i)
 		if (HasBit(indsp->callback_mask, CBM_IND_PRODUCTION_256_TICKS)) IndustryProductionCallback(i, 1);
 
 		IndustryBehaviour indbehav = indsp->behaviour;
-		for (size_t j = 0; j < lengthof(i->produced_cargo_waiting); j++) {
-			i->produced_cargo_waiting[j] = min(0xffff, i->produced_cargo_waiting[j] + i->production_rate[j]);
+		for (size_t j = 0; j < INDUSTRY_NUM_OUTPUTS; j++) {
+			i->produced_cargo_waiting[j][MAX_COMPANIES] = min(0xffff, i->produced_cargo_waiting[j][MAX_COMPANIES] + i->production_rate[j]);
 		}
 
 		if ((indbehav & INDUSTRYBEH_PLANT_FIELDS) != 0) {
@@ -1791,8 +1793,8 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 		if (HasBit(indspec->callback_mask, CBM_IND_PRODUCTION_256_TICKS)) {
 			IndustryProductionCallback(i, 1);
 			for (size_t ci = 0; ci < lengthof(i->last_month_production); ci++) {
-				i->last_month_production[ci] = i->produced_cargo_waiting[ci] * 8;
-				i->produced_cargo_waiting[ci] = 0;
+				i->last_month_production[ci] = i->produced_cargo_waiting[ci][MAX_COMPANIES] * 8;
+				i->produced_cargo_waiting[ci][MAX_COMPANIES] = 0;
 			}
 		}
 

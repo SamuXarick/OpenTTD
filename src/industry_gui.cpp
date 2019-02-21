@@ -836,7 +836,11 @@ public:
 			}
 			SetDParam(0, CargoSpec::Get(i->accepts_cargo[j])->name);
 			SetDParam(1, i->accepts_cargo[j]);
-			SetDParam(2, i->incoming_cargo_waiting[j]);
+			uint incoming_cargo_waiting = i->incoming_cargo_waiting[j][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				incoming_cargo_waiting += i->incoming_cargo_waiting[j][owner];
+			}
+			SetDParam(2, incoming_cargo_waiting);
 			SetDParamStr(3, "");
 			StringID str = STR_NULL;
 			switch (cargo_suffix[j].display) {

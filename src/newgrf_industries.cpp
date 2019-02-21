@@ -211,11 +211,15 @@ static uint32 GetCountAndDistanceOfClosestInstance(byte param_setID, byte layout
 		case 0x42: { // waiting cargo, but only if those two callback flags are set
 			uint16 callback = indspec->callback_mask;
 			if (HasBit(callback, CBM_IND_PRODUCTION_CARGO_ARRIVAL) || HasBit(callback, CBM_IND_PRODUCTION_256_TICKS)) {
+				uint incoming_cargo_waiting = 0;
+				for (Owner owner = COMPANY_FIRST; owner <= MAX_COMPANIES; owner++) {
+					incoming_cargo_waiting += this->industry->incoming_cargo_waiting[variable - 0x40][owner];
+				}
 				if ((indspec->behaviour & INDUSTRYBEH_PROD_MULTI_HNDLING) != 0) {
 					if (this->industry->prod_level == 0) return 0;
-					return min(this->industry->incoming_cargo_waiting[variable - 0x40] / this->industry->prod_level, (uint16)0xFFFF);
+					return min(incoming_cargo_waiting / this->industry->prod_level, (uint16)0xFFFF);
 				} else {
-					return min(this->industry->incoming_cargo_waiting[variable - 0x40], (uint16)0xFFFF);
+					return min(incoming_cargo_waiting, (uint16)0xFFFF);
 				}
 			} else {
 				return 0;
@@ -310,16 +314,20 @@ static uint32 GetCountAndDistanceOfClosestInstance(byte param_setID, byte layout
 			CargoID cargo = GetCargoTranslation(parameter, this->ro.grffile);
 			int index = this->industry->GetCargoProducedIndex(cargo);
 			if (index < 0) return 0; // invalid cargo
-			switch (variable) {
-				case 0x69: return this->industry->produced_cargo_waiting[index];
-				case 0x6A: return this->industry->this_month_production[index];
-				case 0x6B: return this->industry->this_month_transported[index];
-				case 0x6C: return this->industry->last_month_production[index];
-				case 0x6D: return this->industry->last_month_transported[index];
-				case 0x70: return this->industry->production_rate[index];
-				case 0x71: return this->industry->last_month_pct_transported[index];
-				default: NOT_REACHED();
+			if (variable == 0x69) {
+				uint produced_cargo_waiting = this->industry->produced_cargo_waiting[index][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+					produced_cargo_waiting += this->industry->produced_cargo_waiting[index][owner];
+				}
+				return produced_cargo_waiting;
 			}
+			if (variable == 0x6A) return this->industry->this_month_production[index];
+			if (variable == 0x6B) return this->industry->this_month_transported[index];
+			if (variable == 0x6C) return this->industry->last_month_production[index];
+			if (variable == 0x6D) return this->industry->last_month_transported[index];
+			if (variable == 0x70) return this->industry->production_rate[index];
+			if (variable == 0x71) return this->industry->last_month_pct_transported[index];
+			NOT_REACHED();
 		}
 
 
@@ -329,7 +337,13 @@ static uint32 GetCountAndDistanceOfClosestInstance(byte param_setID, byte layout
 			int index = this->industry->GetCargoAcceptedIndex(cargo);
 			if (index < 0) return 0; // invalid cargo
 			if (variable == 0x6E) return this->industry->last_cargo_accepted_at[index];
-			if (variable == 0x6F) return this->industry->incoming_cargo_waiting[index];
+			if (variable == 0x6F) {
+				uint incoming_cargo_waiting = this->industry->incoming_cargo_waiting[index][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+					incoming_cargo_waiting += this->industry->incoming_cargo_waiting[index][owner];
+				}
+				return incoming_cargo_waiting;
+			}
 			NOT_REACHED();
 		}
 
@@ -349,10 +363,34 @@ static uint32 GetCountAndDistanceOfClosestInstance(byte param_setID, byte layout
 
 		case 0x88:
 		case 0x89: return this->industry->produced_cargo[variable - 0x88];
-		case 0x8A: return this->industry->produced_cargo_waiting[0];
-		case 0x8B: return GB(this->industry->produced_cargo_waiting[0], 8, 8);
-		case 0x8C: return this->industry->produced_cargo_waiting[1];
-		case 0x8D: return GB(this->industry->produced_cargo_waiting[1], 8, 8);
+		case 0x8A: {
+			uint produced_cargo_waiting = this->industry->produced_cargo_waiting[0][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				produced_cargo_waiting += this->industry->produced_cargo_waiting[0][owner];
+			}
+			return produced_cargo_waiting;
+		}
+		case 0x8B: {
+			uint produced_cargo_waiting = this->industry->produced_cargo_waiting[0][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				produced_cargo_waiting += this->industry->produced_cargo_waiting[0][owner];
+			}
+			return GB(produced_cargo_waiting, 8, 8);
+		}
+		case 0x8C: {
+			uint produced_cargo_waiting = this->industry->produced_cargo_waiting[1][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				produced_cargo_waiting += this->industry->produced_cargo_waiting[1][owner];
+			}
+			return produced_cargo_waiting;
+		}
+		case 0x8D: {
+			uint produced_cargo_waiting = this->industry->produced_cargo_waiting[1][MAX_COMPANIES];
+			for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+				produced_cargo_waiting += this->industry->produced_cargo_waiting[1][owner];
+			}
+			return GB(produced_cargo_waiting, 8, 8);
+		}
 		case 0x8E:
 		case 0x8F: return this->industry->production_rate[variable - 0x8E];
 		case 0x90:
@@ -623,22 +661,42 @@ void IndustryProductionCallback(Industry *ind, int reason)
 		if (group->version < 2) {
 			/* Callback parameters map directly to industry cargo slot indices */
 			for (uint i = 0; i < group->num_input; i++) {
-				ind->incoming_cargo_waiting[i] = Clamp(ind->incoming_cargo_waiting[i] - DerefIndProd(group->subtract_input[i], deref) * multiplier, 0, 0xFFFF);
+				uint incoming_cargo_waiting = ind->incoming_cargo_waiting[i][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+					incoming_cargo_waiting += ind->incoming_cargo_waiting[i][owner];
+					ind->incoming_cargo_waiting[i][owner] = 0;
+				}
+				ind->incoming_cargo_waiting[i][MAX_COMPANIES] = Clamp(incoming_cargo_waiting - DerefIndProd(group->subtract_input[i], deref) * multiplier, 0, 0xFFFF);
 			}
 			for (uint i = 0; i < group->num_output; i++) {
-				ind->produced_cargo_waiting[i] = Clamp(ind->produced_cargo_waiting[i] + max(DerefIndProd(group->add_output[i], deref), 0) * multiplier, 0, 0xFFFF);
+				uint produced_cargo_waiting = ind->produced_cargo_waiting[i][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+					produced_cargo_waiting += ind->produced_cargo_waiting[i][owner];
+					ind->produced_cargo_waiting[i][owner] = 0;
+				}
+				ind->produced_cargo_waiting[i][MAX_COMPANIES] = Clamp(produced_cargo_waiting + max(DerefIndProd(group->add_output[i], deref), 0) * multiplier, 0, 0xFFFF);
 			}
 		} else {
 			/* Callback receives list of cargos to apply for, which need to have their cargo slots in industry looked up */
 			for (uint i = 0; i < group->num_input; i++) {
 				int cargo_index = ind->GetCargoAcceptedIndex(group->cargo_input[i]);
 				if (cargo_index < 0) continue;
-				ind->incoming_cargo_waiting[cargo_index] = Clamp(ind->incoming_cargo_waiting[cargo_index] - DerefIndProd(group->subtract_input[i], deref) * multiplier, 0, 0xFFFF);
+				uint incoming_cargo_waiting = ind->incoming_cargo_waiting[cargo_index][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner < MAX_COMPANIES; owner++) {
+					incoming_cargo_waiting += ind->incoming_cargo_waiting[cargo_index][owner];
+					ind->incoming_cargo_waiting[cargo_index][owner] = 0;
+				}
+				ind->incoming_cargo_waiting[cargo_index][MAX_COMPANIES] = Clamp(incoming_cargo_waiting - DerefIndProd(group->subtract_input[i], deref) * multiplier, 0, 0xFFFF);
 			}
 			for (uint i = 0; i < group->num_output; i++) {
 				int cargo_index = ind->GetCargoProducedIndex(group->cargo_output[i]);
 				if (cargo_index < 0) continue;
-				ind->produced_cargo_waiting[cargo_index] = Clamp(ind->produced_cargo_waiting[cargo_index] + max(DerefIndProd(group->add_output[i], deref), 0) * multiplier, 0, 0xFFFF);
+				uint produced_cargo_waiting = ind->produced_cargo_waiting[cargo_index][MAX_COMPANIES];
+				for (Owner owner = COMPANY_FIRST; owner <= MAX_COMPANIES; owner++) {
+					produced_cargo_waiting += ind->produced_cargo_waiting[cargo_index][owner];
+					ind->produced_cargo_waiting[cargo_index][owner] = 0;
+				}
+				ind->produced_cargo_waiting[cargo_index][MAX_COMPANIES] = Clamp(produced_cargo_waiting + max(DerefIndProd(group->add_output[i], deref), 0) * multiplier, 0, 0xFFFF);
 			}
 		}
 

@@ -42,8 +42,8 @@ struct Industry : IndustryPool::PoolItem<&_industry_pool> {
 	Town *town;                                            ///< Nearest town
 	Station *neutral_station;                              ///< Associated neutral station
 	CargoID produced_cargo[INDUSTRY_NUM_OUTPUTS];          ///< 16 production cargo slots
-	uint16 produced_cargo_waiting[INDUSTRY_NUM_OUTPUTS];   ///< amount of cargo produced per cargo
-	uint16 incoming_cargo_waiting[INDUSTRY_NUM_INPUTS];    ///< incoming cargo waiting to be processed
+	uint16 produced_cargo_waiting[INDUSTRY_NUM_OUTPUTS][MAX_COMPANIES + 1];   ///< amount of cargo produced per cargo
+	uint16 incoming_cargo_waiting[INDUSTRY_NUM_INPUTS][MAX_COMPANIES + 1];    ///< incoming cargo waiting to be processed
 	byte production_rate[INDUSTRY_NUM_OUTPUTS];            ///< production rate for each cargo
 	byte prod_level;                                       ///< general production level
 	CargoID accepts_cargo[INDUSTRY_NUM_INPUTS];            ///< 16 input cargo slots

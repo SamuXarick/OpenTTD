@@ -2997,7 +2997,7 @@ bool AfterLoadGame()
 		for (Industry *i : Industry::Iterate()) {
 			for (size_t ci = 2; ci < lengthof(i->produced_cargo); ci++) {
 				i->produced_cargo[ci] = CT_INVALID;
-				i->produced_cargo_waiting[ci] = 0;
+				i->produced_cargo_waiting[ci][MAX_COMPANIES] = 0;
 				i->production_rate[ci] = 0;
 				i->last_month_production[ci] = 0;
 				i->last_month_transported[ci] = 0;
@@ -3007,7 +3007,7 @@ bool AfterLoadGame()
 			}
 			for (size_t ci = 3; ci < lengthof(i->accepts_cargo); ci++) {
 				i->accepts_cargo[ci] = CT_INVALID;
-				i->incoming_cargo_waiting[ci] = 0;
+				i->incoming_cargo_waiting[ci][MAX_COMPANIES] = 0;
 			}
 			/* Make sure last_cargo_accepted_at is copied to elements for every valid input cargo.
 			 * The loading routine should put the original singular value into the first array element. */

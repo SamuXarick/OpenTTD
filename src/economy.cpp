@@ -1045,8 +1045,8 @@ static uint DeliverGoodsToIndustry(const Station *st, CargoID cargo_type, uint n
 		/* Insert the industry into _cargo_delivery_destinations, if not yet contained */
 		include(_cargo_delivery_destinations, ind);
 
-		uint amount = min(num_pieces, 0xFFFFU - ind->incoming_cargo_waiting[cargo_index]);
-		ind->incoming_cargo_waiting[cargo_index] += amount;
+		uint amount = min(num_pieces, 0xFFFFU - ind->incoming_cargo_waiting[cargo_index][company]);
+		ind->incoming_cargo_waiting[cargo_index][company] += amount;
 		ind->last_cargo_accepted_at[cargo_index] = _date;
 		num_pieces -= amount;
 		accepted += amount;
@@ -1135,15 +1135,17 @@ static void TriggerIndustryProduction(Industry *i)
 			SetWindowDirty(WC_INDUSTRY_VIEW, i->index);
 		}
 	} else {
-		for (uint ci_in = 0; ci_in < lengthof(i->incoming_cargo_waiting); ci_in++) {
-			uint cargo_waiting = i->incoming_cargo_waiting[ci_in];
-			if (cargo_waiting == 0) continue;
+		for (uint ci_in = 0; ci_in < INDUSTRY_NUM_INPUTS; ci_in++) {
+			for (Owner owner = COMPANY_FIRST; owner <= MAX_COMPANIES; owner++) {
+				uint cargo_waiting = i->incoming_cargo_waiting[ci_in][owner];
+				if (cargo_waiting == 0) continue;
 
-			for (uint ci_out = 0; ci_out < lengthof(i->produced_cargo_waiting); ci_out++) {
-				i->produced_cargo_waiting[ci_out] = min(i->produced_cargo_waiting[ci_out] + (cargo_waiting * indspec->input_cargo_multiplier[ci_in][ci_out] / 256), 0xFFFF);
+				for (uint ci_out = 0; ci_out < INDUSTRY_NUM_OUTPUTS; ci_out++) {
+					i->produced_cargo_waiting[ci_out][owner] = min(i->produced_cargo_waiting[ci_out][owner] + (cargo_waiting * indspec->input_cargo_multiplier[ci_in][ci_out] / 256), 0xFFFF);
+				}
+
+				i->incoming_cargo_waiting[ci_in][owner] = 0;
 			}
-
-			i->incoming_cargo_waiting[ci_in] = 0;
 		}
 	}
 
