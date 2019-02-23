@@ -893,8 +893,10 @@ static bool GrowingBlocksWaterConnection(TileIndex tile)
 	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_a, TRANSPORT_WATER, 0)) == TRACK_BIT_NONE) return false;
 	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_b, TRANSPORT_WATER, 0)) == TRACK_BIT_NONE) return false;
 
-	/* If they are, test opposite tile is NOT traversible. */
-	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_o, TRANSPORT_WATER, 0)) != TRACK_BIT_NONE) return false;
+	/* If they are, test opposite tile has connecting track. */
+	static const Track opposite_track[CORNER_END] = { TRACK_LEFT, TRACK_LOWER, TRACK_RIGHT, TRACK_UPPER };
+	TrackBits trackbits = TrackStatusToTrackBits(GetTileTrackStatus(tile_o, TRANSPORT_WATER, 0));
+	if (HasBit(trackbits, opposite_track[corner])) return false;
 
 	/* Over building would block a route, so deny it. */
 	return true;
