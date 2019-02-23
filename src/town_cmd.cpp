@@ -863,59 +863,41 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 static bool GrowingBlocksWaterConnection(TileIndex tile)
 {
 	if (!IsValidTile(tile)) return false;
+	if (!IsCoastTile(tile)) return false;
 
 	Slope slope = GetTileSlope(tile);
+
 	/* Is this a coast tile with one corner raised ? */
-	if (IsSlopeWithOneCornerRaised(slope) && IsCoastTile(tile)) {
-		Corner corner = GetHighestSlopeCorner(slope);
-		Corner opposite_corner = OppositeCorner(corner);
+	if (!IsSlopeWithOneCornerRaised(slope)) return false;
 
-		static const Direction corner_to_direction[] = { DIR_W, DIR_S, DIR_E, DIR_N };
-		extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
-		TileIndexDiffC diffc = _tileoffs_by_dir[corner_to_direction[opposite_corner]];
+	static const TileIndexDiffC adjacent_tile[CORNER_END][3] = {
+		/* Anti-CW,   Clockwise,  Opposite */
+		{ { -1,  0 }, {  0,  1 }, { -1,  1 } },
+		{ {  0, -1 }, { -1,  0 }, { -1, -1 } },
+		{ {  1,  0 }, {  0, -1 }, {  1, -1 } },
+		{ {  0,  1 }, {  1,  0 }, {  1,  1 } },
+	};
 
-		TileIndex opposite_tile = TileAddWrap(tile, diffc.x, diffc.y);
-		if (IsValidTile(opposite_tile)) {
-			static const struct { TrackBits track_mask_1, track_mask_2, track_mask_1_90_deg, track_mask_2_90_deg; } track_bit_table[] = {
-				/*         t1x,t1y,t2x,t2y,              track_mask_1          ,        track_mask_2          track_mask_1_90_deg, track_mask_2_90_deg, opposite_tile */
-				/* CORNER_W  0,  1, -1,  0,  */ { TRACK_BIT_X | TRACK_BIT_RIGHT, TRACK_BIT_Y | TRACK_BIT_RIGHT, TRACK_BIT_3WAY_NE, TRACK_BIT_3WAY_SE }, /* -1,  1 */
-				/* CORNER_S  1,  0,  0,  1,  */ { TRACK_BIT_Y | TRACK_BIT_UPPER, TRACK_BIT_X | TRACK_BIT_UPPER, TRACK_BIT_3WAY_NW, TRACK_BIT_3WAY_NE }, /*  1,  1 */
-				/* CORNER_E  0, -1,  1,  0,  */ { TRACK_BIT_X | TRACK_BIT_LEFT , TRACK_BIT_Y | TRACK_BIT_LEFT , TRACK_BIT_3WAY_SW, TRACK_BIT_3WAY_NW }, /*  1, -1 */
-				/* CORNER_N -1,  0,  0, -1,  */ { TRACK_BIT_Y | TRACK_BIT_LOWER, TRACK_BIT_X | TRACK_BIT_LOWER, TRACK_BIT_3WAY_SE, TRACK_BIT_3WAY_SW }, /* -1, -1 */
-			};
+	Corner corner = GetHighestSlopeCorner(slope);
+	const TileIndexDiffC *ti = adjacent_tile[corner];
 
-			TileIndex tile_1 = TileAddWrap(tile, opposite_corner & 1 ? diffc.x : 0, opposite_corner & 1 ? 0 : diffc.y);
-			TileIndex tile_2 = TileAddWrap(tile, opposite_corner & 1 ? 0 : diffc.x, opposite_corner & 1 ? diffc.y : 0);
+	/* Test adjacent tiles are valid */
+	TileIndex tile_a = TileAddWrap(tile, ti[0].x, ti[0].y);
+	if (!IsValidTile(tile_a)) return false;
+	TileIndex tile_b = TileAddWrap(tile, ti[1].x, ti[1].y);
+	if (!IsValidTile(tile_b)) return false;
+	TileIndex tile_o = TileAddWrap(tile, ti[2].x, ti[2].y);
+	if (!IsValidTile(tile_o)) return false;
 
-			bool forbid_90_deg = _settings_game.pf.forbid_90_deg;
+	/* Test adjacent tiles are traversible. */
+	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_a, TRANSPORT_WATER, 0)) == TRACK_BIT_NONE) return false;
+	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_b, TRANSPORT_WATER, 0)) == TRACK_BIT_NONE) return false;
 
-			TrackBits track_1 = TrackStatusToTrackBits(GetTileTrackStatus(tile_1, TRANSPORT_WATER, 0));
-			TrackBits track_2 = TrackStatusToTrackBits(GetTileTrackStatus(tile_2, TRANSPORT_WATER, 0));
+	/* If they are, test opposite tile is NOT traversible. */
+	if (TrackStatusToTrackBits(GetTileTrackStatus(tile_o, TRANSPORT_WATER, 0)) != TRACK_BIT_NONE) return false;
 
-			TrackBits next_track_1 = (forbid_90_deg ? track_bit_table[corner].track_mask_1 : track_bit_table[corner].track_mask_1_90_deg) & track_1;
-			TrackBits next_track_2 = (forbid_90_deg ? track_bit_table[corner].track_mask_2 : track_bit_table[corner].track_mask_2_90_deg) & track_2;
-			TrackBits main_track_1 = (forbid_90_deg ? track_bit_table[opposite_corner].track_mask_2 : track_bit_table[opposite_corner].track_mask_2_90_deg) & track_1;
-			TrackBits main_track_2 = (forbid_90_deg ? track_bit_table[opposite_corner].track_mask_1 : track_bit_table[opposite_corner].track_mask_1_90_deg) & track_2;
-
-			/* Is there a connection between tile_1 and tile_2 via tile? */
-			if (main_track_1 && main_track_2) {
-				TrackBits opposite_track = TrackStatusToTrackBits(GetTileTrackStatus(opposite_tile, TRANSPORT_WATER, 0));
-				/* Is there an opposite_track that can be used to try an alternative connection? */
-				if (CornerToTrackBits(corner) & opposite_track) {
-					TrackBits mirror = TRACK_BIT_CROSS | (corner & 1 ? TRACK_BIT_HORZ : TRACK_BIT_VERT);
-					/* Is there a connection between tile_1 and tile_2 via opposite_tile? */
-					if (next_track_1 & (main_track_1 ^ mirror) && next_track_2 & (main_track_2 ^ mirror)) {
-						/* There is an alternative connection. Town can grow on tile. */
-						return false;
-					}
-				}
-				/* There is either no opposite_track, or an incomplete connection via opposite_tile. */
-				return true;
-			}
-		}
-	}
-	/* There was no connection via tile, or it was incomplete, or the opposite_tile is outside the map. */
-	return false;
+	/* Over building would block a route, so deny it. */
+	return true;
 }
 
 /**
