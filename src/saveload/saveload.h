@@ -321,6 +321,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_END_PATCHPACKS = 286,               ///< 286  Last known patchpack to use a version just above ours.
 
 	SLV_GS_INDUSTRY_CONTROL,                ///< 287  PR#7912 and PR#8115 GS industry control.
+	SLV_COMPANY_CROSSINGS_SETTING,          ///< 288  PR#7294 Add allow company level crossings setting.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
