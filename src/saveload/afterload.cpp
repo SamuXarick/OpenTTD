@@ -3118,6 +3118,11 @@ bool AfterLoadGame()
 		}
 	}
 
+	/* Company level crossings didn't exist as a setting. Treat it as enabled. */
+	if (IsSavegameVersionBefore(SLV_COMPANY_CROSSINGS_SETTING)) {
+		_settings_game.construction.allow_company_level_crossing = true;
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 
