@@ -1326,17 +1326,17 @@ static void CrashAirplane(Aircraft *v)
  */
 static void MaybeCrashAirplane(Aircraft *v)
 {
+	if (_settings_game.vehicle.plane_crashes == 0) return;
 
 	Station *st = Station::Get(v->targetairport);
 
-	uint32 prob;
+	uint32 prob = (0x4000 << (_settings_game.vehicle.plane_crashes > 1 ? _settings_game.vehicle.plane_crashes - 1 : _settings_game.vehicle.plane_crashes));
 	if ((st->airport.GetFTA()->flags & AirportFTAClass::SHORT_STRIP) &&
-			(AircraftVehInfo(v->engine_type)->subtype & AIR_FAST) &&
-			!_cheats.no_jetcrash.value) {
-		prob = 3276;
+			(AircraftVehInfo(v->engine_type)->subtype & AIR_FAST)) {
+		prob /= !_cheats.no_jetcrash.value ? 20 : 1500;
 	} else {
-		if (_settings_game.vehicle.plane_crashes == 0) return;
-		prob = (0x4000 << _settings_game.vehicle.plane_crashes) / 1500;
+		if (_settings_game.vehicle.plane_crashes == 1) return;
+		prob /= 1500;
 	}
 
 	if (GB(Random(), 0, 22) > prob) return;

@@ -3141,6 +3141,14 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_PLANE_CRASHES_OPTION)) {
+		/* Setting difficulty plane_crashes other than zero get bumped to +1
+		 * since a new option (None, unless runway is too short at position 1) has been added */
+		if (_settings_game.vehicle.plane_crashes > 0) {
+			_settings_game.vehicle.plane_crashes++;
+		}
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 
