@@ -862,5 +862,6 @@ extern char _savegame_format[8];
 extern char _sendmap_format[8];
 extern char _autosave_format[8];
 extern bool _do_autosave;
+extern bool _save_empty_script;
 
 #endif /* SAVELOAD_H */

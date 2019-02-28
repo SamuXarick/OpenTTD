@@ -64,6 +64,7 @@ char _savegame_format[8];    ///< how to compress savegames
 char _sendmap_format[8];     ///< how to compress the map to send to a client joining servers
 char _autosave_format[8];    ///< how to compress autosaves
 bool _do_autosave;           ///< are we doing an autosave at the moment?
+bool _save_empty_script;     ///< are AI/GS not going to save? (true if sending a map to a client over the network, false otherwise)
 
 /** What are we currently doing? */
 enum SaveLoadAction {
@@ -2441,6 +2442,7 @@ static void SaveFileDone()
 	_sl.saveinprogress = false;
 	_sl.sendmapinprogress = false;
 	_sl.autosaveinprogress = false;
+	_save_empty_script = false;
 }
 
 /** Set the error message from outside of the actual loading/saving of the game (AfterLoadGame and friends) */
@@ -2567,6 +2569,7 @@ SaveOrLoadResult SaveWithFilter(SaveFilter *writer, bool threaded)
 	if (_network_server && _sl.saveinprogress && threaded) WaitTillSaved();
 	try {
 		_sl.sendmapinprogress = true;
+		_save_empty_script = true;
 		_sl.action = SLA_SAVE;
 		return DoSave(writer, threaded);
 	} catch (...) {

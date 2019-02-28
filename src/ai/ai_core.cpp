@@ -13,6 +13,7 @@
 #include "../company_base.h"
 #include "../company_func.h"
 #include "../network/network.h"
+#include "../saveload/saveload.h"
 #include "../window_func.h"
 #include "../framerate_type.h"
 #include "ai_scanner.hpp"
@@ -277,7 +278,7 @@
 
 /* static */ void AI::Save(CompanyID company)
 {
-	if (!_networking || _network_server) {
+	if (!_networking || (_network_server && !_save_empty_script)) {
 		Company *c = Company::GetIfValid(company);
 		assert(c != nullptr && c->ai_instance != nullptr);
 
