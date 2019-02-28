@@ -741,7 +741,7 @@ CommandCost CmdBuildRoad(DoCommandFlag flags, TileIndex tile, RoadBits pieces, R
 				return_cmd_error(STR_ERROR_CROSSING_DISALLOWED_ROAD);
 			}
 
-			if (RailNoLevelCrossings(GetRailType(tile))) {
+			if (RailNoLevelCrossings(GetRailType(tile)) || !_settings_game.construction.allow_company_level_crossing) {
 				return_cmd_error(STR_ERROR_CROSSING_DISALLOWED_RAIL);
 			}
 
