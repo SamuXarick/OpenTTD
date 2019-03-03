@@ -3130,6 +3130,11 @@ bool AfterLoadGame()
 		_settings_game.vehicle.plane_breakdown_dist = 0;
 	}
 
+	if (IsSavegameVersionBefore(SLV_LARGE_PLANE_ON_SHORT_RUNWAY)) {
+		/* Ensure the original large plane on short runway behaviour is used. */
+		_settings_game.vehicle.large_plane_on_short_runway = true;
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 
