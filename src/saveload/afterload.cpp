@@ -3133,6 +3133,13 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_PLANE_BREAKDOWN_DIST)) {
+		for (Aircraft *a : Aircraft::Iterate()) {
+			a->flight_counter = 0;
+		}
+		_settings_game.vehicle.plane_breakdown_dist = 0;
+	}
+
 	/* Compute station catchment areas. This is needed here in case UpdateStationAcceptance is called below. */
 	Station::RecomputeCatchmentForAll();
 
