@@ -3133,6 +3133,12 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_MERGE_PLAYERS)) {
+		for (Company *c : Company::Iterate()) {
+			c->settings.merge_players = false;
+		}
+	}
+
 	/* Compute station catchment areas. This is needed here in case UpdateStationAcceptance is called below. */
 	Station::RecomputeCatchmentForAll();
 
