@@ -3135,6 +3135,12 @@ bool AfterLoadGame()
 		_settings_game.vehicle.large_plane_on_short_runway = true;
 	}
 
+	if (IsSavegameVersionBefore(SLV_MERGE_PLAYERS)) {
+		for (Company *c : Company::Iterate()) {
+			c->settings.merge_players = false;
+		}
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 

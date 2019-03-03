@@ -306,6 +306,7 @@ enum SaveLoadVersion : uint16 {
 
 	SLV_PLANE_BREAKDOWN_DIST,               ///< 220  PR#7312 Increased aircraft breakdown rate based on travelled tiles.
 	SLV_LARGE_PLANE_ON_SHORT_RUNWAY,        ///< 221  PR#7502 Add allow large planes on short runway setting.
+	SLV_MERGE_PLAYERS,                      ///< 222  PR#7315 Move players to company accepting take-over offer.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
