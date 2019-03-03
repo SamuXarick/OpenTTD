@@ -907,6 +907,7 @@ static bool AircraftController(Aircraft *v)
 		if (u->cur_speed > 32) {
 			v->cur_speed = 0;
 			if (--u->cur_speed == 32) {
+				v->flight_counter = 0;
 				if (!PlayVehicleSound(v, VSE_START)) {
 					SndPlayVehicleFx(SND_18_HELICOPTER, v);
 				}
@@ -1125,6 +1126,7 @@ static bool AircraftController(Aircraft *v)
 
 		}
 
+		if (v->state == FLYING || v->state == ENDTAKEOFF || v->state == LANDING || v->state == HELILANDING) v->UpdateFlightDistance(v, TileVirtXY(v->x_pos, v->y_pos), TileVirtXY(gp.x, gp.y));
 		SetAircraftPosition(v, gp.x, gp.y, z);
 	} while (--count != 0);
 	return false;
@@ -1577,6 +1579,7 @@ static void AircraftEventHandler_TakeOff(Aircraft *v, const AirportFTAClass *apc
 {
 	PlayAircraftSound(v); // play takeoffsound for airplanes
 	v->state = STARTTAKEOFF;
+	v->flight_counter = 0;
 }
 
 static void AircraftEventHandler_StartTakeOff(Aircraft *v, const AirportFTAClass *apc)

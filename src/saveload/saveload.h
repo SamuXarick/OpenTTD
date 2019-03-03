@@ -304,6 +304,8 @@ enum SaveLoadVersion : uint16 {
 	SLV_ENDING_YEAR,                        ///< 218  PR#7747 v1.10 Configurable ending year.
 	SLV_COMPANY_CROSSINGS_SETTING,          ///< 219  PR#7294 Add allow company level crossings setting.
 
+	SLV_PLANE_BREAKDOWN_DIST,               ///< 220  PR#7312 Increased aircraft breakdown rate based on travelled tiles.
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 

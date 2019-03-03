@@ -3123,6 +3123,13 @@ bool AfterLoadGame()
 		_settings_game.construction.allow_company_level_crossing = true;
 	}
 
+	if (IsSavegameVersionBefore(SLV_PLANE_BREAKDOWN_DIST)) {
+		for (Aircraft *a : Aircraft::Iterate()) {
+			a->flight_counter = 0;
+		}
+		_settings_game.vehicle.plane_breakdown_dist = 0;
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 
