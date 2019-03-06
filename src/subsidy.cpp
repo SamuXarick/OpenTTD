@@ -196,7 +196,7 @@ static bool CheckSubsidyDistance(SourceType src_type, SourceID src, SourceType d
 	TileIndex tile_src = (src_type == ST_TOWN) ? Town::Get(src)->xy : Industry::Get(src)->location.tile;
 	TileIndex tile_dst = (dst_type == ST_TOWN) ? Town::Get(dst)->xy : Industry::Get(dst)->location.tile;
 
-	return (DistanceManhattan(tile_src, tile_dst) <= SUBSIDY_MAX_DISTANCE);
+	return (DistanceManhattan(tile_src, tile_dst) <= max(SUBSIDY_MAX_DISTANCE, ScaleByMapSize1D(SUBSIDY_MAX_DISTANCE)));
 }
 
 /**
@@ -303,7 +303,7 @@ bool FindSubsidyPassengerRoute()
 		return false;
 	}
 
-	if (DistanceManhattan(src->xy, dst->xy) > SUBSIDY_MAX_DISTANCE) return false;
+	if (!CheckSubsidyDistance(ST_TOWN, src->index, ST_TOWN, dst->index)) return false;
 	if (CheckSubsidyDuplicate(CT_PASSENGERS, ST_TOWN, src->index, ST_TOWN, dst->index)) return false;
 
 	CreateSubsidy(CT_PASSENGERS, ST_TOWN, src->index, ST_TOWN, dst->index);
@@ -502,29 +502,31 @@ void SubsidyMonthlyLoop()
 	bool town_subsidy = false;
 	bool industry_subsidy = false;
 
-	int random_chance = RandomRange(16);
+	for (uint scaled_try = 0; scaled_try <= ScaleByMapSize1D(1); scaled_try++) {
+		int random_chance = RandomRange(16);
 
-	if (random_chance < 2 && _settings_game.linkgraph.distribution_pax == DT_MANUAL) {
-		/* There is a 1/8 chance each month of generating a passenger subsidy. */
-		int n = 1000;
+		if (random_chance < 2 && _settings_game.linkgraph.distribution_pax == DT_MANUAL) {
+			/* There is a 1/8 chance each month of generating a passenger subsidy. */
+			int n = 1000;
 
-		do {
-			passenger_subsidy = FindSubsidyPassengerRoute();
-		} while (!passenger_subsidy && n--);
-	} else if (random_chance == 2) {
-		/* Cargo subsidies with a town as a source have a 1/16 chance. */
-		int n = 1000;
+			do {
+				passenger_subsidy = FindSubsidyPassengerRoute();
+			} while (!passenger_subsidy && n--);
+		} else if (random_chance == 2) {
+			/* Cargo subsidies with a town as a source have a 1/16 chance. */
+			int n = 1000;
 
-		do {
-			town_subsidy = FindSubsidyTownCargoRoute();
-		} while (!town_subsidy && n--);
-	} else if (random_chance == 3) {
-		/* Cargo subsidies with an industry as a source have a 1/16 chance. */
-		int n = 1000;
+			do {
+				town_subsidy = FindSubsidyTownCargoRoute();
+			} while (!town_subsidy && n--);
+		} else if (random_chance == 3) {
+			/* Cargo subsidies with an industry as a source have a 1/16 chance. */
+			int n = 1000;
 
-		do {
-			industry_subsidy = FindSubsidyIndustryCargoRoute();
-		} while (!industry_subsidy && n--);
+			do {
+				industry_subsidy = FindSubsidyIndustryCargoRoute();
+			} while (!industry_subsidy && n--);
+		}
 	}
 
 	modified |= passenger_subsidy || town_subsidy || industry_subsidy;
