@@ -307,7 +307,7 @@
 	}
 }
 
-/* static */ int AI::GetStartNextTime()
+/* static */ int AI::GetStartNextTime(uint count)
 {
 	int start_delay = _settings_game.ai.ai_start_delay;
 	if (start_delay > 0 && AI::START_DELAY_DEVIATION != 0) {
@@ -319,6 +319,20 @@
 		start_delay = Clamp(start_delay, max((int)AI::START_DELAY_MIN, 1), AI::START_DELAY_MAX);
 	}
 	return start_delay;
+}
+
+/* static */ CompanyID AI::GetStartNextCompany(uint count)
+{
+	/* Find the first company which doesn't exist yet */
+	for (CompanyID c = COMPANY_FIRST; c < MAX_COMPANIES; c++) {
+		if (!Company::IsValidID(c)) {
+			if (count == 0) return c;
+			count--;
+		}
+	}
+
+	/* Currently no AI can be started. */
+	return INVALID_COMPANY;
 }
 
 /* static */ char *AI::GetConsoleList(char *p, const char *last, bool newest_only)
