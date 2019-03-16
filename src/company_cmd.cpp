@@ -601,24 +601,40 @@ void StartupCompanies()
 	_next_competitor_start = 0;
 }
 
-/** Start a new competitor company if possible. */
-static bool MaybeStartNewCompany()
+/** Start new competitor companies if possible. */
+static void MaybeStartNewCompany()
 {
-	if (_networking && Company::GetNumItems() >= _settings_client.network.max_companies) return false;
+	/* Count number of total existing companies. */
+	uint current_companies = (uint)Company::GetNumItems();
 
-	/* count number of competitors */
-	uint n = 0;
+	/* Count number of existing AI only companies. */
+	uint current_ais = 0;
 	for (const Company *c : Company::Iterate()) {
-		if (c->is_ai) n++;
+		if (c->is_ai) current_ais++;
 	}
 
-	if (n < (uint)_settings_game.difficulty.max_no_competitors) {
-		/* Send a command to all clients to start up a new AI.
+	/* Compute bitmask of AI companies to start. */
+	CompanyMask ais_to_start = 0;
+	for (;;) {
+		uint count = CountBits(ais_to_start);
+		if (_networking && current_companies + count >= _settings_client.network.max_companies) break;
+		if (current_ais + count >= (uint)_settings_game.difficulty.max_no_competitors) break;
+		if (current_companies + count >= MAX_COMPANIES) break;
+
+		CompanyID company = AI::GetStartNextCompany(count);
+		assert(company != INVALID_COMPANY);
+		assert(!HasBit(ais_to_start, company));
+		SetBit(ais_to_start, company);
+
+		/* Check if the next AI is also scheduled to start immediately */
+		if (AI::GetStartNextTime(count + 1) != 0) break;
+	}
+
+	if (CountBits(ais_to_start) > 0) {
+		/* Send a command to all clients to start up new AI(s).
 		 * Works fine for Multiplayer and Singleplayer */
-		return Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, INVALID_COMPANY, CRR_NONE, INVALID_CLIENT_ID );
+		Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, INVALID_COMPANY, CRR_NONE, INVALID_CLIENT_ID, ais_to_start);
 	}
-
-	return false;
 }
 
 /** Initialize the pool of companies. */
@@ -719,19 +735,13 @@ void OnTick_Companies()
 	}
 
 	if (_next_competitor_start == 0) {
-		/* AI::GetStartNextTime() can return 0. */
+		/* If GetStartNextTime is zero, wait at least a tick to re-evaluate. */
 		_next_competitor_start = std::max(1, AI::GetStartNextTime() * DAY_TICKS);
 	}
 
 	if (_game_mode != GM_MENU && AI::CanStartNew() && --_next_competitor_start == 0) {
 		/* Allow multiple AIs to possibly start in the same tick. */
-		do {
-			if (!MaybeStartNewCompany()) break;
-
-			/* In networking mode, we can only send a command to start but it
-			 * didn't execute yet, so we cannot loop. */
-			if (_networking) break;
-		} while (AI::GetStartNextTime() == 0);
+		MaybeStartNewCompany();
 	}
 
 	_cur_company_tick_index = (_cur_company_tick_index + 1) % MAX_COMPANIES;
@@ -810,9 +820,10 @@ void CompanyAdminRemove(CompanyID company_id, CompanyRemoveReason reason)
  * @param cca action to perform
  * @param company_id company to perform the action on
  * @param client_id ClientID
+ * @param ais_to_start bitmask of ai companies to start
  * @return the cost of this operation or an error
  */
-CommandCost CmdCompanyCtrl(DoCommandFlag flags, CompanyCtrlAction cca, CompanyID company_id, CompanyRemoveReason reason, ClientID client_id)
+CommandCost CmdCompanyCtrl(DoCommandFlag flags, CompanyCtrlAction cca, CompanyID company_id, CompanyRemoveReason reason, ClientID client_id, CompanyMask ais_to_start)
 {
 	InvalidateWindowData(WC_COMPANY_LEAGUE, 0, 0);
 
@@ -865,8 +876,10 @@ CommandCost CmdCompanyCtrl(DoCommandFlag flags, CompanyCtrlAction cca, CompanyID
 			break;
 		}
 
-		case CCA_NEW_AI: { // Make a new AI company
-			if (company_id != INVALID_COMPANY && company_id >= MAX_COMPANIES) return CMD_ERROR;
+		case CCA_NEW_AI: { // Make new AI companies
+			if (CountBits(ais_to_start) == 0) return CMD_ERROR;
+
+			if (company_id != INVALID_COMPANY && (company_id >= MAX_COMPANIES || !HasExactlyOneBit(ais_to_start) || company_id != FindFirstBit(ais_to_start))) return CMD_ERROR;
 
 			/* For network games, company deletion is delayed. */
 			if (!_networking && company_id != INVALID_COMPANY && Company::IsValidID(company_id)) return CMD_ERROR;
@@ -876,8 +889,11 @@ CommandCost CmdCompanyCtrl(DoCommandFlag flags, CompanyCtrlAction cca, CompanyID
 			/* For network game, just assume deletion happened. */
 			assert(company_id == INVALID_COMPANY || !Company::IsValidID(company_id));
 
-			Company *c = DoStartupNewCompany(true, company_id);
-			if (c != nullptr) NetworkServerNewCompany(c, nullptr);
+			for (uint company : SetBitIterator(ais_to_start)) {
+				if (company_id != INVALID_COMPANY) assert(company == company_id);
+				Company *c = DoStartupNewCompany(true, (CompanyID)company);
+				if (c != nullptr) NetworkServerNewCompany(c, nullptr);
+			}
 			break;
 		}
 

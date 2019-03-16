@@ -936,7 +936,7 @@ DEF_CONSOLE_CMD(ConResetCompany)
 	}
 
 	/* It is safe to remove this company */
-	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, index, CRR_MANUAL, INVALID_CLIENT_ID);
+	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, index, CRR_MANUAL, INVALID_CLIENT_ID, 0);
 	IConsolePrint(CC_DEFAULT, "Company deleted.");
 
 	return true;
@@ -1299,8 +1299,14 @@ DEF_CONSOLE_CMD(ConStartAI)
 		}
 	}
 
+	CompanyID company_id = AI::GetStartNextCompany();
+	if (company_id == INVALID_COMPANY) {
+		IConsolePrint(CC_ERROR, "Can't start a new AI (no more free slots).");
+		return true;
+	}
+
 	/* Start a new AI company */
-	Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, INVALID_COMPANY, CRR_NONE, INVALID_CLIENT_ID);
+	Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, INVALID_COMPANY, CRR_NONE, INVALID_CLIENT_ID, 1 << company_id);
 
 	return true;
 }
@@ -1336,8 +1342,8 @@ DEF_CONSOLE_CMD(ConReloadAI)
 	}
 
 	/* First kill the company of the AI, then start a new one. This should start the current AI again */
-	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, company_id, CRR_MANUAL, INVALID_CLIENT_ID);
-	Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, company_id, CRR_NONE, INVALID_CLIENT_ID);
+	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, company_id, CRR_MANUAL, INVALID_CLIENT_ID, 0);
+	Command<CMD_COMPANY_CTRL>::Post(CCA_NEW_AI, company_id, CRR_NONE, INVALID_CLIENT_ID, 1 << company_id);
 	IConsolePrint(CC_DEFAULT, "AI reloaded.");
 
 	return true;
@@ -1374,7 +1380,7 @@ DEF_CONSOLE_CMD(ConStopAI)
 	}
 
 	/* Now kill the company of the AI. */
-	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, company_id, CRR_MANUAL, INVALID_CLIENT_ID);
+	Command<CMD_COMPANY_CTRL>::Post(CCA_DELETE, company_id, CRR_MANUAL, INVALID_CLIENT_ID, 0);
 	IConsolePrint(CC_DEFAULT, "AI stopped, company deleted.");
 
 	return true;
