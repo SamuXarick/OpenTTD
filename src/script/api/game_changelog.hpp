@@ -29,6 +29,7 @@
  * \li GSRoad::GetMaxSpeed
  * \li GSEngine::EnableForCompany
  * \li GSEngine::DisableForCompany
+ * \li GSAirport::IsNoiseLevelIncreaseAllowed
  *
  * \b 1.9.0
  *

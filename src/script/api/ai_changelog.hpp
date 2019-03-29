@@ -35,6 +35,7 @@
  * \li AIEngine::HasPowerOnRoad
  * \li AIRoadTypeList::RoadTypeList
  * \li AIEventVehicleAutoReplaced
+ * \li AIAirport::IsNoiseLevelIncreaseAllowed
  *
  * Other changes:
  * \li AITile::DemolishTile works without a selected company
