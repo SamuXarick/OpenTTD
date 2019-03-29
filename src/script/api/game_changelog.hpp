@@ -25,6 +25,7 @@
  * \li GSRoad::RoadVehHasPowerOnRoad
  * \li GSRoad::ConvertRoadType
  * \li GSRoad::GetMaxSpeed
+ * \li GSAirport::IsNoiseLevelIncreaseAllowed
  *
  * \b 1.9.0
  *
