@@ -251,6 +251,8 @@ PerformanceMeasurer::~PerformanceMeasurer()
 			return;
 		}
 	}
+	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
+
 	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
 		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead();
 		Company *c;
@@ -259,6 +261,7 @@ PerformanceMeasurer::~PerformanceMeasurer()
 				active_scripts++;
 			}
 		}
+
 		if (active_scripts != 0) {
 			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
 			uint value = opcodes;
