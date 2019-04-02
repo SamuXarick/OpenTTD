@@ -224,7 +224,7 @@ void ScriptInstance::GameLoop()
 			ScriptObject::SetAllowDoCommand(true);
 			/* Start the script by calling Start() */
 			if (!this->engine->CallMethod(*this->instance, "Start", root_company == OWNER_DEITY ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes(root_company)) || !this->engine->IsSuspended()) this->Died();
-		} catch (Script_Suspend e) {
+		} catch (Script_Suspend &e) {
 			this->suspend  = e.GetSuspendTime();
 			this->callback = e.GetSuspendCallback();
 		} catch (Script_FatalError &e) {
@@ -245,7 +245,7 @@ void ScriptInstance::GameLoop()
 	/* Continue the VM */
 	try {
 		if (!this->engine->Resume(root_company == OWNER_DEITY ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes(root_company))) this->Died();
-	} catch (Script_Suspend e) {
+	} catch (Script_Suspend &e) {
 		this->suspend  = e.GetSuspendTime();
 		this->callback = e.GetSuspendCallback();
 	} catch (Script_FatalError &e) {
