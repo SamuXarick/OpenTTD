@@ -20,9 +20,13 @@
 #include "guitimer_func.h"
 #include "company_base.h"
 #include "ai/ai_info.hpp"
+#include "ai/ai.hpp"
 #include "ai/ai_instance.hpp"
+#include "game/game_info.hpp"
 #include "game/game.hpp"
 #include "game/game_instance.hpp"
+#include "settings_func.h"
+#include "settings_internal.h"
 
 #include "widgets/framerate_widget.h"
 #include "safeguards.h"
@@ -248,6 +252,38 @@ PerformanceMeasurer::~PerformanceMeasurer()
 		}
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
+
+	/* Self-adjust max opcodes for active scripts */
+	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
+		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused();
+		for (const Company *c : Company::Iterate()) {
+			if (_pause_mode == PM_UNPAUSED && Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead() && !Company::Get(c->index)->ai_instance->IsPaused()) {
+				active_scripts++;
+			}
+		}
+
+		if (active_scripts != 0 && (this->elem == PFE_GAMESCRIPT ? Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused() : _pause_mode == PM_UNPAUSED && Company::IsValidAiID((CompanyID)(this->elem - PFE_AI0)) && Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance != nullptr && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsDead() && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsPaused())) {
+			uint dummy; // unused
+			const SettingDesc *sd = GetSettingFromName("script_max_opcode_till_suspend", &dummy);
+			assert(sd != nullptr);
+			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
+			uint value = opcodes;
+			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(GL_RATE));
+			double all = min(9999.99, _pf_data[PFE_ALLSCRIPTS].GetAverageDurationMilliseconds(GL_RATE));
+			if (avg * active_scripts > MILLISECONDS_PER_TICK && all > MILLISECONDS_PER_TICK) {
+				value = Clamp(opcodes - (avg * active_scripts - MILLISECONDS_PER_TICK) * (avg * active_scripts - MILLISECONDS_PER_TICK), sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
+			} else if (avg > 0 && avg < MILLISECONDS_PER_TICK / 3 || all < MILLISECONDS_PER_TICK / 3) {
+				value = Clamp(opcodes + MILLISECONDS_PER_TICK / 3 - avg, sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
+			}
+			if (value != opcodes) {
+				if (this->elem == PFE_GAMESCRIPT) {
+					Game::SetMaxOpCodes(value);
+				} else {
+					AI::SetMaxOpCodes((CompanyID)(this->elem - PFE_AI0), value);
+				}
+			}
+		}
+	}
 }
 
 /** Set the rate of expected cycles per second of a performance element. */
@@ -344,6 +380,12 @@ static const char * GetAIName(int ai_index)
 	return Company::Get(ai_index)->ai_info->GetName();
 }
 
+static const char * GetGSName()
+{
+	if (Game::GetInstance() == NULL) return "";
+	return Game::GetInfo()->GetName();
+}
+
 /** @hideinitializer */
 static const NWidgetPart _framerate_window_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
@@ -369,6 +411,7 @@ static const NWidgetPart _framerate_window_widgets[] = {
 					NWidget(NWID_SELECTION, INVALID_COLOUR, WID_FRW_SEL_MEMORY),
 						NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_ALLOCSIZE), SetScrollbar(WID_FRW_SCROLLBAR),
 					EndContainer(),
+					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_OPCODES), SetScrollbar(WID_FRW_SCROLLBAR),
 				EndContainer(),
 				NWidget(WWT_TEXT, COLOUR_GREY, WID_FRW_INFO_DATA_POINTS), SetDataTip(STR_FRAMERATE_DATA_POINTS, 0x0),
 			EndContainer(),
@@ -548,12 +591,17 @@ struct FramerateWindow : Window {
 				for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 					if (_pf_data[e].num_valid == 0) continue;
 					Dimension line_size;
-					if (e < PFE_AI0) {
+					if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
 						line_size = GetStringBoundingBox(STR_FRAMERATE_GAMELOOP + e);
 					} else {
-						SetDParam(0, e - PFE_AI0 + 1);
-						SetDParamStr(1, GetAIName(e - PFE_AI0));
-						line_size = GetStringBoundingBox(STR_FRAMERATE_AI);
+						if (e == PFE_GAMESCRIPT) {
+							SetDParamStr(0, GetGSName());
+							line_size = GetStringBoundingBox(STR_FRAMERATE_GAMESCRIPT);
+						} else {
+							SetDParam(0, e - PFE_AI0 + 1);
+							SetDParamStr(1, GetAIName(e - PFE_AI0));
+							line_size = GetStringBoundingBox(STR_FRAMERATE_AI);
+						}
 					}
 					size->width = max(size->width, line_size.width);
 				}
@@ -567,6 +615,24 @@ struct FramerateWindow : Window {
 				SetDParam(0, 999999);
 				SetDParam(1, 2);
 				Dimension item_size = GetStringBoundingBox(STR_FRAMERATE_MS_GOOD);
+				size->width = max(size->width, item_size.width);
+				size->height += FONT_HEIGHT_NORMAL * MIN_ELEMENTS + VSPACING;
+				resize->width = 0;
+				resize->height = FONT_HEIGHT_NORMAL;
+				break;
+			}
+
+			case WID_FRW_OPCODES: {
+				size->width = 0;
+				bool any_active = _pf_data[PFE_GAMESCRIPT].num_valid > 0;
+				for (uint pfe = PFE_AI0; pfe < PFE_MAX; pfe++) any_active |= _pf_data[pfe].num_valid > 0;
+				Dimension item_size;
+				item_size.width = 0;
+				if (any_active) {
+					*size = GetStringBoundingBox(STR_FRAMERATE_OPCODES);
+					SetDParamMaxDigits(0, 6);
+					item_size = GetStringBoundingBox(STR_FRAMERATE_OPS);
+				}
 				size->width = max(size->width, item_size.width);
 				size->height += FONT_HEIGHT_NORMAL * MIN_ELEMENTS + VSPACING;
 				resize->width = 0;
@@ -630,6 +696,34 @@ struct FramerateWindow : Window {
 		}
 	}
 
+	void DrawElementMaxOpsColumn(const Rect &r) const
+	{
+		const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
+		uint16 skip = sb->GetPosition();
+		int drawable = this->num_displayed;
+		int y = r.top;
+		DrawString(r.left, r.right, y, STR_FRAMERATE_OPCODES, TC_FROMSTRING, SA_CENTER, true);
+		y += FONT_HEIGHT_NORMAL + VSPACING;
+		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
+			if (_pf_data[e].num_valid == 0) continue;
+			if (skip > 0) {
+				skip--;
+			} else if (e == PFE_GAMESCRIPT || e >= PFE_AI0) {
+				uint value = e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0));
+				SetDParam(0, value);
+				DrawString(r.left, r.right, y, STR_FRAMERATE_OPS, TC_FROMSTRING, SA_RIGHT);
+				y += FONT_HEIGHT_NORMAL;
+				drawable--;
+				if (drawable == 0) break;
+			} else {
+				/* skip non-script */
+				y += FONT_HEIGHT_NORMAL;
+				drawable--;
+				if (drawable == 0) break;
+			}
+		}
+	}
+
 	void DrawWidget(const Rect &r, int widget) const override
 	{
 		switch (widget) {
@@ -644,12 +738,17 @@ struct FramerateWindow : Window {
 					if (skip > 0) {
 						skip--;
 					} else {
-						if (e < PFE_AI0) {
+						if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
 							DrawString(r.left, r.right, y, STR_FRAMERATE_GAMELOOP + e, TC_FROMSTRING, SA_LEFT);
 						} else {
-							SetDParam(0, e - PFE_AI0 + 1);
-							SetDParamStr(1, GetAIName(e - PFE_AI0));
-							DrawString(r.left, r.right, y, STR_FRAMERATE_AI, TC_FROMSTRING, SA_LEFT);
+							if (e == PFE_GAMESCRIPT) {
+								SetDParamStr(0, GetGSName());
+								DrawString(r.left, r.right, y, STR_FRAMERATE_GAMESCRIPT, TC_FROMSTRING, SA_LEFT);
+							} else {
+								SetDParam(0, e - PFE_AI0 + 1);
+								SetDParamStr(1, GetAIName(e - PFE_AI0));
+								DrawString(r.left, r.right, y, STR_FRAMERATE_AI, TC_FROMSTRING, SA_LEFT);
+							}
 						}
 						y += FONT_HEIGHT_NORMAL;
 						drawable--;
@@ -669,6 +768,9 @@ struct FramerateWindow : Window {
 			case WID_FRW_ALLOCSIZE:
 				DrawElementAllocationsColumn(r);
 				break;
+			case WID_FRW_OPCODES:
+				DrawElementMaxOpsColumn(r);
+				break;
 		}
 	}
 
@@ -677,7 +779,8 @@ struct FramerateWindow : Window {
 		switch (widget) {
 			case WID_FRW_TIMES_NAMES:
 			case WID_FRW_TIMES_CURRENT:
-			case WID_FRW_TIMES_AVERAGE: {
+			case WID_FRW_TIMES_AVERAGE:
+			case WID_FRW_OPCODES: {
 				/* Open time graph windows when clicking detail measurement lines */
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 				int line = sb->GetScrolledRowFromWidget(pt.y - FONT_HEIGHT_NORMAL - VSPACING, this, widget, VSPACING, FONT_HEIGHT_NORMAL);
@@ -749,12 +852,19 @@ struct FrametimeGraphWindow : Window {
 	{
 		switch (widget) {
 			case WID_FGW_CAPTION:
-				if (this->element < PFE_AI0) {
+				if (this->element < PFE_GAMESCRIPT) {
 					SetDParam(0, STR_FRAMETIME_CAPTION_GAMELOOP + this->element);
 				} else {
-					SetDParam(0, STR_FRAMETIME_CAPTION_AI);
-					SetDParam(1, this->element - PFE_AI0 + 1);
-					SetDParamStr(2, GetAIName(this->element - PFE_AI0));
+					if (this->element == PFE_GAMESCRIPT) {
+						SetDParam(0, STR_FRAMETIME_CAPTION_GS_MAXOPCODE);
+						SetDParamStr(1, GetGSName());
+						SetDParam(2, Game::GetMaxOpCodes());
+					} else {
+						SetDParam(0, STR_FRAMETIME_CAPTION_AI_MAXOPCODE);
+						SetDParam(1, this->element - PFE_AI0 + 1);
+						SetDParamStr(2, GetAIName(this->element - PFE_AI0));
+						SetDParam(3, AI::GetMaxOpCodes((CompanyID)(this->element - PFE_AI0)));
+					}
 				}
 				break;
 		}
@@ -1064,12 +1174,22 @@ void ConPrintFramerate()
 			seprintf(ai_name_buf, lastof(ai_name_buf), "AI %d %s", e - PFE_AI0 + 1, GetAIName(e - PFE_AI0)),
 			name = ai_name_buf;
 		}
-		IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms",
-			name,
-			pf.GetAverageDurationMilliseconds(count1),
-			pf.GetAverageDurationMilliseconds(count2),
-			pf.GetAverageDurationMilliseconds(count3));
-		printed_anything = true;
+		if (e >= PFE_GAMESCRIPT && e <= PFE_AI14) {
+			IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms  opcodes: %d",
+				name,
+				pf.GetAverageDurationMilliseconds(count1),
+				pf.GetAverageDurationMilliseconds(count2),
+				pf.GetAverageDurationMilliseconds(count3),
+				e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0)));
+			printed_anything = true;
+		} else {
+			IConsolePrintF(TC_LIGHT_BLUE, "%s times: %.2fms  %.2fms  %.2fms",
+				name,
+				pf.GetAverageDurationMilliseconds(count1),
+				pf.GetAverageDurationMilliseconds(count2),
+				pf.GetAverageDurationMilliseconds(count3));
+			printed_anything = true;
+		}
 	}
 
 	if (!printed_anything) {
