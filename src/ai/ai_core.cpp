@@ -26,6 +26,7 @@
 /* static */ uint AI::frame_counter = 0;
 /* static */ std::unique_ptr<AIScannerInfo> AI::scanner_info = nullptr;
 /* static */ std::unique_ptr<AIScannerLibrary> AI::scanner_library = nullptr;
+/* static */ std::array<uint, MAX_COMPANIES> AI::max_opcodes{};
 
 /* static */ bool AI::CanStartNew()
 {
@@ -60,6 +61,7 @@
 
 	c->ai_info = info;
 	assert(c->ai_instance == nullptr);
+	AI::SetMaxOpCodes(company, _settings_game.script.script_max_opcode_till_suspend);
 	c->ai_instance = std::make_unique<AIInstance>();
 	c->ai_instance->Initialize(info);
 	c->ai_instance->LoadOnStack(config->GetToLoadData());
@@ -284,6 +286,16 @@
 	}
 
 	AIInstance::SaveEmpty();
+}
+
+/* static */ uint AI::GetMaxOpCodes(CompanyID company)
+{
+	return AI::max_opcodes[company.base()];
+}
+
+/* static */ void AI::SetMaxOpCodes(CompanyID company, uint max_opcodes)
+{
+	AI::max_opcodes[company.base()] = max_opcodes;
 }
 
 /* static */ void AI::GetConsoleList(std::back_insert_iterator<std::string> &output_iterator, bool newest_only)
