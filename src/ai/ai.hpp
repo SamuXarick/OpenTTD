@@ -110,6 +110,16 @@ public:
 	 */
 	static void Save(CompanyID company);
 
+	/**
+	 * Get the current maximum number of opcodes for an AI before it's suspended.
+	 */
+	static uint GetMaxOpCodes(CompanyID company);
+
+	/**
+	 * Set a maximum number of opcodes for an AI before it's suspended.
+	 */
+	static void SetMaxOpCodes(CompanyID company, uint max_opcodes);
+
 	/** Wrapper function for AIScanner::GetAIConsoleList */
 	static void GetConsoleList(std::back_insert_iterator<std::string> &output_iterator, bool newest_only);
 	/** Wrapper function for AIScanner::GetAIConsoleLibraryList */
@@ -141,6 +151,7 @@ private:
 	static uint frame_counter; ///< Tick counter for the AI code
 	static std::unique_ptr<AIScannerInfo> scanner_info; ///< ScriptScanner instance that is used to find AIs
 	static std::unique_ptr<AIScannerLibrary> scanner_library; ///< ScriptScanner instance that is used to find AI Libraries
+	static std::array<uint, MAX_COMPANIES> max_opcodes; ///< Maximum number of opcodes per AI before it's suspended
 };
 
 #endif /* AI_HPP */
