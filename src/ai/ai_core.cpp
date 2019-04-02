@@ -27,6 +27,7 @@
 /* static */ uint AI::frame_counter = 0;
 /* static */ AIScannerInfo *AI::scanner_info = nullptr;
 /* static */ AIScannerLibrary *AI::scanner_library = nullptr;
+/* static */ uint AI::max_opcodes[MAX_COMPANIES];
 
 /* static */ bool AI::CanStartNew()
 {
@@ -56,6 +57,7 @@
 
 	c->ai_info = info;
 	assert(c->ai_instance == nullptr);
+	AI::SetMaxOpCodes(company, _settings_game.script.script_max_opcode_till_suspend);
 	c->ai_instance = new AIInstance();
 	c->ai_instance->Initialize(info);
 
@@ -337,6 +339,16 @@
 
 	/* Currently no AI can be started. */
 	return INVALID_COMPANY;
+}
+
+/* static */ uint AI::GetMaxOpCodes(CompanyID company)
+{
+	return AI::max_opcodes[company];
+}
+
+/* static */ void AI::SetMaxOpCodes(CompanyID company, uint max_opcodes)
+{
+	AI::max_opcodes[company] = max_opcodes;
 }
 
 /* static */ char *AI::GetConsoleList(char *p, const char *last, bool newest_only)

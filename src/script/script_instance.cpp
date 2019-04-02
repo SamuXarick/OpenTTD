@@ -26,6 +26,8 @@
 #include "../company_base.h"
 #include "../company_func.h"
 #include "../fileio_func.h"
+#include "../ai/ai.hpp"
+#include "../game/game.hpp"
 
 #include "../safeguards.h"
 
@@ -220,8 +222,8 @@ void ScriptInstance::GameLoop()
 			}
 			ScriptObject::SetAllowDoCommand(true);
 			/* Start the script by calling Start() */
-			if (!this->engine->CallMethod(*this->instance, "Start",  _settings_game.script.script_max_opcode_till_suspend) || !this->engine->IsSuspended()) this->Died();
-		} catch (Script_Suspend &e) {
+			if (!this->engine->CallMethod(*this->instance, "Start", _current_company == OWNER_DEITY ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes(_current_company)) || !this->engine->IsSuspended()) this->Died();
+		} catch (Script_Suspend e) {
 			this->suspend  = e.GetSuspendTime();
 			this->callback = e.GetSuspendCallback();
 		} catch (Script_FatalError &e) {
@@ -241,8 +243,8 @@ void ScriptInstance::GameLoop()
 
 	/* Continue the VM */
 	try {
-		if (!this->engine->Resume(_settings_game.script.script_max_opcode_till_suspend)) this->Died();
-	} catch (Script_Suspend &e) {
+		if (!this->engine->Resume(_current_company == OWNER_DEITY ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes(_current_company))) this->Died();
+	} catch (Script_Suspend e) {
 		this->suspend  = e.GetSuspendTime();
 		this->callback = e.GetSuspendCallback();
 	} catch (Script_FatalError &e) {
@@ -541,7 +543,7 @@ void ScriptInstance::Pause()
 {
 	/* Suspend script. */
 	HSQUIRRELVM vm = this->engine->GetVM();
-	Squirrel::DecreaseOps(vm, _settings_game.script.script_max_opcode_till_suspend);
+	Squirrel::DecreaseOps(vm, _current_company == OWNER_DEITY ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes(_current_company));
 
 	this->is_paused = true;
 }
