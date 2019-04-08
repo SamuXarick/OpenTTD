@@ -253,24 +253,28 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 
+	/* Self-adjust max opcodes for active scripts */
 	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
-		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead();
+		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused();
 		Company *c;
 		FOR_ALL_COMPANIES(c) {
-			if (Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead()) {
+			if (_pause_mode == PM_UNPAUSED && Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead() && !Company::Get(c->index)->ai_instance->IsPaused()) {
 				active_scripts++;
 			}
 		}
 
-		if (active_scripts != 0) {
+		if (active_scripts != 0 && (this->elem == PFE_GAMESCRIPT ? Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused() : _pause_mode == PM_UNPAUSED && Company::IsValidAiID((CompanyID)(this->elem - PFE_AI0)) && Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance != nullptr && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsDead() && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsPaused())) {
+			uint dummy; // unused
+			const SettingDesc *sd = GetSettingFromName("script_max_opcode_till_suspend", &dummy);
+			assert(sd != nullptr);
 			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
 			uint value = opcodes;
 			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(GL_RATE));
 			double all = min(9999.99, _pf_data[PFE_ALLSCRIPTS].GetAverageDurationMilliseconds(GL_RATE));
-			if (avg * active_scripts > GL_RATE && all > GL_RATE) {
-				value = Clamp(opcodes - (avg * active_scripts - GL_RATE) * (avg * active_scripts - GL_RATE), 500, 250000);
-			} else if (avg > 0 && avg < GL_RATE / 3 || all < GL_RATE / 3) {
-				value = Clamp(opcodes + GL_RATE / 3 - avg, 500, 250000);
+			if (avg * active_scripts > MILLISECONDS_PER_TICK && all > MILLISECONDS_PER_TICK) {
+				value = Clamp(opcodes - (avg * active_scripts - MILLISECONDS_PER_TICK) * (avg * active_scripts - MILLISECONDS_PER_TICK), sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
+			} else if (avg > 0 && avg < MILLISECONDS_PER_TICK / 3 || all < MILLISECONDS_PER_TICK / 3) {
+				value = Clamp(opcodes + MILLISECONDS_PER_TICK / 3 - avg, sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
 			}
 			if (value != opcodes) {
 				if (this->elem == PFE_GAMESCRIPT) {
@@ -641,6 +645,7 @@ struct FramerateWindow : Window {
 
 			case WID_FRW_TIMES_CURRENT:
 			case WID_FRW_TIMES_AVERAGE:
+			case WID_FRW_TIMES_OPCODES:
 			case WID_FRW_ALLOCSIZE: {
 				*size = GetStringBoundingBox(STR_FRAMERATE_CURRENT + (widget - WID_FRW_TIMES_CURRENT));
 				SetDParam(0, 999999);
