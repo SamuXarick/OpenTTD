@@ -38,7 +38,7 @@ void ScriptConfig::Change(const char *name, int version, bool force_exact_match,
 			}
 		}
 
-		this->AddRandomDeviation();
+		this->AddRandomDeviation(false);
 	}
 }
 
@@ -150,7 +150,7 @@ void ScriptConfig::ResetEditableSettings(bool yet_to_start)
 	}
 }
 
-void ScriptConfig::AddRandomDeviation()
+void ScriptConfig::AddRandomDeviation(bool all)
 {
 	for (const auto &item : *this->GetConfigList()) {
 		if (item.random_deviation != 0) {
