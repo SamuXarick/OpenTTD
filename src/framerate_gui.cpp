@@ -622,6 +622,24 @@ struct FramerateWindow : Window {
 				resize->height = FONT_HEIGHT_NORMAL;
 				break;
 			}
+
+			case WID_FRW_TIMES_OPCODES: {
+				size->width = 0;
+				bool any_active = _pf_data[PFE_GAMESCRIPT].num_valid > 0;
+				for (uint pfe = PFE_AI0; pfe < PFE_MAX; pfe++) any_active |= _pf_data[pfe].num_valid > 0;
+				Dimension item_size;
+				item_size.width = 0;
+				if (any_active) {
+					*size = GetStringBoundingBox(STR_FRAMERATE_OPCODES);
+					SetDParam(0, 999999);
+					item_size = GetStringBoundingBox(STR_FRAMERATE_OPS);
+				}
+				size->width = max(size->width, item_size.width);
+				size->height += FONT_HEIGHT_NORMAL * MIN_ELEMENTS + VSPACING;
+				resize->width = 0;
+				resize->height = FONT_HEIGHT_NORMAL;
+				break;
+			}
 		}
 	}
 
