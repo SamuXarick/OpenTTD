@@ -10,6 +10,7 @@
 #include "../stdafx.h"
 #include "../core/backup_type.hpp"
 #include "../core/bitmath_func.hpp"
+#include "../core/random_func.hpp"
 #include "../company_base.h"
 #include "../company_func.h"
 #include "../network/network.h"
@@ -311,16 +312,16 @@
 
 /* static */ int AI::GetStartNextTime(uint count)
 {
-	/* Find the first company which doesn't exist yet */
-	for (CompanyID c = COMPANY_FIRST; c < MAX_COMPANIES; c++) {
-		if (!Company::IsValidID(c)) {
-			if (count == 0) return AIConfig::GetConfig(c, AIConfig::SSS_FORCE_GAME)->GetSetting("start_date");
-			count--;
-		}
-	}
+	int start_delay = _settings_game.ai.ai_start_delay;
+	if (start_delay > 0 && AI::START_DELAY_DEVIATION != 0) {
+		/* Add random deviation */
+		start_delay += InteractiveRandomRange(AI::START_DELAY_DEVIATION * 2 + 1) - AI::START_DELAY_DEVIATION;
 
-	/* Currently no AI can be started, check again in a year. */
-	return DAYS_IN_YEAR;
+		/* ai_start_delay = 0 is a special case, where random deviation does not occur.
+		 * If ai_start_delay was not already 0, then a minimum value of 1 must apply. */
+		start_delay = Clamp(start_delay, max((int)AI::START_DELAY_MIN, 1), AI::START_DELAY_MAX);
+	}
+	return start_delay;
 }
 
 /* static */ CompanyID AI::GetStartNextCompany(uint count)

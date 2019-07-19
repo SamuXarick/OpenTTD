@@ -308,6 +308,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_LARGE_PLANE_ON_SHORT_RUNWAY,        ///< 221  PR#7502 Add allow large planes on short runway setting.
 	SLV_MERGE_PLAYERS,                      ///< 222  PR#7315 Move players to company accepting take-over offer.
 	SLV_PLANE_CRASHES_OPTION,               ///< 223  PR#7293 Add no plane crashes, unless runway is too short option.
+	SLV_AI_START_DELAY,                     ///< 224  PR#7661 Rework AI "start_date" setting as game setting.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
