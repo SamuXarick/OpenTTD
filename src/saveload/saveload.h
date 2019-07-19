@@ -301,6 +301,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_SCRIPT_MEMLIMIT,                    ///< 215  PR#7516 Limit on AI/GS memory consumption.
 	SLV_MULTITILE_DOCKS,                    ///< 216  PR#7380 Multiple docks per station.
 	SLV_TRADING_AGE,                        ///< 217  PR#7780 Configurable company trading age.
+	SLV_AI_START_DELAY,                     ///< 218          Rework AI "start_date" setting as game setting.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
