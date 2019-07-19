@@ -343,6 +343,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_U64_TICK_COUNTER,                   ///< 300  PR#10035 Make _tick_counter 64bit to avoid wrapping.
 	SLV_LAST_LOADING_TICK,                  ///< 301  PR#9693 Store tick of last loading for vehicles.
 	SLV_MULTITRACK_LEVEL_CROSSINGS,         ///< 302  PR#9931 v13.0  Multi-track level crossings.
+	SLV_AI_START_NEXT,                      ///< 303  PR#7661 Rework AI "start_date" setting as game setting.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };

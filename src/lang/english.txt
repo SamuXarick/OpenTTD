@@ -1700,6 +1700,9 @@ STR_CONFIG_SETTING_AI_PROFILE_HARD                              :Hard
 
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER                            :Allow AIs in multiplayer: {STRING2}
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Allow AI computer players to participate in multiplayer games
+STR_CONFIG_SETTING_AI_START_NEXT                                :Start delay between AIs (give or take): {STRING2}
+STR_CONFIG_SETTING_AI_START_NEXT_HELPTEXT                       :Number of days to wait before starting an AI, or subsequent AI(s) after the previous one.{}If the number of days is different than zero, a random deviation of 60 days is added, and the actual value in-game will be 'number_of_days + random(-60 days, 60 days)', with a minimum of 1 day and a maximum of 3600 days
+STR_CONFIG_SETTING_AI_START_NEXT_VALUE                          :{COMMA}{NBSP}day{P 0 "" s}
 
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :#opcodes before scripts are suspended: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximum number of computation steps that a script can take in one turn
@@ -4580,6 +4583,8 @@ STR_AI_CONFIG_HUMAN_PLAYER                                      :Human player
 STR_AI_CONFIG_RANDOM_AI                                         :Random AI
 STR_AI_CONFIG_NONE                                              :(none)
 STR_AI_CONFIG_MAX_COMPETITORS                                   :{LTBLUE}Maximum no. competitors: {ORANGE}{COMMA}
+STR_AI_CONFIG_START_NEXT                                        :{LTBLUE}Start delay between AIs (give or take): {ORANGE}{STRING1}
+STR_AI_CONFIG_START_NEXT_TOOLTIP                                :{BLACK}Number of days to wait before starting an AI, or subsequent AI(s) after the previous one.{}If the number of days is different than zero, a random deviation of 60 days is added, and the actual value in-game will be 'number_of_days + random(-60 days, 60 days)', with a minimum of 1 day and a maximum of 3600 days.{}If the number of days is zero, the AI(s) will start immediately.
 
 STR_AI_CONFIG_MOVE_UP                                           :{BLACK}Move Up
 STR_AI_CONFIG_MOVE_UP_TOOLTIP                                   :{BLACK}Move selected AI up in the list
@@ -4624,7 +4629,6 @@ STR_AI_SETTINGS_CAPTION_AI                                      :{WHITE}AI Param
 STR_AI_SETTINGS_CLOSE                                           :{BLACK}Close
 STR_AI_SETTINGS_RESET                                           :{BLACK}Reset
 STR_AI_SETTINGS_SETTING                                         :{RAW_STRING}: {ORANGE}{STRING1}
-STR_AI_SETTINGS_START_DELAY                                     :Number of days to start this AI after the previous one (give or take): {ORANGE}{STRING1}
 
 
 # Textfile window
