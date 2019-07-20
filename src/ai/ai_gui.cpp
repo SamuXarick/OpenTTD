@@ -1243,6 +1243,23 @@ struct AIConfigWindow : public Window {
 		this->SetDirty();
 	}
 
+	void OnQueryTextFinished(char* str) override
+	{
+		/* The user pressed cancel */
+		if (str == nullptr) return;
+
+		int32 value;
+		if (StrEmpty(str)) {
+			if (widget == WID_AIC_NUMBER) return;
+			uint dummy;
+			value = (int32)(size_t)ReadDefaultValue(GetSettingFromName("ai.ai_start_delay", &dummy));
+		} else {
+			value = atoi(str);
+		}
+		IConsoleSetSetting(widget == WID_AIC_NUMBER ? "difficulty.max_no_competitors" : "ai.ai_start_delay", value);
+		this->SetDirty();
+	}
+
 	/**
 	 * Some data on this window has become invalid.
 	 * @param data Information about the changed data.
