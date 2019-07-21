@@ -645,7 +645,6 @@ struct FramerateWindow : Window {
 
 			case WID_FRW_TIMES_CURRENT:
 			case WID_FRW_TIMES_AVERAGE:
-			case WID_FRW_TIMES_OPCODES:
 			case WID_FRW_ALLOCSIZE: {
 				*size = GetStringBoundingBox(STR_FRAMERATE_CURRENT + (widget - WID_FRW_TIMES_CURRENT));
 				SetDParam(0, 999999);
