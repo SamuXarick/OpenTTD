@@ -3233,7 +3233,6 @@ STR_AI_SETTINGS_CAPTION_AI                                      :هوش مصنو
 STR_AI_SETTINGS_CAPTION_GAMESCRIPT                              :کد بازی
 STR_AI_SETTINGS_CLOSE                                           :{BLACK}بستن
 STR_AI_SETTINGS_RESET                                           :{BLACK}بازنشاندن
-STR_AI_SETTINGS_START_DELAY                                     :تعداد روزهایی که این بازیگر هوش مصنوعی پس از بازیگر هوش مصنوعی قبلی قبل از اتصال صبر می کند(کم و بیش): {ORANGE}{STRING}
 
 
 # Textfile window
