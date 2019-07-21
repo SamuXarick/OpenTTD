@@ -654,8 +654,8 @@ static void CompaniesGenStatistics()
 	/* Check for bankruptcy each month */
 	Company *c;
 	FOR_ALL_COMPANIES(c) {
-		Backup<CompanyByte> cur_company(_current_company, FILE_LINE);
-		Backup<CompanyByte> loc_company(_local_company, FILE_LINE);
+		Backup<CompanyID> cur_company(_current_company, FILE_LINE);
+		Backup<CompanyID> loc_company(_local_company, FILE_LINE);
 		CompanyCheckBankrupt(c);
 		loc_company.Restore();
 		cur_company.Restore();
