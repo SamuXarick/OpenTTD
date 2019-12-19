@@ -1963,6 +1963,8 @@ CommandCost CmdChangeCompanySetting(TileIndex tile, DoCommandFlag flags, uint32 
  */
 bool SetSettingValue(uint index, int32 value, bool force_newgame)
 {
+	uint dummy;
+
 	const SettingDesc *sd = &_settings[index];
 	/* If an item is company-based, we do not send it over the network
 	 * (if any) to change. Also *hack*hack* we update the _newgame version
@@ -1970,11 +1972,19 @@ bool SetSettingValue(uint index, int32 value, bool force_newgame)
 	 * changes its defaults. At least that is the convention we have chosen */
 	if (sd->save.conv & SLF_NO_NETWORK_SYNC) {
 		void *var = GetVariableAddress(&GetGameSettings(), &sd->save);
-		Write_ValidateSetting(var, sd, value);
+		if (_game_mode != GM_MENU && (sd == GetSettingFromName("game_creation.map_x", &dummy) || sd == GetSettingFromName("game_creation.map_y", &dummy))) {
+			/* do nothing */
+		} else {
+			Write_ValidateSetting(var, sd, value);
+		}
 
 		if (_game_mode != GM_MENU) {
-			void *var2 = GetVariableAddress(&_settings_newgame, &sd->save);
-			Write_ValidateSetting(var2, sd, value);
+			if (sd == GetSettingFromName("game_creation.map_x", &dummy) || sd == GetSettingFromName("game_creation.map_y", &dummy)) {
+				/* do nothing */
+			} else {
+				void *var2 = GetVariableAddress(&_settings_newgame, &sd->save);
+				Write_ValidateSetting(var2, sd, value);
+			}
 		}
 		if (sd->desc.proc != nullptr) sd->desc.proc((int32)ReadValue(var, sd->save.conv));
 

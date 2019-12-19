@@ -1322,6 +1322,16 @@ STR_CONFIG_SETTING_SHOW_NEWGRF_NAME_HELPTEXT                    :Add a line to t
 
 STR_CONFIG_SETTING_LANDSCAPE                                    :Landscape: {STRING2}
 STR_CONFIG_SETTING_LANDSCAPE_HELPTEXT                           :Landscapes define basic gameplay scenarios with different cargos and town growth requirements. NewGRF and Game Scripts allow finer control though
+STR_CONFIG_SETTING_MAPSIZE_X                                    :Map size X: {STRING2}
+STR_CONFIG_SETTING_MAPSIZE_Y                                    :Map size Y: {STRING2}
+STR_CONFIG_SETTING_MAPSIZE_HELPTEXT                             :Select the size of the map in tiles. The number of available tiles will be slightly smaller
+STR_CONFIG_SETTING_MAPSIZE_64                                   :64 tiles
+STR_CONFIG_SETTING_MAPSIZE_128                                  :128 tiles
+STR_CONFIG_SETTING_MAPSIZE_256                                  :256 tiles
+STR_CONFIG_SETTING_MAPSIZE_512                                  :512 tiles
+STR_CONFIG_SETTING_MAPSIZE_1024                                 :1024 tiles
+STR_CONFIG_SETTING_MAPSIZE_2048                                 :2048 tiles
+STR_CONFIG_SETTING_MAPSIZE_4096                                 :4096 tiles
 STR_CONFIG_SETTING_LAND_GENERATOR                               :Land generator: {STRING2}
 STR_CONFIG_SETTING_LAND_GENERATOR_HELPTEXT                      :The original generator depends on the base graphics set, and composes fixed landscape shapes. TerraGenesis is a Perlin noise based generator with finer control settings
 STR_CONFIG_SETTING_LAND_GENERATOR_ORIGINAL                      :Original
@@ -1333,6 +1343,30 @@ STR_CONFIG_SETTING_INDUSTRY_DENSITY_HELPTEXT                    :Set how many in
 STR_CONFIG_SETTING_OIL_REF_EDGE_DISTANCE                        :Maximum distance from edge for Oil industries: {STRING2}
 STR_CONFIG_SETTING_OIL_REF_EDGE_DISTANCE_HELPTEXT               :Limit for how far from the map border oil refineries and oil rigs can be constructed. On island maps this ensures they are near the coast. On maps larger than 256 tiles, this value is scaled up.
 STR_CONFIG_SETTING_SNOWLINE_HEIGHT                              :Snow line height: {STRING2}
+STR_CONFIG_SETTING_SEA_LEVEL                                    :Sea level: {STRING2}
+STR_CONFIG_SETTING_SEA_LEVEL_HELPTEXT                           :Amount of sea generated. If 'Custom' is selected, the value of the setting below this one is applied
+STR_CONFIG_SETTING_CUSTOM_SEA_LEVEL_PERCENTAGE                  :Custom sea level percentage: {STRING2}
+STR_CONFIG_SETTING_CUSTOM_SEA_LEVEL_PERCENTAGE_HELPTEXT         :(TerraGenesis only) When the setting above is set to 'Custom', the value set here is the percentage of sea generated
+STR_CONFIG_SETTING_CUSTOM_SEA_LEVEL_PERCENTAGE_VALUE            :{COMMA}%
+STR_CONFIG_SETTING_MAP_EDGES                                    :Map edges (NW / NE / SW / SE): {STRING2}
+STR_CONFIG_SETTING_MAP_EDGES_HELPTEXT                           :(TerraGenesis only) Borders of the map that are generated fully sea water or formed freely with both water and land
+STR_CONFIG_SETTING_MAP_EDGES_FFFF                               :Freeform / Freeform / Freeform / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_FWFF                               :Freeform / Water / Freeform / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_FFFW                               :Freeform / Freeform / Freeform / Water
+STR_CONFIG_SETTING_MAP_EDGES_FWFW                               :Freeform / Water / Freeform / Water
+STR_CONFIG_SETTING_MAP_EDGES_FFWF                               :Freeform / Freeform / Water / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_FWWF                               :Freeform / Water / Water / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_FFWW                               :Freeform / Freeform / Water / Water
+STR_CONFIG_SETTING_MAP_EDGES_FWWW                               :Freeform / Water / Water / Water
+STR_CONFIG_SETTING_MAP_EDGES_WFFF                               :Water / Freeform / Freeform / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_WWFF                               :Water / Water / Freeform / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_WFFW                               :Water / Freeform / Freeform / Water
+STR_CONFIG_SETTING_MAP_EDGES_WWFW                               :Water / Water / Freeform / Water
+STR_CONFIG_SETTING_MAP_EDGES_WFWF                               :Water / Freeform / Water / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_WWWF                               :Water / Water / Water / Freeform
+STR_CONFIG_SETTING_MAP_EDGES_WFWW                               :Water / Freeform / Water / Water
+STR_CONFIG_SETTING_MAP_EDGES_WWWW                               :Water / Water / Water / Water
+STR_CONFIG_SETTING_MAP_EDGES_RANDOM                             :Random
 STR_CONFIG_SETTING_SNOWLINE_HEIGHT_HELPTEXT                     :Control at what height snow starts in sub-arctic landscape. Snow also affects industry generation and town growth requirements. If values are 1 or 254, the snow level is automatically determined upon world generation
 STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN                         :Roughness of terrain: {STRING2}
 STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_HELPTEXT                :(TerraGenesis only) Choose the frequency of hills: Smooth landscapes have fewer, more wide-spread hills. Rough landscapes have many hills, which may look repetitive
@@ -1560,7 +1594,9 @@ STR_CONFIG_SETTING_NEWS_MESSAGES_FULL                           :Full
 
 STR_CONFIG_SETTING_COLOURED_NEWS_YEAR                           :Coloured news appears in: {STRING2}
 STR_CONFIG_SETTING_COLOURED_NEWS_YEAR_HELPTEXT                  :Year that the newspaper announcements get printed in colour. Before this year, it uses monochrome black/white
-STR_CONFIG_SETTING_STARTING_YEAR                                :Starting year: {STRING2}
+STR_CONFIG_SETTING_STARTING_YEAR                                :Starting date: {STRING2}
+STR_CONFIG_SETTING_STARTING_YEAR_HELPTEXT                       :Year the map starts
+STR_CONFIG_SETTING_STARTING_YEAR_VALUE                          :1st Jan {NUM}
 STR_CONFIG_SETTING_ENDING_YEAR                                  :Scoring end year: {STRING2}
 STR_CONFIG_SETTING_ENDING_YEAR_HELPTEXT                         :Year the game ends for scoring purposes. At the end of this year, the company's score is recorded and the high-score screen is displayed, but the players can continue playing after that.{}If this is before the starting year, the high-score screen is never displayed.
 STR_CONFIG_SETTING_ENDING_YEAR_VALUE                            :{NUM}
@@ -1651,6 +1687,10 @@ STR_CONFIG_SETTING_TOWN_GROWTH_SLOW                             :Slow
 STR_CONFIG_SETTING_TOWN_GROWTH_NORMAL                           :Normal
 STR_CONFIG_SETTING_TOWN_GROWTH_FAST                             :Fast
 STR_CONFIG_SETTING_TOWN_GROWTH_VERY_FAST                        :Very fast
+STR_CONFIG_SETTING_NUMBER_TOWNS                                 :Number of towns: {STRING2}
+STR_CONFIG_SETTING_NUMBER_TOWNS_HELPTEXT                        :Set how many towns should be generated. Preset values are scaled with map size. If 'Custom' is selected, the value of the setting below this one is applied and not scaled
+STR_CONFIG_SETTING_NUMBER_TOWNS_CUSTOM                          :Custom number of towns: {STRING2}
+STR_CONFIG_SETTING_NUMBER_TOWNS_CUSTOM_HELPTEXT                 :When the setting above is set to 'Custom', the value set here is the tentative number of towns that are generated
 STR_CONFIG_SETTING_LARGER_TOWNS                                 :Proportion of towns that will become cities: {STRING2}
 STR_CONFIG_SETTING_LARGER_TOWNS_HELPTEXT                        :Amount of towns which will become a city, thus a town which starts out larger and grows faster
 STR_CONFIG_SETTING_LARGER_TOWNS_VALUE                           :1 in {COMMA}

@@ -693,6 +693,22 @@ void ShowGameOptions()
 static int SETTING_HEIGHT = 11;    ///< Height of a single setting in the tree view in pixels
 static const int LEVEL_WIDTH = 15; ///< Indenting width of a sub-page in pixels
 
+
+int64 ReadCurrentValue(const void *var, const SettingDesc *sd)
+{
+	uint dummy;
+	if (_game_mode != GM_MENU) {
+		if (sd == GetSettingFromName("game_creation.map_x", &dummy)) {
+			return MapLogX();
+		}
+		if (sd == GetSettingFromName("game_creation.map_y", &dummy)) {
+			return FindFirstBit(MapSizeY());
+		}
+	}
+	/* Read the current value. */
+	return ReadValue(var, sd->save.conv);
+}
+
 /**
  * Flags for #SettingEntry
  * @note The #SEF_BUTTONS_MASK matches expectations of the formal parameter 'state' of #DrawArrowButtons
@@ -1019,7 +1035,7 @@ bool SettingEntry::IsVisibleByRestrictionMode(RestrictionMode mode) const
 
 	/* Read the current value. */
 	const void *var = ResolveVariableAddress(settings_ptr, sd);
-	int64 current_value = ReadValue(var, sd->save.conv);
+	int64 current_value = ReadCurrentValue(var, sd);
 
 	int64 filter_value;
 
@@ -1038,7 +1054,7 @@ bool SettingEntry::IsVisibleByRestrictionMode(RestrictionMode mode) const
 
 		/* Read the new game's value. */
 		var = ResolveVariableAddress(&_settings_newgame, sd);
-		filter_value = ReadValue(var, sd->save.conv);
+		filter_value = ReadCurrentValue(var, sd);
 	}
 
 	return current_value != filter_value;
@@ -1147,7 +1163,7 @@ void SettingEntry::DrawSetting(GameSettings *settings_ptr, int left, int right, 
 	bool editable = sd->IsEditable();
 
 	SetDParam(0, highlight ? STR_ORANGE_STRING1_WHITE : STR_ORANGE_STRING1_LTBLUE);
-	int32 value = (int32)ReadValue(var, sd->save.conv);
+	int32 value = (int32)ReadCurrentValue(var, sd);
 	if (sdb->cmd == SDT_BOOLX) {
 		/* Draw checkbox for boolean-value either on/off */
 		DrawBoolButton(buttons_left, button_y, value != 0, editable);
@@ -1659,7 +1675,6 @@ static SettingsContainer &GetSettingsTree()
 			limitations->Add(new SettingEntry("construction.command_pause_level"));
 			limitations->Add(new SettingEntry("construction.autoslope"));
 			limitations->Add(new SettingEntry("construction.extra_dynamite"));
-			limitations->Add(new SettingEntry("construction.max_heightlevel"));
 			limitations->Add(new SettingEntry("construction.max_bridge_length"));
 			limitations->Add(new SettingEntry("construction.max_bridge_height"));
 			limitations->Add(new SettingEntry("construction.max_tunnel_length"));
@@ -1690,15 +1705,24 @@ static SettingsContainer &GetSettingsTree()
 
 		SettingsPage *genworld = main->Add(new SettingsPage(STR_CONFIG_SETTING_GENWORLD));
 		{
+			genworld->Add(new SettingEntry("game_creation.starting_year"));
 			genworld->Add(new SettingEntry("game_creation.landscape"));
 			genworld->Add(new SettingEntry("game_creation.land_generator"));
+			genworld->Add(new SettingEntry("game_creation.map_x"));
+			genworld->Add(new SettingEntry("game_creation.map_y"));
 			genworld->Add(new SettingEntry("difficulty.terrain_type"));
 			genworld->Add(new SettingEntry("game_creation.tgen_smoothness"));
 			genworld->Add(new SettingEntry("game_creation.variety"));
+			genworld->Add(new SettingEntry("construction.max_heightlevel"));
 			genworld->Add(new SettingEntry("game_creation.snow_line_height"));
+			genworld->Add(new SettingEntry("difficulty.quantity_sea_lakes"));
+			genworld->Add(new SettingEntry("game_creation.custom_sea_level"));
+			genworld->Add(new SettingEntry("game_creation.water_borders"));
 			genworld->Add(new SettingEntry("game_creation.amount_of_rivers"));
 			genworld->Add(new SettingEntry("game_creation.tree_placer"));
 			genworld->Add(new SettingEntry("vehicle.road_side"));
+			genworld->Add(new SettingEntry("difficulty.number_towns"));
+			genworld->Add(new SettingEntry("game_creation.custom_town_number"));
 			genworld->Add(new SettingEntry("economy.larger_towns"));
 			genworld->Add(new SettingEntry("economy.initial_city_size"));
 			genworld->Add(new SettingEntry("economy.town_layout"));
@@ -2088,7 +2112,7 @@ struct GameSettingsWindow : Window {
 		}
 
 		const void *var = ResolveVariableAddress(settings_ptr, sd);
-		int32 value = (int32)ReadValue(var, sd->save.conv);
+		int32 value = (int32)ReadCurrentValue(var, sd);
 
 		/* clicked on the icon on the left side. Either scroller, bool on/off or dropdown */
 		if (x < SETTING_BUTTON_WIDTH && (sd->desc.flags & SGF_MULTISTRING)) {
