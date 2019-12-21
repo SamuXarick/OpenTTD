@@ -443,10 +443,10 @@ static const NWidgetPart _framerate_window_widgets[] = {
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_NAMES), SetScrollbar(WID_FRW_SCROLLBAR),
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_CURRENT), SetScrollbar(WID_FRW_SCROLLBAR),
 					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_AVERAGE), SetScrollbar(WID_FRW_SCROLLBAR),
-					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_TIMES_OPCODES), SetScrollbar(WID_FRW_SCROLLBAR),
 					NWidget(NWID_SELECTION, INVALID_COLOUR, WID_FRW_SEL_MEMORY),
 						NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_ALLOCSIZE), SetScrollbar(WID_FRW_SCROLLBAR),
 					EndContainer(),
+					NWidget(WWT_EMPTY, COLOUR_GREY, WID_FRW_OPCODES), SetScrollbar(WID_FRW_SCROLLBAR),
 				EndContainer(),
 				NWidget(WWT_TEXT, COLOUR_GREY, WID_FRW_INFO_DATA_POINTS), SetDataTip(STR_FRAMERATE_DATA_POINTS, 0x0),
 			EndContainer(),
@@ -657,7 +657,7 @@ struct FramerateWindow : Window {
 				break;
 			}
 
-			case WID_FRW_TIMES_OPCODES: {
+			case WID_FRW_OPCODES: {
 				size->width = 0;
 				bool any_active = _pf_data[PFE_GAMESCRIPT].num_valid > 0;
 				for (uint pfe = PFE_AI0; pfe < PFE_MAX; pfe++) any_active |= _pf_data[pfe].num_valid > 0;
@@ -728,16 +728,17 @@ struct FramerateWindow : Window {
 		y += FONT_HEIGHT_NORMAL + VSPACING;
 		for (PerformanceElement e : DISPLAY_ORDER_PFE) {
 			if (_pf_data[e].num_valid == 0) continue;
-			if (e < PFE_GAMESCRIPT || e > PFE_AI14) {
-				y += FONT_HEIGHT_NORMAL;
-				continue;
-			}
 			if (skip > 0) {
 				skip--;
-			} else {
+			} else if (e == PFE_GAMESCRIPT || e >= PFE_AI0) {
 				uint value = e == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(e - PFE_AI0));
 				SetDParam(0, value);
 				DrawString(r.left, r.right, y, STR_FRAMERATE_OPS, TC_FROMSTRING, SA_RIGHT);
+				y += FONT_HEIGHT_NORMAL;
+				drawable--;
+				if (drawable == 0) break;
+			} else {
+				/* skip non-script */
 				y += FONT_HEIGHT_NORMAL;
 				drawable--;
 				if (drawable == 0) break;
@@ -817,12 +818,13 @@ struct FramerateWindow : Window {
 				/* Render averages of all recorded values */
 				DrawElementTimesColumn(r, STR_FRAMERATE_AVERAGE, this->times_longterm);
 				break;
-			case WID_FRW_TIMES_OPCODES:
-				DrawElementMaxOpsColumn(r, STR_FRAMERATE_OPCODES);
-				break;
 			case WID_FRW_ALLOCSIZE:
 				DrawElementAllocationsColumn(r);
 				break;
+			case WID_FRW_OPCODES:
+				DrawElementMaxOpsColumn(r, STR_FRAMERATE_OPCODES);
+				break;
+
 		}
 	}
 
@@ -832,7 +834,7 @@ struct FramerateWindow : Window {
 			case WID_FRW_TIMES_NAMES:
 			case WID_FRW_TIMES_CURRENT:
 			case WID_FRW_TIMES_AVERAGE:
-			case WID_FRW_TIMES_OPCODES: {
+			case WID_FRW_OPCODES: {
 				/* Open time graph windows when clicking detail measurement lines */
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
 				int line = sb->GetScrolledRowFromWidget(pt.y - FONT_HEIGHT_NORMAL - VSPACING, this, widget, VSPACING, FONT_HEIGHT_NORMAL);

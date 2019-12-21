@@ -1313,6 +1313,7 @@ public:
 		WID_FRW_TIMES_AVERAGE                        = ::WID_FRW_TIMES_AVERAGE,
 		WID_FRW_ALLOCSIZE                            = ::WID_FRW_ALLOCSIZE,
 		WID_FRW_SEL_MEMORY                           = ::WID_FRW_SEL_MEMORY,
+		WID_FRW_OPCODES                              = ::WID_FRW_OPCODES,
 		WID_FRW_SCROLLBAR                            = ::WID_FRW_SCROLLBAR,
 	};
 
