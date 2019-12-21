@@ -285,40 +285,6 @@ PerformanceMeasurer::~PerformanceMeasurer()
 			}
 		}
 	}
-	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
-
-	/* Self-adjust max opcodes for active scripts */
-	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
-		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused();
-		Company *c;
-		FOR_ALL_COMPANIES(c) {
-			if (_pause_mode == PM_UNPAUSED && Company::IsValidAiID(c->index) && Company::Get(c->index)->ai_instance != nullptr && !Company::Get(c->index)->ai_instance->IsDead() && !Company::Get(c->index)->ai_instance->IsPaused()) {
-				active_scripts++;
-			}
-		}
-
-		if (active_scripts != 0 && (this->elem == PFE_GAMESCRIPT ? Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused() : _pause_mode == PM_UNPAUSED && Company::IsValidAiID((CompanyID)(this->elem - PFE_AI0)) && Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance != nullptr && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsDead() && !Company::Get((CompanyID)(this->elem - PFE_AI0))->ai_instance->IsPaused())) {
-			uint dummy; // unused
-			const SettingDesc *sd = GetSettingFromName("script_max_opcode_till_suspend", &dummy);
-			assert(sd != nullptr);
-			uint opcodes = this->elem == PFE_GAMESCRIPT ? Game::GetMaxOpCodes() : AI::GetMaxOpCodes((CompanyID)(this->elem - PFE_AI0));
-			uint value = opcodes;
-			double avg = min(9999.99, _pf_data[this->elem].GetAverageDurationMilliseconds(GL_RATE));
-			double all = min(9999.99, _pf_data[PFE_ALLSCRIPTS].GetAverageDurationMilliseconds(GL_RATE));
-			if (avg * active_scripts > MILLISECONDS_PER_TICK && all > MILLISECONDS_PER_TICK) {
-				value = Clamp(opcodes - (avg * active_scripts - MILLISECONDS_PER_TICK) * (avg * active_scripts - MILLISECONDS_PER_TICK), sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
-			} else if (avg > 0 && avg < MILLISECONDS_PER_TICK / 3 || all < MILLISECONDS_PER_TICK / 3) {
-				value = Clamp(opcodes + MILLISECONDS_PER_TICK / 3 - avg, sd->desc.min, GetGameSettings().script.script_max_opcode_till_suspend);
-			}
-			if (value != opcodes) {
-				if (this->elem == PFE_GAMESCRIPT) {
-					Game::SetMaxOpCodes(value);
-				} else {
-					AI::SetMaxOpCodes((CompanyID)(this->elem - PFE_AI0), value);
-				}
-			}
-		}
-	}
 }
 
 /** Set the rate of expected cycles per second of a performance element. */
