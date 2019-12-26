@@ -630,8 +630,8 @@ void SetSnowLine(byte table[SNOW_LINE_MONTHS][SNOW_LINE_DAYS])
 
 	for (uint i = 0; i < SNOW_LINE_MONTHS; i++) {
 		for (uint j = 0; j < SNOW_LINE_DAYS; j++) {
-			_snow_line->highest_value = max(_snow_line->highest_value, table[i][j]);
-			_snow_line->lowest_value = min(_snow_line->lowest_value, table[i][j]);
+			_snow_line->highest_value = max(_snow_line->highest_value, min((byte)MAX_SNOWLINE_HEIGHT, table[i][j]));
+			_snow_line->lowest_value = min(_snow_line->lowest_value, max((byte)MIN_SNOWLINE_HEIGHT, table[i][j]));
 		}
 	}
 }
@@ -643,11 +643,11 @@ void SetSnowLine(byte table[SNOW_LINE_MONTHS][SNOW_LINE_DAYS])
  */
 byte GetSnowLine()
 {
-	if (_snow_line == nullptr) return _settings_game.game_creation.snow_line_height;
+	if (_snow_line == nullptr) return Clamp(_settings_game.game_creation.snow_line_height, MIN_SNOWLINE_HEIGHT, MAX_SNOWLINE_HEIGHT);
 
 	YearMonthDay ymd;
 	ConvertDateToYMD(_date, &ymd);
-	return _snow_line->table[ymd.month][ymd.day];
+	return Clamp(_snow_line->table[ymd.month][ymd.day], MIN_SNOWLINE_HEIGHT, MAX_SNOWLINE_HEIGHT);
 }
 
 /**
@@ -657,7 +657,7 @@ byte GetSnowLine()
  */
 byte HighestSnowLine()
 {
-	return _snow_line == nullptr ? _settings_game.game_creation.snow_line_height : _snow_line->highest_value;
+	return min((byte)MAX_SNOWLINE_HEIGHT, _snow_line == nullptr ? _settings_game.game_creation.snow_line_height : _snow_line->highest_value);
 }
 
 /**
@@ -667,7 +667,7 @@ byte HighestSnowLine()
  */
 byte LowestSnowLine()
 {
-	return _snow_line == nullptr ? _settings_game.game_creation.snow_line_height : _snow_line->lowest_value;
+	return max((byte)MIN_SNOWLINE_HEIGHT, _snow_line == nullptr ? _settings_game.game_creation.snow_line_height : _snow_line->lowest_value);
 }
 
 /**
@@ -960,6 +960,55 @@ static void GenerateTerrain(int type, uint flag)
 				tile += TileDiffXY(1, 0);
 			} while (--w != 0);
 			break;
+	}
+}
+
+/**
+ * Automatically determine the value for snow line height and set it
+ * @param flat_world_height value >= 0: land height a flat world gets
+ *                          value == -1: not generating a flat world
+ */
+void DetermineSnowLineHeight(int flat_world_height)
+{
+	/* Determine snow line height only when snow_line_height is lower or higher than the minimum or maximum values for the setting */
+	if (_settings_game.game_creation.snow_line_height != MIN_SNOWLINE_HEIGHT - 1 && _settings_game.game_creation.snow_line_height != MAX_SNOWLINE_HEIGHT + 1) return;
+
+	if (flat_world_height >= 0) { // generating a flat world
+		/* This doesn't require the extensive computations below */
+		int max_value = min(MAX_SNOWLINE_HEIGHT, max((int)MIN_SNOWLINE_HEIGHT, flat_world_height - 2));
+		uint half_max_value = max_value / 2 + max_value % 2;
+		_settings_game.game_creation.snow_line_height = max(MIN_SNOWLINE_HEIGHT, half_max_value);
+	}
+
+	if (flat_world_height == -1) { // generating landscape
+		int h0_tile_count = 0; // count tiles at sea level
+		int highest_height = 0;
+		for (uint y = 0; y < MapSizeY(); y++) {
+			for (uint x = 0; x < MapSizeX(); x++) {
+				int height = TileHeight(TileXY(x, y));
+				if (height == 0) h0_tile_count++;
+				if (height > highest_height) highest_height = height;
+			}
+		}
+
+		/* Determine the snow line height and make it so that it's at most 50% of the land mass */
+		int land_mass_size = MapSizeX() * MapSizeY() - h0_tile_count; // available tiles above sea
+		int tile_count = 0, snow_line_height = 1;
+		while (tile_count < land_mass_size / 2 && snow_line_height <= highest_height) {
+			for (uint y = 0; y < MapSizeY(); y++) {
+				for (uint x = 0; x < MapSizeX(); x++) {
+					if (TileHeight(TileXY(x, y)) == snow_line_height) tile_count++;
+				}
+			}
+			snow_line_height++;
+		}
+
+		/* Farms can only generate below 'snow_line_height - 2' which limits
+		 * minimum snow_line_height to 'snow_line_height - 2 > 0', thus '3'.
+		 * Forests can only generate at a minimum of 'snow_line_height + 2'
+		 * which limits maximum snow_line_height to 'highest_height - 2'.
+		 * @see CheckNewIndustry_Farm and CheckNewIndustry_Forest. */
+		_settings_game.game_creation.snow_line_height = Clamp(snow_line_height, 3, max(3, min(MAX_SNOWLINE_HEIGHT, highest_height - 2)));
 	}
 }
 
@@ -1297,10 +1346,25 @@ void GenerateLandscape(byte mode)
 		GLS_HEIGHTMAP    =  3, ///< Loading a heightmap
 		GLS_TERRAGENESIS =  5, ///< Terragenesis generator
 		GLS_ORIGINAL     =  2, ///< Original generator
+		GLS_ARCTIC       =  1, ///< Extra step needed for arctic landscape
 		GLS_TROPIC       = 12, ///< Extra steps needed for tropic landscape
 		GLS_OTHER        =  0, ///< Extra steps for other landscapes
 	};
-	uint steps = (_settings_game.game_creation.landscape == LT_TROPIC) ? GLS_TROPIC : GLS_OTHER;
+	uint steps;
+	switch (_settings_game.game_creation.landscape) {
+		case LT_TEMPERATE:
+		case LT_TOYLAND:
+			steps = GLS_OTHER;
+			break;
+
+		case LT_ARCTIC:
+			steps = GLS_ARCTIC;
+			break;
+
+		case LT_TROPIC:
+			steps = GLS_TROPIC;
+			break;
+	}
 
 	if (mode == GWM_HEIGHTMAP) {
 		SetGeneratingWorldProgress(GWP_LANDSCAPE, steps + GLS_HEIGHTMAP);
@@ -1371,6 +1435,10 @@ void GenerateLandscape(byte mode)
 	ConvertGroundTilesIntoWaterTiles();
 	IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
 
+	if (_settings_game.game_creation.landscape == LT_ARCTIC) {
+		DetermineSnowLineHeight();
+		IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+	}
 	if (_settings_game.game_creation.landscape == LT_TROPIC) CreateDesertOrRainForest();
 
 	CreateRivers();

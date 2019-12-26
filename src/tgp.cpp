@@ -211,7 +211,7 @@ static const amplitude_t _water_percent[4] = {70, 170, 270, 420};
  * Gets the maximum allowed height while generating a map based on
  * mapsize, terraintype, and the maximum height level.
  * @return The maximum height for the map generation.
- * @note Values should never be lower than 3 since the minimum snowline height is 2.
+ * @note Sub-arctic maximum is at least 6 due to industry generation constraints.
  */
 static height_t TGPGetMaxHeight()
 {
@@ -235,7 +235,7 @@ static height_t TGPGetMaxHeight()
 	};
 
 	int max_height_from_table = max_height[_settings_game.difficulty.terrain_type][min(MapLogX(), MapLogY()) - MIN_MAP_SIZE_BITS];
-	return I2H(min(max_height_from_table, _settings_game.construction.max_heightlevel));
+	return I2H(min(_settings_game.game_creation.landscape == LT_ARCTIC ? max(6, max_height_from_table) : max_height_from_table, _settings_game.construction.max_heightlevel));
 }
 
 /**
