@@ -1018,10 +1018,6 @@ static void SetupFarmFieldFence(TileIndex tile, int size, byte type, DiagDirecti
 
 static void PlantFarmField(TileIndex tile, IndustryID industry)
 {
-	if (_settings_game.game_creation.landscape == LT_ARCTIC) {
-		if (GetTileZ(tile) + 2 >= GetSnowLine()) return;
-	}
-
 	/* determine field size */
 	uint32 r = (Random() & 0x303) + 0x404;
 	if (_settings_game.game_creation.landscape == LT_ARCTIC) r += 0x404;
@@ -1295,7 +1291,7 @@ static CommandCost CheckNewIndustry_OilRig(TileIndex tile)
 static CommandCost CheckNewIndustry_Farm(TileIndex tile)
 {
 	if (_settings_game.game_creation.landscape == LT_ARCTIC) {
-		if (GetTileZ(tile) + 2 >= HighestSnowLine()) {
+		if (GetTileZ(tile) + 1 >= HighestSnowLine()) {
 			return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 		}
 	}

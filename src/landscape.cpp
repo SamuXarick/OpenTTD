@@ -1003,8 +1003,8 @@ void DetermineSnowLineHeight(int flat_world_height)
 			snow_line_height++;
 		}
 
-		/* Farms can only generate below 'snow_line_height - 2' which limits
-		 * minimum snow_line_height to 'snow_line_height - 2 > 0', thus '3'.
+		/* Farms can only generate below 'snow_line_height - 1' and above sea level,
+		 * which limits minimum snow_line_height to 'snow_line_height - 1 > 1', thus '3'.
 		 * Forests can only generate at a minimum of 'snow_line_height + 2'
 		 * which limits maximum snow_line_height to 'highest_height - 2'.
 		 * @see CheckNewIndustry_Farm and CheckNewIndustry_Forest. */
