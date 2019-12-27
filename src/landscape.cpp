@@ -1454,8 +1454,8 @@ void GenerateLandscape(byte mode)
 {
 	/** Number of steps of landscape generation */
 	enum GenLandscapeSteps {
-		GLS_HEIGHTMAP    =  3, ///< Loading a heightmap
-		GLS_TERRAGENESIS =  5, ///< Terragenesis generator
+		GLS_HEIGHTMAP    =  2, ///< Loading a heightmap
+		GLS_TERRAGENESIS =  4, ///< Terragenesis generator
 		GLS_ORIGINAL     =  2, ///< Original generator
 		GLS_ARCTIC       =  1, ///< Extra step needed for arctic landscape
 		GLS_TROPIC       = 12, ///< Extra steps needed for tropic landscape
@@ -1480,7 +1480,6 @@ void GenerateLandscape(byte mode)
 	if (mode == GWM_HEIGHTMAP) {
 		SetGeneratingWorldProgress(GWP_LANDSCAPE, steps + GLS_HEIGHTMAP);
 		LoadHeightmap(_file_to_saveload.detail_ftype, _file_to_saveload.name);
-		IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
 	} else if (_settings_game.game_creation.land_generator == LG_TERRAGENESIS) {
 		SetGeneratingWorldProgress(GWP_LANDSCAPE, steps + GLS_TERRAGENESIS);
 		GenerateTerrainPerlin();
@@ -1539,10 +1538,12 @@ void GenerateLandscape(byte mode)
 		}
 	}
 
-	/* Do not call IncreaseGeneratingWorldProgress() before FixSlopes(),
-	 * it allows screen redraw. Drawing of broken slopes crashes the game */
-	FixSlopes();
-	IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+	if (mode == GWM_HEIGHTMAP || _settings_game.game_creation.land_generator == LG_ORIGINAL) {
+		/* Do not call IncreaseGeneratingWorldProgress() before FixSlopes(),
+		 * it allows screen redraw. Drawing of broken slopes crashes the game */
+		FixSlopes();
+		IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+	}
 	ConvertGroundTilesIntoWaterTiles();
 	IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
 
