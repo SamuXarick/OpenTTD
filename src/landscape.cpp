@@ -865,7 +865,8 @@ static void GenerateTerrain(int type, uint flag)
 	uint x = r & MapMaxX();
 	uint y = (r >> MapLogX()) & MapMaxY();
 
-	if (x < 2 || y < 2) return;
+	if (x < (uint)2 + (_settings_game.construction.freeform_edges ? 1 : 0)) return;
+	if (y < (uint)2 + (_settings_game.construction.freeform_edges ? 1 : 0)) return;
 
 	DiagDirection direction = (DiagDirection)GB(r, 22, 2);
 	uint w = templ->width;
@@ -882,26 +883,26 @@ static void GenerateTerrain(int type, uint flag)
 
 		switch (flag & 3) {
 			default: NOT_REACHED();
-			case 0:
+			case 0: // Northern side
 				if (xw + yw > MapSize() - bias) return;
 				break;
 
-			case 1:
+			case 1: // Eastern side
 				if (yw < xw + bias) return;
 				break;
 
-			case 2:
+			case 2: // Southern side
 				if (xw + yw < MapSize() + bias) return;
 				break;
 
-			case 3:
+			case 3: // Western side
 				if (xw < yw + bias) return;
 				break;
 		}
 	}
 
-	if (x + w >= MapMaxX() - 1) return;
-	if (y + h >= MapMaxY() - 1) return;
+	if (x + w >= MapMaxX()) return;
+	if (y + h >= MapMaxY()) return;
 
 	TileIndex tile = TileXY(x, y);
 
