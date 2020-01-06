@@ -618,6 +618,139 @@ bool IsShipDestinationTile(TileIndex tile, StationID station)
 	return false;
 }
 
+/** Temporary data storage for testing collisions. */
+struct ShipCollideChecker {
+
+	TrackBits track_bits;   ///< Pathfinder chosen track converted to trackbits, or is v->state of requesting ship. (one bit set)
+	TileIndex search_tile;  ///< The tile that we really want to check.
+	Ship *v;                ///< Ship we are testing for collision.
+};
+
+/** Helper function for collision avoidance. */
+static Vehicle *FindShipOnTile(Vehicle *v, void *data)
+{
+	if (v->type != VEH_SHIP) return nullptr;
+
+	ShipCollideChecker *scc = (ShipCollideChecker*)data;
+
+	/* Don't detect vehicles on different parallel tracks. */
+	TrackBits bits = scc->track_bits | Ship::From(v)->state;
+	if (bits == TRACK_BIT_HORZ || bits == TRACK_BIT_VERT) return nullptr;
+
+	/* Don't detect ships passing on aquaduct. */
+	if (abs(v->z_pos - scc->v->z_pos) >= 8) return nullptr;
+
+	/* Only requested tiles are checked. avoid desync. */
+	if (TileVirtXY(v->x_pos, v->y_pos) != scc->search_tile) return nullptr;
+
+	return v;
+}
+
+/**
+ * Adjust speed while on aqueducts.
+ * @param search_tile  Tile that the requesting ship will check, one will be added to look in front of the bow.
+ * @param ramp         Ramp tile from aqueduct.
+ * @param v            Ship that does the request.
+ * @return Allways false.
+ */
+static bool HandleSpeedOnAqueduct(Ship *v, TileIndex tile, TileIndex ramp)
+{
+	TileIndexDiffC ti = TileIndexDiffCByDir(v->direction);
+
+	ShipCollideChecker scc;
+	scc.v = v;
+	scc.track_bits = TRACK_BIT_NONE;
+	scc.search_tile = TileAddWrap(tile, ti.x, ti.y);
+
+	if (scc.search_tile == INVALID_TILE) return false;
+
+	if (IsValidTile(scc.search_tile) &&
+			(HasVehicleOnPos(ramp, &scc, FindShipOnTile) ||
+			HasVehicleOnPos(GetOtherTunnelBridgeEnd(ramp), &scc, FindShipOnTile))) {
+		v->cur_speed /= 4;
+	}
+	return false;
+}
+
+/**
+ * If there is imminent collision or worse, direction and speed will be adjusted.
+ * @param tile        Tile that the ship is about to enter.
+ * @param v           Ship that does the request.
+ * @param tracks      The available tracks that could be followed.
+ * @param track_old   The track that the pathfinder assigned.
+ * @param diagdir     The DiagDirection that tile will be entered.
+ * @return The new track if found.
+ */
+static void CheckDistanceBetweenShips(TileIndex tile, Ship *v, TrackBits tracks, Track *track_old, DiagDirection diagdir)
+{
+	if (DistanceManhattan(v->dest_tile, tile) <= 3 && !v->current_order.IsType(OT_GOTO_WAYPOINT)) return; // No checking close to docks and depots.
+
+	Track track = *track_old;
+	TrackBits track_bits = TrackToTrackBits(track);
+
+	/* Only check for collision when pathfinder did not change direction.
+	 * This is done in order to keep ships moving towards the intended target. */
+	TrackBits combine = (v->state | track_bits);
+	if (combine != TRACK_BIT_HORZ && combine != TRACK_BIT_VERT && combine != track_bits) return;
+
+	TileIndexDiffC ti;
+	ShipCollideChecker scc;
+	scc.v = v;
+	scc.track_bits = track_bits;
+	scc.search_tile = tile;
+
+	bool found = HasVehicleOnPos(tile, &scc, FindShipOnTile);
+
+	if (!found) {
+		/* Bridge entrance */
+		if (IsBridgeTile(tile) && GetTunnelBridgeTransportType(tile) == TRANSPORT_WATER && HandleSpeedOnAqueduct(v, tile, tile)) return;
+
+		scc.track_bits = v->state;
+		ti = TileIndexDiffCByDiagDir(TrackdirToExitdir(TrackEnterdirToTrackdir(track, diagdir)));
+		scc.search_tile = TileAddWrap(tile, ti.x, ti.y);
+		if (scc.search_tile == INVALID_TILE) return;
+
+		found = HasVehicleOnPos(scc.search_tile, &scc, FindShipOnTile);
+	}
+	if (!found) {
+		scc.track_bits = track_bits;
+		ti = TileIndexDiffCByDiagDir(diagdir);
+		scc.search_tile = TileAddWrap(scc.search_tile, ti.x, ti.y);
+		if (scc.search_tile == INVALID_TILE) return;
+
+		found = HasVehicleOnPos(scc.search_tile, &scc, FindShipOnTile);
+	}
+	if (found) {
+
+		/* Speed adjustment related to distance. */
+		v->cur_speed /= scc.search_tile == tile ? 8 : 2;
+
+		/* Clean none wanted trackbits, including pathfinder track, TRACK_BIT_WORMHOLE and no 90 degree turns. */
+		tracks = IsDiagonalTrack(track) ? KillFirstBit(tracks) : (tracks & TRACK_BIT_CROSS);
+
+		/* Just follow track one tile and see if there is a track to follow. (try not to bang in coast or ship) */
+		while (tracks != TRACK_BIT_NONE) {
+			track = RemoveFirstTrack(&tracks);
+			DiagDirection exitdir = TrackdirToExitdir(TrackEnterdirToTrackdir(track, diagdir));
+
+			ti = TileIndexDiffCByDiagDir(exitdir);
+			TileIndex tile_check = TileAddWrap(tile, ti.x, ti.y);
+			if (tile_check == INVALID_TILE) continue;
+
+			if (HasVehicleOnPos(tile_check, &scc, FindShipOnTile)) continue;
+
+			TrackBits bits = GetAvailShipTracks(tile_check, exitdir);
+			if (!IsDiagonalTrack(track)) bits &= TRACK_BIT_CROSS; // No 90 degree turns.
+
+			if (bits != INVALID_TRACK_BIT && bits != TRACK_BIT_NONE) {
+				*track_old = track;
+				break;
+			}
+		}
+	}
+}
+
+
 static void ShipController(Ship *v)
 {
 	uint32 r;
@@ -722,6 +855,9 @@ static void ShipController(Ship *v)
 			track = ChooseShipTrack(v, gp.new_tile, diagdir, tracks);
 			if (track == INVALID_TRACK) goto reverse_direction;
 
+			/* Try to avoid collision and keep distance between ships. */
+			if (_settings_game.vehicle.ship_collision_avoidance) CheckDistanceBetweenShips(gp.new_tile, v, tracks, &track, diagdir);
+
 			b = _ship_subcoord[diagdir][track];
 
 			gp.x = (gp.x & ~0xF) | b[0];
@@ -764,12 +900,15 @@ static void ShipController(Ship *v)
 	} else {
 		/* On a bridge */
 		if (!IsTileType(gp.new_tile, MP_TUNNELBRIDGE) || !HasBit(VehicleEnterTile(v, gp.new_tile, gp.x, gp.y), VETS_ENTERED_WORMHOLE)) {
+			if (_settings_game.vehicle.ship_collision_avoidance && gp.new_tile != TileVirtXY(v->x_pos, v->y_pos)) HandleSpeedOnAqueduct(v, gp.new_tile, v->tile);
 			v->x_pos = gp.x;
 			v->y_pos = gp.y;
 			v->UpdatePosition();
 			if ((v->vehstatus & VS_HIDDEN) == 0) v->Vehicle::UpdateViewport(true);
 			return;
 		}
+		/* Bridge exit */
+		if (_settings_game.vehicle.ship_collision_avoidance && gp.new_tile != TileVirtXY(v->x_pos, v->y_pos)) HandleSpeedOnAqueduct(v, gp.new_tile, v->tile);
 
 		/* Ship is back on the bridge head, we need to consume its path
 		 * cache entry here as we didn't have to choose a ship track. */

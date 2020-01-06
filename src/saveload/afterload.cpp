@@ -3133,6 +3133,10 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_SHIP_COLLISION_AVOIDANCE)) {
+		_settings_game.vehicle.ship_collision_avoidance = false;
+	}
+
 	/* Compute station catchment areas. This is needed here in case UpdateStationAcceptance is called below. */
 	Station::RecomputeCatchmentForAll();
 
