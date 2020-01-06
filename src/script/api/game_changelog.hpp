@@ -39,6 +39,7 @@
  * API additions:
  * \li GSVehicle::BuildVehicleWithRefit
  * \li GSVehicle::GetBuildWithRefitCapacity
+ * \li GSVehicle::GetProfitLifetime
  * \li GSRoad::GetName
  * \li GSRoad::RoadVehCanRunOnRoad
  * \li GSRoad::RoadVehHasPowerOnRoad

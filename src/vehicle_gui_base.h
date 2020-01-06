@@ -27,10 +27,11 @@ struct GUIVehicleGroup {
 	VehicleList::const_iterator vehicles_end;      ///< Pointer to past-the-end element of this vehicle group.
 	Money display_profit_this_year;                ///< Total profit for the vehicle group this year.
 	Money display_profit_last_year;                ///< Total profit for the vehicle group laste year.
+	Money display_profit_lifetime;                 ///< Total lifetime profit for the vehicle group.
 	Date age;                                      ///< Age in days of oldest vehicle in the group.
 
-	GUIVehicleGroup(VehicleList::const_iterator vehicles_begin, VehicleList::const_iterator vehicles_end, Money display_profit_this_year, Money display_profit_last_year, Date age)
-		: vehicles_begin(vehicles_begin), vehicles_end(vehicles_end), display_profit_this_year(display_profit_this_year), display_profit_last_year(display_profit_last_year), age(age) {}
+	GUIVehicleGroup(VehicleList::const_iterator vehicles_begin, VehicleList::const_iterator vehicles_end, Money display_profit_this_year, Money display_profit_last_year, Money display_profit_lifetime, Date age)
+		: vehicles_begin(vehicles_begin), vehicles_end(vehicles_end), display_profit_this_year(display_profit_this_year), display_profit_last_year(display_profit_last_year), display_profit_lifetime(display_profit_lifetime), age(age) {}
 
 	std::ptrdiff_t NumVehicles() const
 	{
@@ -79,6 +80,7 @@ struct BaseVehicleListWindow : public Window {
 	static const StringID vehicle_group_shared_orders_sorter_names[];
 	static VehicleGroupSortFunction * const vehicle_group_none_sorter_funcs[];
 	static VehicleGroupSortFunction * const vehicle_group_shared_orders_sorter_funcs[];
+	const uint vehicle_sorter_non_ground_veh_disable_mask = (1 << 11); // STR_SORT_BY_LENGTH
 
 	BaseVehicleListWindow(WindowDesc *desc, WindowNumber wno);
 
