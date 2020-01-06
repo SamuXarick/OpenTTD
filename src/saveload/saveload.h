@@ -311,6 +311,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_AI_START_DELAY,                     ///< 224  PR#7661 Rework AI "start_date" setting as game setting.
 
 	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 225  PR#7459 Self-adjusting AI/GS max opcodes.
+	SLV_LIFETIME_PROFIT,                    ///< 226  PR#7919 Lifetime profit.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };

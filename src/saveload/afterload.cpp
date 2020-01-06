@@ -3163,6 +3163,13 @@ bool AfterLoadGame()
 		_settings_game.script.self_regulate_max_opcode = false;
 	}
 
+	/* Set lifetime vehicle profit to the sum of last and this years profits */
+	if (IsSavegameVersionBefore(SLV_LIFETIME_PROFIT)) {
+		for (Vehicle *v : Vehicle::Iterate()) {
+			v->profit_lifetime = v->profit_last_year + v->profit_this_year;
+		}
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 

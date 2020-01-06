@@ -115,6 +115,7 @@ void SQGSVehicle_Register(Squirrel *engine)
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetRunningCost,                 "GetRunningCost",                 2, ".i");
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetProfitThisYear,              "GetProfitThisYear",              2, ".i");
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetProfitLastYear,              "GetProfitLastYear",              2, ".i");
+	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetProfitLifetime,              "GetProfitLifetime",              2, ".i");
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetCurrentValue,                "GetCurrentValue",                2, ".i");
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetVehicleType,                 "GetVehicleType",                 2, ".i");
 	SQGSVehicle.DefSQStaticMethod(engine, &ScriptVehicle::GetRoadType,                    "GetRoadType",                    2, ".i");

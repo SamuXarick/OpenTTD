@@ -24,8 +24,10 @@
  * \li AIGroup::SetSecondaryColour
  * \li AIGroup::GetPrimaryColour
  * \li AIGroup::GetSecondaryColour
+ * \li AIGroup::GetProfitLifetime
  * \li AIVehicle::BuildVehicleWithRefit
  * \li AIVehicle::GetBuildWithRefitCapacity
+ * \li AIVehicle::GetProfitLifetime
  * \li AIRoad::GetName
  * \li AIRoad::RoadVehCanRunOnRoad
  * \li AIRoad::RoadVehHasPowerOnRoad
