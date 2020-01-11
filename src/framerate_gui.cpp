@@ -305,6 +305,8 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 
+	if (!_settings_game.script.self_regulate_max_opcode) return;
+
 	if (this->elem < PFE_GAMESCRIPT || this->elem > PFE_AI14) return;
 
 	/* Self-adjust max opcodes for active scripts */
@@ -569,6 +571,7 @@ struct FramerateWindow : Window {
 				if (e == PFE_GAMESCRIPT || e >= PFE_AI0) have_script = true;
 			}
 		}
+		have_script &= GetGameSettings().script.self_regulate_max_opcode;
 
 		bool re_init = false;
 		if (this->showing_opcodes != have_script) {
