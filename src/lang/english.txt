@@ -1836,6 +1836,9 @@ STR_CONFIG_SETTING_AI_BUILDS_SHIPS_HELPTEXT                     :Enabling this s
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER                            :Allow AIs in multiplayer: {STRING2}
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Allow AI computer players to participate in multiplayer games
 
+STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES             :Self-regulate #opcodes for scripts: {STRING2}
+STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES_HELPTEXT    :Permit playable framerate with many scripts running. Based on the performance data measured, the maximum number of computation steps that a script can take in one turn is increased or decreased
+
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :#opcodes before scripts are suspended: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximum number of computation steps that a script can take in one turn
 STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY                            :Max memory usage per script: {STRING2}

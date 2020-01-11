@@ -44,6 +44,7 @@
 #include "ai/ai_config.hpp"
 #include "ai/ai.hpp"
 #include "game/game_config.hpp"
+#include "game/game.hpp"
 #include "ship.h"
 #include "smallmap_gui.h"
 #include "roadveh.h"
@@ -683,6 +684,27 @@ static void ChangeMinutesPerYear(int32_t new_value)
 static bool CanChangeTimetableMode(int32_t &)
 {
 	return !TimerGameEconomy::UsingWallclockUnits();
+}
+
+/**
+ * Callback after changing script max opcode till suspend.
+ * @param new_value The new value to change to.
+ */
+static void ScriptMaxOpcodeTillSuspendChanged(int32_t new_value)
+{
+	if (GetGameSettings().script.self_regulate_max_opcode) return;
+	Game::SetMaxOpCodes(new_value);
+	for (CompanyID cid = CompanyID::Begin(); cid < MAX_COMPANIES; ++cid) AI::SetMaxOpCodes(cid, new_value);
+}
+
+/**
+ * Callback after changing self regulate max opcode setting.
+ * @param new_value The new value to change to.
+ */
+static void SelfRegulateMaxOpcodeChanged(int32_t new_value)
+{
+	if (new_value != 0) return;
+	ScriptMaxOpcodeTillSuspendChanged(GetGameSettings().script.script_max_opcode_till_suspend);
 }
 
 /* End - Callback Functions */
