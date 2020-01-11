@@ -301,6 +301,8 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 
+	if (!_settings_game.script.self_regulate_max_opcode) return;
+
 	if (this->elem < PFE_GAMESCRIPT || this->elem > PFE_AI14) return;
 
 	/* Self-adjust max opcodes for active scripts */
