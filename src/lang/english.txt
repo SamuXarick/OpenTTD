@@ -1531,6 +1531,8 @@ STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Allow AI comput
 STR_CONFIG_SETTING_AI_START_DELAY                               :Start delay between AIs (give or take): {STRING2}
 STR_CONFIG_SETTING_AI_START_DELAY_HELPTEXT                      :Number of days to wait before starting an AI, or subsequent AI(s) after the previous one.{}If the number of days is different than zero, a random deviation of 60 days is added, and the actual value in-game will be 'number_of_days + random(-60 days, 60 days)', with a minimum of 1 day and a maximum of 3600 days.{}If the number of days is zero, the AI(s) will start immediately.{}The default value for this setting is based on the value selected for 'Default settings profile'.
 STR_CONFIG_SETTING_AI_START_DELAY_VALUE                         :{COMMA}{NBSP}day{P 0 "" s}
+STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES             :Self-regulate #opcodes for scripts: {STRING2}
+STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES_HELPTEXT    :Permit playable framerate with many scripts running. Based on the performance data measured, the maximum number of computation steps that a script can take in one turn is increased or decreased
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :#opcodes before scripts are suspended: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximum number of computation steps that a script can take in one turn
 STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY                            :Max memory usage per script: {STRING2}

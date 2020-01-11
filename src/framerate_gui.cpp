@@ -253,6 +253,8 @@ PerformanceMeasurer::~PerformanceMeasurer()
 	}
 	_pf_data[this->elem].Add(this->start_time, GetPerformanceTimer());
 
+	if (!_settings_game.script.self_regulate_max_opcode) return;
+
 	/* Self-adjust max opcodes for active scripts */
 	if (this->elem >= PFE_GAMESCRIPT && this->elem <= PFE_AI14) {
 		uint active_scripts = Game::GetInstance() != nullptr && !Game::GetInstance()->IsDead() && !Game::GetInstance()->IsPaused();

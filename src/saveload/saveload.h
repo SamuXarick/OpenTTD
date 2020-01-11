@@ -310,6 +310,8 @@ enum SaveLoadVersion : uint16 {
 	SLV_PLANE_CRASHES_OPTION,               ///< 223  PR#7293 Add no plane crashes, unless runway is too short option.
 	SLV_AI_START_DELAY,                     ///< 224  PR#7661 Rework AI "start_date" setting as game setting.
 
+	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 225  PR#7459 Self-adjusting AI/GS max opcodes.
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 

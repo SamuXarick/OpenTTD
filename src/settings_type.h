@@ -340,6 +340,7 @@ struct AISettings {
 /** Settings related to scripts. */
 struct ScriptSettings {
 	uint8  settings_profile;                 ///< difficulty profile to set initial settings of scripts, esp. random AIs
+	bool   self_regulate_max_opcode;         ///< self-adjust max opcode calls based on frametime
 	uint32 script_max_opcode_till_suspend;   ///< max opcode calls till scripts will suspend
 	uint32 script_max_memory_megabytes;      ///< limit on memory a single script instance may have allocated
 };

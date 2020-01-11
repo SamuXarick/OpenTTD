@@ -3158,6 +3158,11 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_SELF_REGULATE_MAX_OPCODE)) {
+		/* Disable self-regulate script max opcode calls. */
+		_settings_game.script.self_regulate_max_opcode = false;
+	}
+
 	/* Update station docking tiles. */
 	AfterLoadScanDockingTiles();
 
