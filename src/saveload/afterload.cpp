@@ -3163,10 +3163,23 @@ bool AfterLoadGame()
 		_settings_game.script.self_regulate_max_opcode = false;
 	}
 
-	/* Set lifetime vehicle profit to the sum of last and this years profits */
+	/* Best guess lifetime profits based on vehicle age and last year profits */
 	if (IsSavegameVersionBefore(SLV_LIFETIME_PROFIT)) {
 		for (Vehicle *v : Vehicle::Iterate()) {
-			v->profit_lifetime = v->profit_last_year + v->profit_this_year;
+			/* Renewing vehicles resets lifetime profits to zero and
+			 * inherits last year profits from their predecessors.
+			 * Using their last year profits to best guess lifetime
+			 * profits falls into the wrong side, unless the vehicles
+			 * have already gone through one entire calendar year. */
+			YearMonthDay cur_date;
+			ConvertDateToYMD(_date, &cur_date);
+			YearMonthDay birth_date;
+			ConvertDateToYMD(_date - v->age, &birth_date);
+			if (cur_date.year - birth_date.year >= 2) {
+				v->profit_lifetime = v->profit_last_year;
+			} else {
+				v->profit_lifetime = 0;
+			}
 		}
 	}
 
