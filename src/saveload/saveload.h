@@ -312,6 +312,7 @@ enum SaveLoadVersion : uint16 {
 
 	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 225  PR#7459 Self-adjusting AI/GS max opcodes.
 	SLV_LIFETIME_PROFIT,                    ///< 226  PR#7919 Lifetime profit.
+	SLV_BUILD_ON_COMPETITOR_CANAL,          ///< 227  PR#7937 Build on competitor canal.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };

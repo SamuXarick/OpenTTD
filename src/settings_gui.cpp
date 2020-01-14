@@ -1692,6 +1692,7 @@ static SettingsContainer &GetSettingsTree()
 			limitations->Add(new SettingEntry("construction.command_pause_level"));
 			limitations->Add(new SettingEntry("construction.autoslope"));
 			limitations->Add(new SettingEntry("construction.extra_dynamite"));
+			limitations->Add(new SettingEntry("construction.dynamite_river"));
 			limitations->Add(new SettingEntry("construction.max_bridge_length"));
 			limitations->Add(new SettingEntry("construction.max_bridge_height"));
 			limitations->Add(new SettingEntry("construction.max_tunnel_length"));
@@ -1706,6 +1707,7 @@ static SettingsContainer &GetSettingsTree()
 			limitations->Add(new SettingEntry("station.distant_join_stations"));
 			limitations->Add(new SettingEntry("construction.road_stop_on_town_road"));
 			limitations->Add(new SettingEntry("construction.road_stop_on_competitor_road"));
+			limitations->Add(new SettingEntry("construction.build_on_competitor_canal"));
 			limitations->Add(new SettingEntry("construction.allow_company_level_crossing"));
 			limitations->Add(new SettingEntry("vehicle.disable_elrails"));
 			limitations->Add(new SettingEntry("vehicle.large_plane_on_short_runway"));
