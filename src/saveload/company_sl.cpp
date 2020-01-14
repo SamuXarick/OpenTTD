@@ -142,7 +142,7 @@ void AfterLoadCompanyStats()
 
 			case MP_STATION:
 				c = Company::GetIfValid(GetTileOwner(tile));
-				if (c != nullptr && GetStationType(tile) != STATION_AIRPORT && !IsBuoy(tile)) c->infrastructure.station++;
+				if (c != nullptr && GetStationType(tile) != STATION_AIRPORT) c->infrastructure.station++;
 
 				switch (GetStationType(tile)) {
 					case STATION_RAIL:
@@ -163,8 +163,10 @@ void AfterLoadCompanyStats()
 					}
 
 					case STATION_DOCK:
+					case STATION_OILRIG:
 					case STATION_BUOY:
 						if (GetWaterClass(tile) == WATER_CLASS_CANAL) {
+							c = Company::GetIfValid(GetCanalOwner(tile));
 							if (c != nullptr) c->infrastructure.water++;
 						}
 						break;
@@ -177,20 +179,14 @@ void AfterLoadCompanyStats()
 			case MP_WATER:
 				if (IsShipDepot(tile) || IsLock(tile)) {
 					c = Company::GetIfValid(GetTileOwner(tile));
-					if (c != nullptr) {
-						if (IsShipDepot(tile)) c->infrastructure.water += LOCK_DEPOT_TILE_FACTOR;
-						if (IsLock(tile) && GetLockPart(tile) == LOCK_PART_MIDDLE) {
-							/* The middle tile specifies the owner of the lock. */
-							c->infrastructure.water += 3 * LOCK_DEPOT_TILE_FACTOR; // the middle tile specifies the owner of the
-							break; // do not count the middle tile as canal
-						}
-					}
+					if (c != nullptr) c->infrastructure.water += LOCK_DEPOT_TILE_FACTOR;
 				}
 				FALLTHROUGH;
 
+			case MP_INDUSTRY:
 			case MP_OBJECT:
 				if (GetWaterClass(tile) == WATER_CLASS_CANAL) {
-					c = Company::GetIfValid(GetTileOwner(tile));
+					c = Company::GetIfValid(GetCanalOwner(tile));
 					if (c != nullptr) c->infrastructure.water++;
 				}
 				break;

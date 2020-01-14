@@ -40,6 +40,7 @@
 #include "object_base.h"
 #include "game/game.hpp"
 #include "error.h"
+#include "company_base.h"
 #include "string_func.h"
 #include "industry_cmd.h"
 #include "landscape_cmd.h"
@@ -156,8 +157,9 @@ Industry::~Industry()
 			if (GetIndustryIndex(tile_cur) == this->index) {
 				DeleteNewGRFInspectWindow(GSF_INDUSTRYTILES, tile_cur);
 
+				Owner oc = GetWaterClass(tile_cur) == WATER_CLASS_CANAL ? GetCanalOwner(tile_cur) : INVALID_OWNER;
 				/* MakeWaterKeepingClass() can also handle 'land' */
-				MakeWaterKeepingClass(tile_cur, OWNER_NONE);
+				MakeWaterKeepingClass(tile_cur, oc);
 			}
 		} else if (IsTileType(tile_cur, MP_STATION) && IsOilRig(tile_cur)) {
 			DeleteOilRig(tile_cur);
@@ -492,6 +494,14 @@ static void GetTileDesc_Industry(TileIndex tile, TileDesc *td)
 
 	if (is->grf_prop.grffile != nullptr) {
 		td->grf = GetGRFConfig(is->grf_prop.grffile->grfid)->GetName();
+	}
+
+	if (HasTileWaterGround(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		Owner canal_owner = GetCanalOwner(tile);
+		if (canal_owner != td->owner[0]) {
+			td->owner_type[1] = STR_LAND_AREA_INFORMATION_CANAL_OWNER;
+			td->owner[1] = GetCanalOwner(tile);
+		}
 	}
 }
 
@@ -950,6 +960,14 @@ static void ChangeTileOwner_Industry(TileIndex tile, Owner old_owner, Owner new_
 
 	if (i->exclusive_supplier == old_owner) i->exclusive_supplier = new_owner;
 	if (i->exclusive_consumer == old_owner) i->exclusive_consumer = new_owner;
+
+	if (HasTileWaterGround(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		if (GetCanalOwner(tile) == old_owner) {
+			Company::Get(old_owner)->infrastructure.water--;
+			if (new_owner != INVALID_OWNER) Company::Get(new_owner)->infrastructure.water++;
+			SetCanalOwner(tile, new_owner == INVALID_OWNER ? OWNER_NONE : new_owner);
+		}
+	}
 }
 
 /**
@@ -1426,9 +1444,10 @@ bool IsSlopeRefused(Slope current, Slope refused)
  * @param tile                    Position to check.
  * @param layout                  Industry tiles table.
  * @param type                    Type of the industry.
+ * @param founder                 Founder of the industry.
  * @return Failed or succeeded command.
  */
-static CommandCost CheckIfIndustryTilesAreFree(TileIndex tile, const IndustryTileLayout &layout, IndustryType type)
+static CommandCost CheckIfIndustryTilesAreFree(TileIndex tile, const IndustryTileLayout &layout, IndustryType type, Owner founder)
 {
 	IndustryBehaviour ind_behav = GetIndustrySpec(type)->behaviour;
 
@@ -1468,9 +1487,54 @@ static CommandCost CheckIfIndustryTilesAreFree(TileIndex tile, const IndustryTil
 
 				if (ret.Failed()) return ret;
 			} else {
-				/* Clear the tiles, but do not affect town ratings */
-				ret = Command<CMD_LANDSCAPE_CLEAR>::Do(DC_AUTO | DC_NO_TEST_TOWN_RATING | DC_NO_MODIFY_TOWN_RATING, cur_tile);
-				if (ret.Failed()) return ret;
+				if (HasTileWaterGround(cur_tile) && GetWaterClass(cur_tile) == WATER_CLASS_CANAL) {
+					Owner oc = GetCanalOwner(cur_tile);
+					bool is_canal = IsWaterTile(cur_tile);
+
+					/* We are in one of these two situations:
+					 * 1. When prospecting, _current_company is OWNER_TOWN (founder can be company_0-14 / OWNER_DEITY)
+					 * 2. When not prospecting, _current_company can be company_0-14 / OWNER_NONE / OWNER_DEITY (founder is equal to _current_company)
+					 *
+					 * For situation 1:
+					 * a) On a clear water canal:
+					 * - Allow prospecting on clear water canals in which the founder is the canal owner, or when the canal has no owner, or
+					 *   when 'build_on_competitor_canal' is enabled and the canal owner is different than that of the founder.
+					 * b) On a clearable object built over the canal:
+					 * - Never allow prospecting on objects even if these can be cleared.
+					 *
+					 * For situation 2:
+					 * a) On a clear water canal:
+					 * - Allow random and deity creation on clear water canals when 'build_on_competitor_canal' is enabled, or when canal
+					 *   has no owner.
+					 * - Allow company funded creation on clear water canals in which the funding company is the canal owner, or when the canal
+					 *   has no owner, or when 'build_on_competitor_canal' is enabled and the canal owner is different than that of the funding
+					 *   company.
+					 * b) On a clearable object built over the canal:
+					 * - Allow random and deity creation on clearable objects which have no owner, but never on objects which have an owner,
+					 *   even if the canal under the object has no owner.
+					 * - Allow company funded creation on clearable objects in which the funding company is the object owner. And then, when
+					 *   the canal under the object is owned by the funding company, or when 'build_on_competitor_canal' and the canal owner is
+					 *   different than that of the funding company.
+					 */
+					Backup<CompanyID> cur_company(_current_company, is_canal ? founder : _current_company, FILE_LINE);
+					ret = Command<CMD_LANDSCAPE_CLEAR>::Do(DC_AUTO | DC_NO_TEST_TOWN_RATING | DC_NO_MODIFY_TOWN_RATING, cur_tile);
+					CommandCost ownership = is_canal ? CheckTileOwnership(cur_tile) : CheckOwnership(oc, cur_tile);
+					cur_company.Restore();
+
+					if (is_canal) {
+						/* This is a clear water canal */
+						if (ownership.Failed() && oc != OWNER_NONE &&
+							_game_mode != GM_EDITOR && !_settings_game.construction.build_on_competitor_canal) return ownership;
+					} else {
+						/* This is a station, object, or industry on a canal */
+						if (ret.Failed()) return ret;
+						if (ownership.Failed() && oc != OWNER_NONE && !_settings_game.construction.build_on_competitor_canal) return ownership;
+					}
+				} else {
+					/* Clear the tiles, but do not affect town ratings */
+					ret = Command<CMD_LANDSCAPE_CLEAR>::Do(DC_AUTO | DC_NO_TEST_TOWN_RATING | DC_NO_MODIFY_TOWN_RATING, cur_tile);
+					if (ret.Failed()) return ret;
+				}
 			}
 		}
 	}
@@ -1900,11 +1964,16 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 		if (it.gfx != GFX_WATERTILE_SPECIALCHECK) {
 			i->location.Add(cur_tile);
 
-			WaterClass wc = (IsWaterTile(cur_tile) ? GetWaterClass(cur_tile) : WATER_CLASS_INVALID);
+			WaterClass wc = HasTileWaterGround(cur_tile) ? GetWaterClass(cur_tile) : WATER_CLASS_INVALID;
+			Owner oc = wc == WATER_CLASS_CANAL ? GetCanalOwner(cur_tile) : INVALID_OWNER;
+			bool water = IsWaterTile(cur_tile);
+			bool river = HasTileCanalOnRiver(cur_tile);
 
 			Command<CMD_LANDSCAPE_CLEAR>::Do(DC_EXEC | DC_NO_TEST_TOWN_RATING | DC_NO_MODIFY_TOWN_RATING, cur_tile);
 
-			MakeIndustry(cur_tile, i->index, it.gfx, Random(), wc);
+			MakeIndustry(cur_tile, oc, i->index, it.gfx, Random(), wc);
+			if (water && (founder == oc || founder >= MAX_COMPANIES) && Company::IsValidID(oc)) Company::Get(oc)->infrastructure.water++;
+			if (river) SetCanalOnRiver(cur_tile);
 
 			if (_generating_world) {
 				SetIndustryConstructionCounter(cur_tile, 3);
@@ -1963,7 +2032,7 @@ static CommandCost CreateNewIndustryHelper(TileIndex tile, IndustryType type, Do
 
 	/* 2. Built-in checks on industry tiles. */
 	std::vector<ClearedObjectArea> object_areas(_cleared_object_areas);
-	ret = CheckIfIndustryTilesAreFree(tile, layout, type);
+	ret = CheckIfIndustryTilesAreFree(tile, layout, type, founder);
 	_cleared_object_areas = object_areas;
 	if (ret.Failed()) return ret;
 

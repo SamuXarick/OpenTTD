@@ -119,13 +119,9 @@ void BuildObject(ObjectType type, TileIndex tile, CompanyID owner, Town *town, u
 
 	for (TileIndex t : ta) {
 		WaterClass wc = (IsWaterTile(t) ? GetWaterClass(t) : WATER_CLASS_INVALID);
-		/* Update company infrastructure counts for objects build on canals owned by nobody. */
-		if (wc == WATER_CLASS_CANAL && owner != OWNER_NONE && (IsTileOwner(tile, OWNER_NONE) || IsTileOwner(tile, OWNER_WATER))) {
-			Company::Get(owner)->infrastructure.water++;
-			DirtyCompanyInfrastructureWindows(owner);
-		}
+		Owner oc = wc == WATER_CLASS_CANAL ? GetCanalOwner(t) : INVALID_OWNER;
 		bool remove = IsDockingTile(t);
-		MakeObject(t, owner, o->index, wc, Random());
+		MakeObject(t, owner, oc, o->index, wc, Random());
 		if (remove) RemoveDockingTile(t);
 		MarkTileDirtyByTile(t);
 	}
@@ -243,9 +239,12 @@ CommandCost CmdBuildObject(DoCommandFlag flags, TileIndex tile, ObjectType type,
 					 * the tile but leave the water. */
 					cost.AddCost(Command<CMD_LANDSCAPE_CLEAR>::Do(flags & ~DC_NO_WATER & ~DC_EXEC, t));
 				} else {
-					/* Can't build on water owned by another company. */
-					Owner o = GetTileOwner(t);
-					if (o != OWNER_NONE && o != OWNER_WATER) cost.AddCost(CheckOwnership(o, t));
+					/* May be building on canal owned by another company. */
+					Owner oc = GetWaterClass(t) == WATER_CLASS_CANAL ? GetCanalOwner(t) : INVALID_OWNER;
+					if (oc != OWNER_NONE && oc != INVALID_OWNER) {
+						CommandCost ret = CheckOwnership(oc, t);
+						if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) cost.AddCost(ret);
+					}
 
 					/* However, the tile has to be clear of vehicles. */
 					cost.AddCost(EnsureNoVehicleOnGround(t));
@@ -513,7 +512,8 @@ static void ReallyClearObjectTile(Object *o)
 	for (TileIndex tile_cur : o->location) {
 		DeleteNewGRFInspectWindow(GSF_OBJECTS, tile_cur);
 
-		MakeWaterKeepingClass(tile_cur, GetTileOwner(tile_cur));
+		Owner oc = GetWaterClass(tile_cur) == WATER_CLASS_CANAL ? GetCanalOwner(tile_cur) : INVALID_OWNER;
+		MakeWaterKeepingClass(tile_cur, oc);
 	}
 	delete o;
 }
@@ -653,6 +653,13 @@ static void GetTileDesc_Object(TileIndex tile, TileDesc *td)
 	td->str = spec->name;
 	td->owner[0] = GetTileOwner(tile);
 	td->build_date = Object::GetByTile(tile)->build_date;
+	if (GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		Owner canal_owner = GetCanalOwner(tile);
+		if (canal_owner != td->owner[0]) {
+			td->owner_type[1] = STR_LAND_AREA_INFORMATION_CANAL_OWNER;
+			td->owner[1] = canal_owner;
+		}
+	}
 
 	if (spec->grf_prop.grffile != nullptr) {
 		td->grf = GetGRFConfig(spec->grf_prop.grffile->grfid)->GetName();
@@ -851,6 +858,15 @@ void GenerateObjects()
 
 static void ChangeTileOwner_Object(TileIndex tile, Owner old_owner, Owner new_owner)
 {
+	if (GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		if (GetCanalOwner(tile) == old_owner) {
+			/* No need to dirty company windows here, we'll redraw the whole screen anyway. */
+			Company::Get(old_owner)->infrastructure.water--;
+			if (new_owner != INVALID_OWNER) Company::Get(new_owner)->infrastructure.water++;
+			SetCanalOwner(tile, new_owner == INVALID_OWNER ? OWNER_NONE : new_owner);
+		}
+	}
+
 	if (!IsTileOwner(tile, old_owner)) return;
 
 	bool do_clear = false;
