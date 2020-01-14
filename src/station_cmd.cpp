@@ -2550,9 +2550,20 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 
 	/* Get the water class of the water tile before it is cleared.*/
 	WaterClass wc = GetWaterClass(tile_cur);
+	Owner oc = wc == WATER_CLASS_CANAL ? GetCanalOwner(tile_cur) : INVALID_OWNER;
 
-	ret = DoCommand(tile_cur, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
-	if (ret.Failed()) return ret;
+	/* At this point we got a tile_cur with no bridge over it. Check for ownership. */
+	if (IsCanal(tile_cur)) {
+		ret = EnsureNoVehicleOnGround(tile_cur);
+		if (ret.Failed()) return ret;
+		if (oc != OWNER_NONE) {
+			ret = CheckTileOwnership(tile_cur);
+			if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+		}
+	} else {
+		ret = DoCommand(tile_cur, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
+		if (ret.Failed()) return ret;
+	}
 
 	tile_cur += TileOffsByDiagDir(direction);
 	if (!IsTileType(tile_cur, MP_WATER) || !IsTileFlat(tile_cur)) {
@@ -2580,14 +2591,9 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 
 		st->rect.BeforeAddRect(dock_area.tile, dock_area.w, dock_area.h, StationRect::ADD_TRY);
 
-		/* If the water part of the dock is on a canal, update infrastructure counts.
-		 * This is needed as we've unconditionally cleared that tile before. */
-		if (wc == WATER_CLASS_CANAL) {
-			Company::Get(st->owner)->infrastructure.water++;
-		}
 		Company::Get(st->owner)->infrastructure.station += 2;
 
-		MakeDock(tile, st->owner, st->index, direction, wc);
+		MakeDock(tile, st->owner, oc, st->index, direction, wc);
 		UpdateStationDockingTiles(st);
 
 		st->AfterStationTileSetChange(true, STATION_DOCK);
@@ -2698,11 +2704,12 @@ static CommandCost RemoveDock(TileIndex tile, DoCommandFlag flags)
 	ret = EnsureNoVehicleOnGround(tile1);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile2);
 	if (ret.Failed()) return ret;
+	Owner oc = GetWaterClass(tile2) == WATER_CLASS_CANAL ? GetCanalOwner(tile2) : INVALID_OWNER;
 
 	if (flags & DC_EXEC) {
 		DoClearSquare(tile1);
 		MarkTileDirtyByTile(tile1);
-		MakeWaterKeepingClass(tile2, st->owner);
+		MakeWaterKeepingClass(tile2, oc);
 
 		st->rect.AfterRemoveTile(st, tile1);
 		st->rect.AfterRemoveTile(st, tile2);
@@ -3233,6 +3240,14 @@ static void GetTileDesc_Station(TileIndex tile, TileDesc *td)
 		case STATION_WAYPOINT: str = STR_LAI_STATION_DESCRIPTION_WAYPOINT; break;
 	}
 	td->str = str;
+
+	if (HasTileWaterGround(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL) { // Dock, Buoy, Oil Rig station
+		Owner canal_owner = GetCanalOwner(tile);
+		if (canal_owner != td->owner[0]) {
+			td->owner_type[1] = STR_LAND_AREA_INFORMATION_CANAL_OWNER;
+			td->owner[1] = canal_owner;
+		}
+	}
 }
 
 
@@ -4134,6 +4149,9 @@ void BuildOilRig(TileIndex tile)
 		return;
 	}
 
+	WaterClass wc = GetWaterClass(tile);
+	Owner oc = wc == WATER_CLASS_CANAL ? GetCanalOwner(tile) : INVALID_OWNER;
+
 	Station *st = new Station(tile);
 	_station_kdtree.Insert(st->index);
 	st->town = ClosestTownFromTile(tile, UINT_MAX);
@@ -4145,7 +4163,7 @@ void BuildOilRig(TileIndex tile)
 	st->industry = Industry::GetByTile(tile);
 	st->industry->neutral_station = st;
 	DeleteAnimatedTile(tile);
-	MakeOilrig(tile, st->index, GetWaterClass(tile));
+	MakeOilrig(tile, oc, st->index, wc);
 
 	st->owner = OWNER_NONE;
 	st->airport.type = AT_OILRIG;
@@ -4166,7 +4184,9 @@ void DeleteOilRig(TileIndex tile)
 {
 	Station *st = Station::GetByTile(tile);
 
-	MakeWaterKeepingClass(tile, OWNER_NONE);
+	WaterClass wc = GetWaterClass(tile);
+	Owner oc = wc == WATER_CLASS_CANAL ? GetCanalOwner(tile) : INVALID_OWNER;
+	MakeWaterKeepingClass(tile, oc);
 
 	/* The oil rig station is not supposed to be shared with anything else */
 	assert(st->facilities == (FACIL_AIRPORT | FACIL_DOCK) && st->airport.type == AT_OILRIG);
@@ -4190,6 +4210,23 @@ static void ChangeTileOwner_Station(TileIndex tile, Owner old_owner, Owner new_o
 					if (new_owner != INVALID_OWNER) Company::Get(new_owner)->infrastructure.road[rt] += 2;
 				}
 				SetRoadOwner(tile, rtt, new_owner == INVALID_OWNER ? OWNER_NONE : new_owner);
+			}
+		}
+	}
+
+	if (HasTileWaterGround(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		if (IsDockTile(tile) || IsBuoyTile(tile) || IsOilRig(tile)) {
+			if (GetCanalOwner(tile) == old_owner) {
+				Company::Get(old_owner)->infrastructure.water--;
+				if (new_owner != INVALID_OWNER) {
+					Company::Get(new_owner)->infrastructure.water++;
+				} else if (IsBuoyTile(tile)) {
+					/* Remove unused buoys. */
+					DoCommand(tile, 0, 0, DC_EXEC | DC_BANKRUPT, CMD_LANDSCAPE_CLEAR);
+					/* Set tile owner of canal under (now removed) buoy to OWNER_NONE. */
+					if (IsTileType(tile, MP_WATER) && IsCanal(tile) && IsTileOwner(tile, old_owner)) SetTileOwner(tile, OWNER_NONE);
+				}
+				SetCanalOwner(tile, new_owner == INVALID_OWNER ? OWNER_NONE : new_owner);
 			}
 		}
 	}
@@ -4219,12 +4256,10 @@ static void ChangeTileOwner_Station(TileIndex tile, Owner old_owner, Owner new_o
 				/* Road stops were already handled above. */
 				break;
 
+			case STATION_OILRIG:
 			case STATION_BUOY:
 			case STATION_DOCK:
-				if (GetWaterClass(tile) == WATER_CLASS_CANAL) {
-					old_company->infrastructure.water--;
-					new_company->infrastructure.water++;
-				}
+				/* Docks were already handled above. */
 				break;
 
 			default:
@@ -4232,12 +4267,11 @@ static void ChangeTileOwner_Station(TileIndex tile, Owner old_owner, Owner new_o
 		}
 
 		/* Update station tile count. */
-		if (!IsBuoy(tile) && !IsAirport(tile)) {
+		if (!IsAirport(tile)) {
 			old_company->infrastructure.station--;
 			new_company->infrastructure.station++;
 		}
 
-		/* for buoys, owner of tile is owner of water, st->owner == OWNER_NONE */
 		SetTileOwner(tile, new_owner);
 		InvalidateWindowClassesData(WC_STATION_LIST, 0);
 	} else {
@@ -4249,10 +4283,6 @@ static void ChangeTileOwner_Station(TileIndex tile, Owner old_owner, Owner new_o
 			ChangeTileOwner(tile, old_owner, new_owner);
 		} else {
 			DoCommand(tile, 0, 0, DC_EXEC | DC_BANKRUPT, CMD_LANDSCAPE_CLEAR);
-			/* Set tile owner of water under (now removed) buoy and dock to OWNER_NONE.
-			 * Update owner of buoy if it was not removed (was in orders).
-			 * Do not update when owned by OWNER_WATER (sea and rivers). */
-			if ((IsTileType(tile, MP_WATER) || IsBuoyTile(tile)) && IsTileOwner(tile, old_owner)) SetTileOwner(tile, OWNER_NONE);
 		}
 	}
 }
