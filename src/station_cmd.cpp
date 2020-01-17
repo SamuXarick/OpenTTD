@@ -2549,7 +2549,7 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 
 	TileIndex tile_cur = tile + TileOffsByDiagDir(direction);
 
-	if (!IsTileType(tile_cur, MP_WATER) || !IsTileFlat(tile_cur)) {
+	if (!HasTileWaterGround(tile_cur) || !IsTileFlat(tile_cur)) {
 		return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 	}
 
@@ -2558,8 +2558,10 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	/* Get the water class of the water tile before it is cleared.*/
 	WaterClass wc = GetWaterClass(tile_cur);
 
+	bool add_cost = !IsWaterTile(tile_cur);
 	ret = DoCommand(tile_cur, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 	if (ret.Failed()) return ret;
+	if (add_cost) cost.AddCost(ret);
 
 	ret = EnsureNoShipOnDiagDirs(tile_cur, (1 << direction | 1 << ChangeDiagDir(direction, DIAGDIRDIFF_90RIGHT) | 1 << ChangeDiagDir(direction, DIAGDIRDIFF_90LEFT)));
 	if (ret.Failed()) return ret;
