@@ -329,10 +329,15 @@ static int32 NPFWaterPathCost(AyStar *as, AyStarNode *current, OpenListNode *par
 	}
 
 	if (IsDockingTile(current->tile)) {
-		/* Check docking tile for occupancy */
-		uint count = 0;
-		HasVehicleOnPos(current->tile, &count, &CountShipProc);
-		cost += count * 3 * _trackdir_length[trackdir];
+		NPFFindStationOrTileData *fstd = (NPFFindStationOrTileData*)as->user_target;
+		if (IsShipDestinationTile(current->tile, fstd->station_index)) {
+			/* Check docking tile for occupancy */
+			uint count = 0;
+			if (DistanceManhattan(fstd->dest_coords, fstd->v->tile) < NPF_SHIP_DOCKING_TILE_DESTINATION_LIMIT) {
+				HasVehicleOnPos(current->tile, &count, &CountShipProc);
+			}
+			cost += count * 3 * _trackdir_length[trackdir];
+		}
 	}
 
 	/* @todo More penalties? */

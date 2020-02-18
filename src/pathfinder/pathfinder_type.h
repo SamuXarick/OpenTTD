@@ -23,6 +23,9 @@ static const int NPF_TILE_LENGTH = 100;
  */
 static const int NPF_INFINITE_PENALTY = 1000 * NPF_TILE_LENGTH;
 
+/** Distance from destination dock to account for docking tile occupancy penalty */
+static const int NPF_SHIP_DOCKING_TILE_DESTINATION_LIMIT = 16;
+
 
 /** Length (penalty) of one tile with YAPF */
 static const int YAPF_TILE_LENGTH = 100;
@@ -40,6 +43,9 @@ static const int YAPF_INFINITE_PENALTY = 1000 * YAPF_TILE_LENGTH;
 
 /** Maximum length of ship path cache */
 static const int YAPF_SHIP_PATH_CACHE_LENGTH = 32;
+
+/** Distance from destination dock to account for docking tile occupancy penalty */
+static const int YAPF_SHIP_DOCKING_TILE_DESTINATION_LIMIT = 16;
 
 /** Maximum segments of road vehicle path cache */
 static const int YAPF_ROADVEH_PATH_CACHE_SEGMENTS = 8;
