@@ -73,3 +73,9 @@
 	if (!::IsValidTile(t)) return -1;
 	return ::DistanceFromEdge(t);
 }
+
+/* static */ int32 ScriptMap::DistanceTransportedGoodsIncome(TileIndex t1, TileIndex t2)
+{
+	if (!::IsValidTile(t1) || !::IsValidTile(t2)) return -1;
+	return ::DistanceTransportedGoodsIncome(t1, t2);
+}

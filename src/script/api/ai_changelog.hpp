@@ -18,6 +18,12 @@
  * This version is not yet released. The following changes are not set in stone yet.
  *
  * API additions:
+ * \li AICargo::GetTransportedGoodsIncome
+ * \li AIMap::DistanceTransportedGoodsIncome
+ * \li AIIndustry::GetDistanceTransportedGoodsIncomeToTile
+ * \li AIStation::GetDistanceTransportedGoodsIncomeToTile
+ * \li AITile::GetDistanceTransportedGoodsIncomeToTile
+ * \li AITown::GetDistanceTransportedGoodsIncomeToTile
  * \li AIPriorityQueue
  *
  * \b 1.10.0

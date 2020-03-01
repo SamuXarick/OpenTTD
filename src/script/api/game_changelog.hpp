@@ -18,6 +18,12 @@
  * This version is not yet released. The following changes are not set in stone yet.
  *
  * API additions:
+ * \li GSCargo::GetTransportedGoodsIncome
+ * \li GSMap::DistanceTransportedGoodsIncome
+ * \li GSIndustry::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSStation::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSTile::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSTown::GetDistanceTransportedGoodsIncomeToTile
  * \li GSEventStoryPageButtonClick
  * \li GSEventStoryPageTileSelect
  * \li GSEventStoryPageVehicleSelect
