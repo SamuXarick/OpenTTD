@@ -119,6 +119,18 @@ public:
 	 * @return The distances to the closest edge.
 	 */
 	static int32 DistanceFromEdge(TileIndex tile);
+
+	/**
+	 * Calculates the distance used for income between the two tiles.
+	 *  This is the normalised distance for which it makes diagonal and straight
+	 *  directions equally profitable.
+	 * @param tile_from The start tile.
+	 * @param tile_to The destination tile.
+	 * @pre IsValidTile(tile_from).
+	 * @pre IsValidTile(tile_to).
+	 * @return The distance used for income between the tiles.
+	 */
+	static int32 DistanceTransportedGoodsIncome(TileIndex tile_from, TileIndex tile_to);
 };
 
 #endif /* SCRIPT_MAP_HPP */

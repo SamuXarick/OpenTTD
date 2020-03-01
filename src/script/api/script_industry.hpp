@@ -182,6 +182,16 @@ public:
 	static int32 GetDistanceSquareToTile(IndustryID industry_id, TileIndex tile);
 
 	/**
+	 * Get the distance used for income from the tile to the ScriptIndustry::GetLocation()
+	 *  of the industry.
+	 * @param industry_id The industry to get the distance to.
+	 * @param tile The tile to get the distance from.
+	 * @pre IsValidIndustry(industry_id).
+	 * @return The distance between industry and tile.
+	 */
+	static int32 GetDistanceTransportedGoodsIncomeToTile(IndustryID industry_id, TileIndex tile);
+
+	/**
 	 * Is this industry built on water.
 	 * @param industry_id The index of the industry.
 	 * @pre IsValidIndustry(industry_id).

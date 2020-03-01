@@ -19,6 +19,12 @@
  *
  * \li GSIndustryType::ResolveNewGRFID
  * \li GSObjectType::ResolveNewGRFID
+ * \li GSCargo::GetTransportedGoodsIncome
+ * \li GSMap::DistanceTransportedGoodsIncome
+ * \li GSIndustry::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSStation::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSTile::GetDistanceTransportedGoodsIncomeToTile
+ * \li GSTown::GetDistanceTransportedGoodsIncomeToTile
  *
  * \b 12.0
  *

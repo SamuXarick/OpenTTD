@@ -408,6 +408,14 @@ public:
 	static int32 GetDistanceSquareToTile(TileIndex tile_from, TileIndex tile_to);
 
 	/**
+	 * Get the distance used for income from the tile to the tile.
+	 * @param tile_from The tile to get the distance from.
+	 * @param tile_to The tile to get the distance to.
+	 * @return The distance between the two tiles.
+	 */
+	static int32 GetDistanceTransportedGoodsIncomeToTile(TileIndex tile_from, TileIndex tile_to);
+
+	/**
 	 * Raise the given corners of the tile. The corners can be combined,
 	 *  for example: SLOPE_N | SLOPE_W (= SLOPE_NW) will raise the west and the north corner.
 	 * @note The corners will be modified in the order west (first), south, east, north (last).

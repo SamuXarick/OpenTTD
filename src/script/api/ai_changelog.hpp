@@ -19,6 +19,12 @@
  *
  * \li AIIndustryType::ResolveNewGRFID
  * \li AIObjectType::ResolveNewGRFID
+ * \li AICargo::GetTransportedGoodsIncome
+ * \li AIMap::DistanceTransportedGoodsIncome
+ * \li AIIndustry::GetDistanceTransportedGoodsIncomeToTile
+ * \li AIStation::GetDistanceTransportedGoodsIncomeToTile
+ * \li AITile::GetDistanceTransportedGoodsIncomeToTile
+ * \li AITown::GetDistanceTransportedGoodsIncomeToTile
  *
  * \b 12.0
  *

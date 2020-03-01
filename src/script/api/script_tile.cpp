@@ -250,6 +250,11 @@
 	return ScriptMap::DistanceSquare(tile_from, tile_to);
 }
 
+/* static */ int32 ScriptTile::GetDistanceTransportedGoodsIncomeToTile(TileIndex tile_from, TileIndex tile_to)
+{
+	return ScriptMap::DistanceTransportedGoodsIncome(tile_from, tile_to);
+}
+
 /* static */ bool ScriptTile::RaiseTile(TileIndex tile, int32 slope)
 {
 	EnforcePrecondition(false, ScriptObject::GetCompany() != OWNER_DEITY);

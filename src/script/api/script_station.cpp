@@ -190,6 +190,13 @@ template<bool Tfrom, bool Tvia>
 	return ScriptMap::DistanceSquare(tile, GetLocation(station_id));
 }
 
+/* static */ int32 ScriptStation::GetDistanceTransportedGoodsIncomeToTile(StationID station_id, TileIndex tile)
+{
+	if (!IsValidStation(station_id)) return -1;
+
+	return ScriptMap::DistanceTransportedGoodsIncome(tile, GetLocation(station_id));
+}
+
 /* static */ bool ScriptStation::IsWithinTownInfluence(StationID station_id, TownID town_id)
 {
 	if (!IsValidStation(station_id)) return false;

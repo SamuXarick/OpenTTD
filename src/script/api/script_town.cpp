@@ -201,6 +201,11 @@
 	return ScriptMap::DistanceSquare(tile, GetLocation(town_id));
 }
 
+/* static */ int32 ScriptTown::GetDistanceTransportedGoodsIncomeToTile(TownID town_id, TileIndex tile)
+{
+	return ScriptMap::DistanceTransportedGoodsIncome(tile, GetLocation(town_id));
+}
+
 /* static */ bool ScriptTown::IsWithinTownInfluence(TownID town_id, TileIndex tile)
 {
 	if (!IsValidTown(town_id)) return false;

@@ -8,11 +8,14 @@
 /** @file script_cargo.cpp Implementation of ScriptCargo. */
 
 #include "../../stdafx.h"
+#include "script_tile.hpp"
 #include "script_cargo.hpp"
+#include "script_map.hpp"
 #include "../../economy_func.h"
 #include "../../core/bitmath_func.hpp"
 #include "../../strings_func.h"
 #include "../../settings_type.h"
+#include "../../tile_map.h"
 #include "table/strings.h"
 
 #include "../../safeguards.h"
@@ -74,6 +77,15 @@
 {
 	if (!IsValidCargo(cargo_type)) return -1;
 	return ::GetTransportedGoodsIncome(1, distance, Clamp(days_in_transit * 2 / 5, 0, 255), cargo_type);
+}
+
+/* static */ Money ScriptCargo::GetTransportedGoodsIncome(CargoID cargo_type, TileIndex tile_from, TileIndex tile_to, uint32 days_in_transit, uint num_pieces)
+{
+	if (!IsValidCargo(cargo_type)) return -1;
+	if (!IsValidTile(tile_from)) return -1;
+	if (!IsValidTile(tile_to)) return -1;
+
+	return ::GetTransportedGoodsIncome(num_pieces, ScriptMap::DistanceTransportedGoodsIncome(tile_from, tile_to), Clamp(days_in_transit * 2 / 5, 0, 255), cargo_type);
 }
 
 /* static */ ScriptCargo::DistributionType ScriptCargo::GetDistributionType(CargoID cargo_type)

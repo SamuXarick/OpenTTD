@@ -148,6 +148,21 @@ public:
 	static Money GetCargoIncome(CargoID cargo_type, uint32 distance, uint32 days_in_transit);
 
 	/**
+	 * Get the income for transporting a given amount of cargo from
+	 *   a given source tile to a given destination tile within the specified time.
+	 * @param cargo_type The cargo to transport.
+	 * @pre ScriptCargo::IsValidCargo(cargo_type).
+	 * @param tile_from The start tile.
+	 * @pre ScriptMap::IsValidTile(tile_from).
+	 * @param tile_to The destination tile.
+	 * @pre ScriptMap::IsValidTile(tile_to).
+	 * @param days_in_transit Amount of (game) days the cargo is in transit. The max value of this variable is 637. Any value higher returns the same as 637 would.
+	 * @param num_pieces The amount of cargo to transport.
+	 * @return The amount of money that would be earned by this trip.
+	 */
+	static Money GetTransportedGoodsIncome(CargoID cargo_type, TileIndex tile_from, TileIndex tile_to, uint32 days_in_transit, uint num_pieces);
+
+	/**
 	 * Get the cargo distribution type for a cargo.
 	 * @param cargo_type The cargo to check on.
 	 * @return The cargo distribution type for the given cargo.

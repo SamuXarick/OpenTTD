@@ -167,6 +167,13 @@
 	return ScriptMap::DistanceSquare(tile, GetLocation(industry_id));
 }
 
+/* static */ int32 ScriptIndustry::GetDistanceTransportedGoodsIncomeToTile(IndustryID industry_id, TileIndex tile)
+{
+	if (!IsValidIndustry(industry_id)) return -1;
+
+	return ScriptMap::DistanceTransportedGoodsIncome(tile, GetLocation(industry_id));
+}
+
 /* static */ bool ScriptIndustry::IsBuiltOnWater(IndustryID industry_id)
 {
 	if (!IsValidIndustry(industry_id)) return false;

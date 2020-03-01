@@ -296,6 +296,16 @@ public:
 	static int32 GetDistanceSquareToTile(TownID town_id, TileIndex tile);
 
 	/**
+	 * Get the distance used for income from the tile to the ScriptTown::GetLocation()
+	 *  of the town.
+	 * @param town_id The town to get the distance to.
+	 * @param tile The tile to get the distance from.
+	 * @pre IsValidTown(town_id).
+	 * @return The distance between town and tile.
+	 */
+	static int32 GetDistanceTransportedGoodsIncomeToTile(TownID town_id, TileIndex tile);
+
+	/**
 	 * Find out if this tile is within the rating influence of a town.
 	 *  If a station sign would be on this tile, the servicing quality of the station would
 	 *  influence the rating of the town.
