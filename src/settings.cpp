@@ -1225,6 +1225,13 @@ static bool MaxNoAIsChange(int32 i)
 	return true;
 }
 
+static bool ScriptSettingsProfileChange(int32 i)
+{
+	InvalidateWindowClassesData(WC_GAME_OPTIONS, 0);
+	InvalidateWindowClassesData(WC_AI_SETTINGS, 0);
+	return true;
+}
+
 /**
  * Check whether the road side may be changed.
  * @param p1 unused
