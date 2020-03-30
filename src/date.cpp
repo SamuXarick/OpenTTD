@@ -201,7 +201,7 @@ static void OnNewYear()
 	if (_cur_year == _settings_client.gui.semaphore_build_before) ResetSignalVariant();
 
 	/* check if we reached end of the game (end of ending year) */
-	if (_cur_year == _settings_game.game_creation.ending_year + 1) {
+	if (_cur_year == _settings_game.game_creation.ending_year) {
 		ShowEndGameChart();
 	/* check if we reached the maximum year, decrement dates by a year */
 	} else if (_cur_year == MAX_YEAR + 1) {
