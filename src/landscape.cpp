@@ -967,11 +967,41 @@ static void GenerateTerrain(int type, uint flag)
 
 #include "table/genland.h"
 
+/**
+ * Computes the height level that makes it at most a "percentage" of the landmass above sea.
+ *
+ * @param fract Fraction "percentage" in the range [0-255].
+ * @return the height level at which the quota is reached.
+ */
+static uint GetMapHeightLevelAtGivenFract(uint8 fract)
+{
+	int highest_height = 0;
+
+	/* Create an array to count the number of tiles for each height. */
+	uint height_hist[MAX_TILE_HEIGHT + 1] = {};
+	for (TileIndex tile = 0; tile != MapSize(); ++tile) {
+		int height = TileHeight(tile);
+		height_hist[height]++;
+		if (height > highest_height) highest_height = height;
+	}
+
+	/* Determine the height level separator and make it so that it's
+	 * at most 'fract / 255' of the landmass above sea. */
+	int landmass_quota = fract * (MapSize() - height_hist[0]) / 255;
+	int tile_count = 0, height_level_separator = 1;
+	while (tile_count < landmass_quota && height_level_separator <= highest_height) {
+		tile_count += height_hist[height_level_separator];
+		height_level_separator++;
+	}
+
+	return height_level_separator;
+}
+
 static void CreateDesertOrRainForest()
 {
 	TileIndex update_freq = MapSize() / 4;
 	const TileIndexDiffC *data;
-	uint max_desert_height = CeilDiv(_settings_game.construction.max_heightlevel, 4);
+	uint max_desert_height = GetMapHeightLevelAtGivenFract(4 * 255 / 5);
 
 	for (TileIndex tile = 0; tile != MapSize(); ++tile) {
 		if ((tile % update_freq) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
