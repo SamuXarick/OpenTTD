@@ -965,12 +965,39 @@ static void GenerateTerrain(int type, uint flag)
 }
 
 
-#include "table/genland.h"
+typedef std::vector<TileIndexDiffC> TileIndexDiffCList;
+static TileIndexDiffCList GenerateDesertOrRainForestData(uint radius)
+{
+	TileIndexDiffCList data;
+
+	uint squared_radius = radius * radius;
+	TileIndex tile = TileXY(MapSizeX() / 2, MapSizeY() / 2);
+	OrthogonalTileArea ta(tile, 1, 1);
+	ta.Expand(radius - 1);
+
+	int16 tilex = TileX(tile);
+	int16 tiley = TileY(tile);
+
+	for (OrthogonalTileIterator t(ta); t != INVALID_TILE; ++t) {
+		if (DistanceSquare(tile, t) < squared_radius) {
+			int16 tx = TileX(t);
+			int16 ty = TileY(t);
+
+			int16 diffx = tx - tilex;
+			int16 diffy = ty - tiley;
+			TileIndexDiffC diff = { diffx, diffy };
+			data.emplace_back(diff);
+		}
+	}
+
+	return data;
+}
 
 static void CreateDesertOrRainForest()
 {
 	TileIndex update_freq = MapSize() / 4;
-	const TileIndexDiffC *data;
+	uint radius = std::min(MapLogX(), MapLogY()) - 1;
+	TileIndexDiffCList make_desert_or_rainforest_data = GenerateDesertOrRainForestData(radius);
 	uint max_desert_height = CeilDiv(_settings_game.construction.max_heightlevel, 4);
 
 	for (TileIndex tile = 0; tile != MapSize(); ++tile) {
@@ -978,12 +1005,12 @@ static void CreateDesertOrRainForest()
 
 		if (!IsValidTile(tile)) continue;
 
-		for (data = _make_desert_or_rainforest_data;
-				data != endof(_make_desert_or_rainforest_data); ++data) {
+		TileIndexDiffCList::iterator data = make_desert_or_rainforest_data.begin();
+		for (; data != make_desert_or_rainforest_data.end(); data++) {
 			TileIndex t = AddTileIndexDiffCWrap(tile, *data);
 			if (t != INVALID_TILE && (TileHeight(t) >= max_desert_height || IsTileType(t, MP_WATER))) break;
 		}
-		if (data == endof(_make_desert_or_rainforest_data)) {
+		if (data == make_desert_or_rainforest_data.end()) {
 			SetTropicZone(tile, TROPICZONE_DESERT);
 		}
 	}
@@ -999,12 +1026,12 @@ static void CreateDesertOrRainForest()
 
 		if (!IsValidTile(tile)) continue;
 
-		for (data = _make_desert_or_rainforest_data;
-				data != endof(_make_desert_or_rainforest_data); ++data) {
+		TileIndexDiffCList::iterator data = make_desert_or_rainforest_data.begin();
+		for (; data != make_desert_or_rainforest_data.end(); data++) {
 			TileIndex t = AddTileIndexDiffCWrap(tile, *data);
 			if (t != INVALID_TILE && IsTileType(t, MP_CLEAR) && IsClearGround(t, CLEAR_DESERT)) break;
 		}
-		if (data == endof(_make_desert_or_rainforest_data)) {
+		if (data == make_desert_or_rainforest_data.end()) {
 			SetTropicZone(tile, TROPICZONE_RAINFOREST);
 		}
 	}
