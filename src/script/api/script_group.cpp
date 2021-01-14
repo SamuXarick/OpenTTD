@@ -168,6 +168,7 @@
 {
 	if (!IsValidGroup(group_id)) return -1;
 
+	Money profit_last_year = ::Group::Get(group_id)->statistics.profit_last_year;
 	Money profit = 0;
 
 	for (const Vehicle *v : Vehicle::Iterate()) {
@@ -177,6 +178,7 @@
 		profit += v->GetDisplayProfitLastYear();
 	}
 
+	assert(profit_last_year == profit);
 	return profit;
 }
 
