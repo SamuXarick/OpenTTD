@@ -209,7 +209,7 @@ static const amplitude_t _water_percent[4] = {70, 170, 270, 420};
 
 /**
  * Gets the maximum allowed height while generating a map based on
- * mapsize, terraintype, and the maximum height level.
+ * mapsize, terraintype, landscape and the maximum height level.
  * @return The maximum height for the map generation.
  * @note Values should never be lower than 3 since the minimum snowline height is 2.
  */
@@ -218,6 +218,7 @@ static height_t TGPGetMaxHeight()
 	/**
 	 * Desired maximum height - indexed by:
 	 *  - _settings_game.difficulty.terrain_type
+	 *  - _settings_game.game_creation.landscape
 	 *  - min(MapLogX(), MapLogY()) - MIN_MAP_SIZE_BITS
 	 *
 	 * It is indexed by map size as well as terrain type since the map size limits the height of
@@ -225,24 +226,48 @@ static height_t TGPGetMaxHeight()
 	 * raised land 24 times in the center of the map) will leave only a ring of about 10 tiles
 	 * around the mountain to build on. On a 4096x4096 map, it won't cover any major part of the map.
 	 */
-	static const int max_height[5][MAX_MAP_SIZE_BITS - MIN_MAP_SIZE_BITS + 1] = {
-		/* 64  128  256  512 1024 2048 4096 */
-		{   3,   3,   3,   3,   4,   5,   7 }, ///< Very flat
-		{   5,   7,   8,   9,  14,  19,  31 }, ///< Flat
-		{   8,   9,  10,  15,  23,  37,  61 }, ///< Hilly
-		{  10,  11,  17,  19,  49,  63,  73 }, ///< Mountainous
-		{  12,  19,  25,  31,  67,  75,  87 }, ///< Alpinist
+	static const int max_height[5][NUM_LANDSCAPE][MAX_MAP_SIZE_BITS - MIN_MAP_SIZE_BITS + 1] = {
+		{	/* 64  128  256  512 1024 2048 4096 */
+			{   3,   3,   3,   3,   4,   5,   7 }, ///< Very flat, temperate
+			{   3,   3,   3,   3,   4,   5,   7 }, ///< Very flat, sub-arctic
+			{   3,   3,   3,   3,   4,   5,   7 }, ///< Very flat, sub-tropical
+			{   3,   3,   3,   3,   4,   5,   7 }, ///< Very flat, toyland
+		},
+		{	/* 64  128  256  512 1024 2048 4096 */
+			{   5,   7,   8,   9,  14,  19,  31 }, ///< Flat, temperate
+			{   5,   7,   8,   9,  14,  19,  31 }, ///< Flat, sub-arctic
+			{   5,   7,   8,   9,  14,  19,  31 }, ///< Flat, sub-tropical
+			{   5,   7,   8,   9,  14,  19,  31 }, ///< Flat, toyland
+		},
+		{	/* 64  128  256  512 1024 2048 4096 */
+			{   8,   9,  10,  15,  23,  37,  61 }, ///< Hilly, temperate
+			{   8,   9,  10,  15,  23,  37,  61 }, ///< Hilly, sub-arctic
+			{   8,   9,  10,  15,  23,  37,  61 }, ///< Hilly, sub-tropical
+			{   8,   9,  10,  15,  23,  37,  61 }, ///< Hilly, toyland
+		},
+		{	/* 64  128  256  512 1024 2048 4096 */
+			{  10,  11,  17,  19,  49,  63,  73 }, ///< Mountainous, temperate
+			{  10,  11,  17,  19,  49,  63,  73 }, ///< Mountainous, sub-arctic
+			{  10,  11,  17,  19,  49,  63,  73 }, ///< Mountainous, sub-tropical
+			{  10,  11,  17,  19,  49,  63,  73 }, ///< Mountainous, toyland
+		},
+		{	/* 64  128  256  512 1024 2048 4096 */
+			{  12,  19,  25,  31,  67,  75,  87 }, ///< Alpinist, temperate
+			{  12,  19,  25,  31,  67,  75,  87 }, ///< Alpinist, sub-arctic
+			{  12,  19,  25,  31,  67,  75,  87 }, ///< Alpinist, sub-tropical
+			{  12,  19,  25,  31,  67,  75,  87 }, ///< Alpinist, toyland
+		},
 	};
 
 	int map_size_bucket = std::min(MapLogX(), MapLogY()) - MIN_MAP_SIZE_BITS;
-	int max_height_from_table = max_height[_settings_game.difficulty.terrain_type][map_size_bucket];
+	int max_height_from_table = max_height[_settings_game.difficulty.terrain_type][_settings_game.game_creation.landscape][map_size_bucket];
 
 	/* Arctic needs snow to have all industries, so make sure we allow TGP to generate this high. */
 	if (_settings_game.game_creation.landscape == LT_ARCTIC) {
 		max_height_from_table += _settings_newgame.game_creation.snow_line_height;
 		/* Make flat a bit more flat by removing "very flat" from it, to somewhat compensate for the increase we just did. */
 		if (_settings_game.difficulty.terrain_type > 0) {
-			max_height_from_table -= max_height[_settings_game.difficulty.terrain_type - 1][map_size_bucket];
+			max_height_from_table -= max_height[_settings_game.difficulty.terrain_type - 1][_settings_game.game_creation.landscape][map_size_bucket];
 		}
 	}
 	/* Tropic needs tropical forest to have all industries, so make sure we allow TGP to generate this high.
@@ -251,7 +276,7 @@ static height_t TGPGetMaxHeight()
 		max_height_from_table += CeilDiv(_settings_game.construction.max_heightlevel, 4);
 		/* Make flat a bit more flat by removing "very flat" from it, to somewhat compensate for the increase we just did. */
 		if (_settings_game.difficulty.terrain_type > 0) {
-			max_height_from_table -= max_height[_settings_game.difficulty.terrain_type - 1][map_size_bucket];
+			max_height_from_table -= max_height[_settings_game.difficulty.terrain_type - 1][_settings_game.game_creation.landscape][map_size_bucket];
 		}
 	}
 
