@@ -973,42 +973,66 @@ static void GenerateTerrain(int type, uint flag)
 
 static void CreateDesertOrRainForest(uint desert_tropic_line)
 {
-	TileIndex update_freq = Map::Size() / 4;
-	const TileIndexDiffC *data;
+	TileIndex update_freq = Map::Size() / 2;
+	std::vector<std::pair<TileIndex, TileIndex>> queue;
 
 	for (TileIndex tile = 0; tile != Map::Size(); ++tile) {
 		if ((tile % update_freq) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
 
-		if (!IsValidTile(tile)) continue;
+		if (IsTileType(tile, MP_VOID)) continue;
 
-		for (data = _make_desert_or_rainforest_data;
-				data != endof(_make_desert_or_rainforest_data); ++data) {
-			TileIndex t = AddTileIndexDiffCWrap(tile, *data);
-			if (t != INVALID_TILE && (TileHeight(t) >= desert_tropic_line || IsTileType(t, MP_WATER))) break;
-		}
-		if (data == endof(_make_desert_or_rainforest_data)) {
+		if (TileHeight(tile) >= desert_tropic_line || IsTileType(tile, MP_WATER)) {
+			SetTropicZone(tile, TROPICZONE_RAINFOREST);
+			queue.push_back(std::make_pair(tile, tile));
+		} else {
 			SetTropicZone(tile, TROPICZONE_DESERT);
 		}
 	}
 
-	for (uint i = 0; i != 256; i++) {
-		if ((i % 64) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+	IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+
+	std::vector<TileIndex> normal_tiles;
+	static const TileIndexDiff neighbours[] = { -(int)Map::SizeX(), (int)Map::SizeX(), -1, 1 };
+	uint i = 0;
+	while (i != queue.size()) {
+		auto p = queue[i];
+		for (auto &d : neighbours) {
+			auto t = p.second + d;
+			if (GetTropicZone(t) != TROPICZONE_DESERT) continue;
+
+			if (DistanceSquare(t, p.first) <= 50 && DistanceMax(t, p.first) <= 6) {
+				queue.push_back(std::make_pair(p.first, t));
+				normal_tiles.emplace_back(t);
+				SetTropicZone(t, TROPICZONE_NORMAL);
+			}
+		}
+		i++;
+	}
+
+	for (uint j = 0; j != 256; j++) {
+		if ((j % 64) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
 
 		RunTileLoop();
 	}
 
-	for (TileIndex tile = 0; tile != Map::Size(); ++tile) {
-		if ((tile % update_freq) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
-
-		if (!IsValidTile(tile)) continue;
+	const TileIndexDiffC *data;
+	update_freq = (uint)normal_tiles.size() / 5;
+	uint tile_count = 0, gwp = 0;
+	for (auto &tile : normal_tiles) {
+		tile_count++;
+		if (gwp == 0 || (tile_count == update_freq && gwp < 5)) {
+			IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
+			if (gwp != 0) tile_count = 0;
+			gwp++;
+		}
 
 		for (data = _make_desert_or_rainforest_data;
 				data != endof(_make_desert_or_rainforest_data); ++data) {
 			TileIndex t = AddTileIndexDiffCWrap(tile, *data);
-			if (t != INVALID_TILE && IsTileType(t, MP_CLEAR) && IsClearGround(t, CLEAR_DESERT)) break;
+			if (t != INVALID_TILE && GetTropicZone(t) == TROPICZONE_DESERT) break;
 		}
 		if (data == endof(_make_desert_or_rainforest_data)) {
-			SetTropicZone(tile, TROPICZONE_RAINFOREST);
+			if (!IsTileType(tile, MP_VOID)) SetTropicZone(tile, TROPICZONE_RAINFOREST);
 		}
 	}
 }
