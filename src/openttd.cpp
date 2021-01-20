@@ -1058,6 +1058,7 @@ void SwitchToMode(SwitchMode new_mode)
 			}
 
 			MakeNewGame(false, new_mode == SM_NEWGAME);
+			if (_network_server) NetworkServerInitClientServer();
 			break;
 
 		case SM_RESTARTGAME: // Restart --> 'Random game' with current settings
@@ -1066,6 +1067,7 @@ void SwitchToMode(SwitchMode new_mode)
 				seprintf(_network_game_info.map_name, lastof(_network_game_info.map_name), "Random Map");
 			}
 			MakeNewGame(false, new_mode == SM_NEWGAME);
+			if (_network_server) NetworkServerInitClientServer();
 			break;
 
 		case SM_LOAD_GAME: { // Load game, Play Scenario
@@ -1080,15 +1082,16 @@ void SwitchToMode(SwitchMode new_mode)
 					/* Reset engine pool to simplify changing engine NewGRFs in scenario editor. */
 					EngineOverrideManager::ResetToCurrentNewGRFConfig();
 				}
-				/* Update the local company for a loaded game. It is either always
-				 * company #1 (eg 0) or in the case of a dedicated server a spectator */
-				SetLocalCompany(_network_dedicated ? COMPANY_SPECTATOR : COMPANY_FIRST);
+				/* Update the local company for a loaded game. It is either the first
+				 * available company or in the case of a dedicated server a spectator */
+				SetLocalCompany(_network_dedicated ? COMPANY_SPECTATOR : GetFirstAvailableCompany());
 				/* Execute the game-start script */
 				IConsoleCmdExec("exec scripts/game_start.scr 0");
 				/* Decrease pause counter (was increased from opening load dialog) */
 				DoCommandP(0, PM_PAUSED_SAVELOAD, 0, CMD_PAUSE);
 				if (_network_server) {
 					seprintf(_network_game_info.map_name, lastof(_network_game_info.map_name), "%s (Loaded game)", _file_to_saveload.title);
+					NetworkServerInitClientServer();
 				}
 			}
 			break;
@@ -1100,6 +1103,7 @@ void SwitchToMode(SwitchMode new_mode)
 				seprintf(_network_game_info.map_name, lastof(_network_game_info.map_name), "%s (Heightmap)", _file_to_saveload.title);
 			}
 			MakeNewGame(true, new_mode == SM_START_HEIGHTMAP);
+			if (_network_server) NetworkServerInitClientServer();
 			break;
 
 		case SM_LOAD_HEIGHTMAP: // Load heightmap from scenario editor

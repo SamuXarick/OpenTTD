@@ -694,11 +694,14 @@ static void NetworkInitGameInfo()
 
 	/* The server is a client too */
 	_network_game_info.clients_on = _network_dedicated ? 0 : 1;
+}
 
+void NetworkServerInitClientServer()
+{
 	/* There should be always space for the server. */
 	assert(NetworkClientInfo::CanAllocateItem());
 	NetworkClientInfo *ci = new NetworkClientInfo(CLIENT_ID_SERVER);
-	ci->client_playas = _network_dedicated ? COMPANY_SPECTATOR : COMPANY_FIRST;
+	ci->client_playas = _network_dedicated ? COMPANY_SPECTATOR : GetFirstAvailableCompany();
 
 	strecpy(ci->client_name, _settings_client.network.client_name, lastof(ci->client_name));
 }

@@ -1237,3 +1237,31 @@ CommandCost CmdGiveMoney(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	/* Subtract money from local-company */
 	return amount;
 }
+
+/**
+ * Get the index of the first available company. It attempts,
+ *  from first to last, and as soon as the attempt succeeds,
+ *  to get the index of the company:
+ *  1st - get the first existing human company.
+ *  2nd - get the first non-existing company.
+ *  3rd - get COMPANY_FIRST.
+ * @return the index of the first available company.
+ */
+CompanyID GetFirstAvailableCompany()
+{
+	for (Company *c : Company::Iterate()) {
+		if (Company::IsHumanID(c->index)) {
+			return c->index;
+		}
+	}
+
+	if (Company::CanAllocateItem()) {
+		for (CompanyID c = COMPANY_FIRST; c < MAX_COMPANIES; c++) {
+			if (!Company::IsValidID(c)) {
+				return c;
+			}
+		}
+	}
+
+	return COMPANY_FIRST;
+}
