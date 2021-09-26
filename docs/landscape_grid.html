@@ -115,8 +115,8 @@ the array so you can quickly see what is used and what is not.
     </tr>
     <tr>
       <td class="caption">depot</td>
-      <td class="bits"><span class="pool" title="Depot index on pool">XXXX XXXX XXXX XXXX</span></td>
-      <td class="bits"><span class="free">OOOO</span> <span class="free">OOOO</span></td>
+      <td class="bits"><span class="pool" title="Depot index on pool (bits 15..0) - upper bits in m3">XXXX XXXX XXXX XXXX</span></td>
+      <td class="bits"><span class="free">OOOO</span> <span class="pool" title="Depot index on pool (bits 19..16) - lower bits in m2">XXXX</span></td>
       <td class="bits"><span class="free">OOOO</span> <span class="used" title="Ground type: fences, snow, desert (fences on depot are not valid)">XXXX</span></td>
       <td class="bits"><span class="used" title="Rail tile type: rail, rail with signals, depot">11</span><span class="free">O</span><span class="used" title="PBS reservation">X</span> <span class="free">OO</span><span class="used" title="Depot exit direction">XX</span></td>
     </tr>
@@ -144,8 +144,8 @@ the array so you can quickly see what is used and what is not.
     <tr>
       <td class="caption">road depot</td>
       <td class="bits"><span class="free">OOO</span><span class="used" title="Owner of the depot">X XXXX</span></td>
-      <td class="bits"><span class="pool" title="Depot index on pool">XXXX XXXX XXXX XXXX</span></td>
-      <td class="bits"><span class="usable" title="Owner of tram depot">XXXX</span> <span class="free">OOOO</span></td>
+      <td class="bits"><span class="pool" title="Depot index on pool (bits 15..0) - upper bits in m3">XXXX XXXX XXXX XXXX</span></td>
+      <td class="bits"><span class="usable" title="Owner of tram depot">XXXX</span> <span class="pool" title="Depot index on pool (bits 19..16) - lower bits in m2">XXXX</span></td>
       <td class="bits"><span class="used" title="Tile type: simple road (00), level crossing (01), road depot (10)">1O</span><span class="free">OO OO</span><span class="used" title="Depot exit direction">XX</span></td>
       <td class="bits"><span class="free">OOOO OOOO</span></td>
       <td class="bits"><span class="free">OO</span><span class="used" title="Snow/desert present">X</span> <span class="usable" title="Owner of road depot">XXXXX</span></td>
@@ -184,13 +184,13 @@ the array so you can quickly see what is used and what is not.
       <td rowspan=7>5</td>
       <td class="caption">rail station</td>
       <td class="bits" rowspan=7><span class="free">O</span><span class="used" title="Water class">XX</span> <span class="used" title="Owner">XXXXX</span></td>
-      <td class="bits" rowspan=7><span class="pool" title="Station index on pool">XXXX XXXX XXXX XXXX</span></td>
+      <td class="bits" rowspan=7><span class="pool" title="Station index on pool (bits 15..0) - upper bits in m8">XXXX XXXX XXXX XXXX</span></td>
       <td class="bits" rowspan=2><span class="used" title="Random bits">XXXX</span> <span class="free">OOOO</span></td>
       <td class="bits" rowspan=2><span class="used" title="Custom station specifications ID">XXXX XXXX</span></td>
       <td class="bits"><span class="used" title="Graphics index">XXXX XXXX</span></td>
       <td class="bits" rowspan=2><span class="free">OO</span><span class="used" title="Station type">XXX</span> <span class="used" title="Reserved track">X</span><span class="free">OO</span></td>
       <td class="bits" rowspan=2><span class="used" title="Animation frame">XXXX XXXX</span></td>
-      <td class="bits" rowspan=2><span class="free">OOOO OOOO OO</span><span class="used" title="Railway type">XX XXXX</span></td>
+      <td class="bits" rowspan=2><span class="pool" title="Station index on pool (bits 19..16) - lower bits in m2">XXXX</span> <span class="free">OOOO OO</span><span class="used" title="Railway type">XX XXXX</span></td>
     </tr>
     <tr>
       <td class="caption">rail waypoint</td>
@@ -203,7 +203,7 @@ the array so you can quickly see what is used and what is not.
       <td class="bits"><span class="usable" title="Graphics index">OOOO O</span><span class="used" title="Graphics index: 00 (exit towards NE), 01 (exit towards SE), 02 (exit towards SW), 03 (exit towards NW), 04 (drive through X), 05 (drive through Y)">XXX</span></td>
       <td class="bits" rowspan=5><span class="free">OO</span><span class="used" title="Station type">XX X</span><span class="free">OOO</span></td>
       <td class="bits"><span class="free">OOO</span><span class="used" title="Owner of road">X XXXX</span></td>
-      <td class="bits"><span class="free">OOOO</span> <span class="used" title="Tram type">XXXX XX</span> <span class="used" title="Custom road stops specifications ID">XXXXXX</span></td>
+      <td class="bits"><span class="pool" title="Station index on pool (bits 19..16) - lower bits in m2">XXXX</span> <span class="used" title="Tram type">XXXX XX</span> <span class="used" title="Custom road stops specifications ID">XXXXXX</span></td>
     </tr>
     <tr>
       <td class="caption">airport</td>
@@ -211,7 +211,7 @@ the array so you can quickly see what is used and what is not.
       <td class="bits"><span class="free">OOOO OOOO</span></td>
       <td class="bits"><span class="used" title="Graphics index">XXXX XXXX</span></td>
       <td class="bits"><span class="used" title="Animation frame">XXXX XXXX</span></td>
-      <td class="bits" rowspan=4><span class="free">OOOO OOOO OOOO OOOO</span></td>
+      <td class="bits" rowspan=4><span class="pool" title="Station index on pool (bits 19..16) - lower bits in m2">XXXX</span> <span class="free">OOOO OOOO OOOO</span></td>
     </tr>
     <tr>
       <td class="caption">dock</td>
@@ -239,7 +239,7 @@ the array so you can quickly see what is used and what is not.
       <td class="caption">sea, shore</td>
       <td class="bits" rowspan=4><span class="used" title="Ship docking tile status">X</span> <span class="used" title="Water class">XX</span> <span class="used" title="Owner">XXXXX</span></td>
       <td class="bits" rowspan=3><span class="free">OOOO OOOO OOOO OOOO</span></td>
-      <td class="bits" rowspan=4><span class="free">OOOO OOOO</span></td>
+      <td class="bits" rowspan=3><span class="free">OOOO OOOO</span></td>
       <td class="bits"><span class="free">OOOO OOOO</span></td>
       <td class="bits"><span class="used" title="Water tile type: coast, clear, lock, depot">O<span class="usable">OO</span>O</span> <span class="free">OOO</span><span class="used" title="Sea shore flag">X</span></td>
       <td class="bits" rowspan=4><span class="free">OOOO OOOO</span></td>
@@ -258,7 +258,8 @@ the array so you can quickly see what is used and what is not.
     </tr>
     <tr>
       <td class="caption">shipdepot</td>
-      <td class="bits"><span class="pool" title="Depot index on pool">XXXX XXXX XXXX XXXX</span></td>
+      <td class="bits"><span class="pool" title="Depot index on pool (bits 15..0) - upper bits in m3">XXXX XXXX XXXX XXXX</span></td>
+      <td class="bits"><span class="free">OOOO</span> <span class="pool" title="Depot index on pool (bits 19..16) - lower bits in m2">XXXX</span></td>
       <td class="bits"><span class="free">OOOO OOOO</span></td>
       <td class="bits"><span class="used" title="Water tile type: coast, clear, lock, depot">1<span class="usable">OOO</span></span> <span class="free">OO</span><span class="used" title="Depot axis">X</span> <span class="used" title="Depot part">X</span></td>
     </tr>

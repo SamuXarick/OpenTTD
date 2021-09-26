@@ -426,6 +426,9 @@ void ChangeOwnershipOfCompanyItems(Owner old_owner, Owner new_owner)
 		for (Group *g : Group::Iterate()) {
 			if (g->owner == old_owner) g->owner = new_owner;
 		}
+		Company *old_company = Company::Get(old_owner);
+		Company *new_company = Company::Get(new_owner);
+		new_company->num_groups += old_company->num_groups;
 	}
 
 	{
@@ -518,8 +521,13 @@ void ChangeOwnershipOfCompanyItems(Owner old_owner, Owner new_owner)
 		UpdateSignalsInBuffer();
 	}
 
-	/* Add airport infrastructure count of the old company to the new one. */
-	if (new_owner != INVALID_OWNER) Company::Get(new_owner)->infrastructure.airport += Company::Get(old_owner)->infrastructure.airport;
+	if (new_owner != INVALID_OWNER) {
+		/* Add airport infrastructure count of the old company to the new one. */
+		Company::Get(new_owner)->infrastructure.airport += Company::Get(old_owner)->infrastructure.airport;
+
+		/* Add number of stations count of the old company to the new one. */
+		Company::Get(new_owner)->num_stations += Company::Get(old_owner)->num_stations;
+	}
 
 	/* convert owner of stations (including deleted ones, but excluding buoys) */
 	for (Station *st : Station::Iterate()) {

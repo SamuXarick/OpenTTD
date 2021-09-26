@@ -536,8 +536,9 @@ static inline void MakeRailDepot(Tile t, Owner o, DepotID did, DiagDirection d, 
 	SetTileType(t, MP_RAILWAY);
 	SetTileOwner(t, o);
 	SetDockingTile(t, false);
-	t.m2() = did;
-	t.m3() = 0;
+	SB(t.m2(), 0, 16, GB(did, 0, 16));
+	SB(t.m3(), 0, 4, GB(did, 16, 4));
+	SB(t.m3(), 4, 4, 0);
 	t.m4() = 0;
 	t.m5() = RAIL_TILE_DEPOT << 6 | d;
 	SB(t.m6(), 2, 4, 0);

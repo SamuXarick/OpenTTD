@@ -572,7 +572,7 @@ void FixupTrainLengths()
 }
 
 static uint8  _cargo_days;
-static uint16 _cargo_source;
+static uint32 _cargo_source;
 static uint32 _cargo_source_xy;
 static uint16 _cargo_count;
 static uint16 _cargo_paid_for;
@@ -622,15 +622,17 @@ public:
 		    SLE_VAR(Vehicle, progress,              SLE_UINT8),
 
 		    SLE_VAR(Vehicle, vehstatus,             SLE_UINT8),
-		SLE_CONDVAR(Vehicle, last_station_visited,  SLE_FILE_U8  | SLE_VAR_U16,   SL_MIN_VERSION,   SLV_5),
-		SLE_CONDVAR(Vehicle, last_station_visited,  SLE_UINT16,                   SLV_5, SL_MAX_VERSION),
-		SLE_CONDVAR(Vehicle, last_loading_station,  SLE_UINT16,                 SLV_182, SL_MAX_VERSION),
+		SLE_CONDVAR(Vehicle, last_station_visited,  SLE_FILE_U8  | SLE_VAR_U32,   SL_MIN_VERSION,   SLV_5),
+		SLE_CONDVAR(Vehicle, last_station_visited,  SLE_FILE_U16 | SLE_VAR_U32,   SLV_5, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Vehicle, last_station_visited,  SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
+		SLE_CONDVAR(Vehicle, last_loading_station,  SLE_FILE_U16 | SLE_VAR_U32, SLV_182, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Vehicle, last_loading_station,  SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 
 		    SLE_VAR(Vehicle, cargo_type,            SLE_UINT8),
 		SLE_CONDVAR(Vehicle, cargo_subtype,         SLE_UINT8,                   SLV_35, SL_MAX_VERSION),
 		SLEG_CONDVAR("cargo_days", _cargo_days,     SLE_UINT8,                    SL_MIN_VERSION,  SLV_68),
-		SLEG_CONDVAR("cargo_source", _cargo_source, SLE_FILE_U8  | SLE_VAR_U16,   SL_MIN_VERSION,   SLV_7),
-		SLEG_CONDVAR("cargo_source", _cargo_source, SLE_UINT16,                   SLV_7,  SLV_68),
+		SLEG_CONDVAR("cargo_source", _cargo_source, SLE_FILE_U8  | SLE_VAR_U32,   SL_MIN_VERSION,   SLV_7),
+		SLEG_CONDVAR("cargo_source", _cargo_source, SLE_FILE_U16 | SLE_VAR_U32,   SLV_7,  SLV_68),
 		SLEG_CONDVAR("cargo_source_xy", _cargo_source_xy, SLE_UINT32,             SLV_44,  SLV_68),
 		    SLE_VAR(Vehicle, cargo_cap,             SLE_UINT16),
 		SLE_CONDVAR(Vehicle, refit_cap,             SLE_UINT16,                 SLV_182, SL_MAX_VERSION),
@@ -650,12 +652,13 @@ public:
 		type and flags (which were both 4 bits) into type. Later on this is
 		converted correctly */
 		SLE_CONDVAR(Vehicle, current_order.type,    SLE_UINT8,                    SL_MIN_VERSION,   SLV_5),
-		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U8  | SLE_VAR_U16,   SL_MIN_VERSION,   SLV_5),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U8  | SLE_VAR_U32,   SL_MIN_VERSION,   SLV_5),
 
 		/* Orders for version 5 and on */
 		SLE_CONDVAR(Vehicle, current_order.type,    SLE_UINT8,                    SLV_5, SL_MAX_VERSION),
 		SLE_CONDVAR(Vehicle, current_order.flags,   SLE_UINT8,                    SLV_5, SL_MAX_VERSION),
-		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_UINT16,                   SLV_5, SL_MAX_VERSION),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U16 | SLE_VAR_U32,   SLV_5, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 
 		/* Refit in current order */
 		SLE_CONDVAR(Vehicle, current_order.refit_cargo,   SLE_UINT8,             SLV_36, SL_MAX_VERSION),
@@ -706,7 +709,8 @@ public:
 		SLE_CONDVAR(Vehicle, waiting_triggers,      SLE_UINT8,                    SLV_2, SL_MAX_VERSION),
 
 		SLE_CONDREF(Vehicle, next_shared,           REF_VEHICLE,                  SLV_2, SL_MAX_VERSION),
-		SLE_CONDVAR(Vehicle, group_id,              SLE_UINT16,                  SLV_60, SL_MAX_VERSION),
+		SLE_CONDVAR(Vehicle, group_id,              SLE_FILE_U16 | SLE_VAR_U32,  SLV_60, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Vehicle, group_id,              SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 
 		SLE_CONDVAR(Vehicle, current_order_time,    SLE_UINT32,                  SLV_67, SL_MAX_VERSION),
 		SLE_CONDVAR(Vehicle, last_loading_tick,     SLE_UINT64,                   SLV_LAST_LOADING_TICK, SL_MAX_VERSION),
@@ -841,8 +845,9 @@ public:
 		     SLE_VAR(Aircraft, crashed_counter,       SLE_UINT16),
 		     SLE_VAR(Aircraft, pos,                   SLE_UINT8),
 
-		 SLE_CONDVAR(Aircraft, targetairport,         SLE_FILE_U8  | SLE_VAR_U16,   SL_MIN_VERSION, SLV_5),
-		 SLE_CONDVAR(Aircraft, targetairport,         SLE_UINT16,                   SLV_5, SL_MAX_VERSION),
+		 SLE_CONDVAR(Aircraft, targetairport,         SLE_FILE_U8  | SLE_VAR_U32,   SL_MIN_VERSION, SLV_5),
+		 SLE_CONDVAR(Aircraft, targetairport,         SLE_FILE_U16 | SLE_VAR_U32,   SLV_5, SLV_INCREASE_STATIONIDS_POOL),
+		 SLE_CONDVAR(Aircraft, targetairport,         SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 
 		     SLE_VAR(Aircraft, state,                 SLE_UINT8),
 
@@ -950,8 +955,9 @@ public:
 
 		    SLE_VAR(Vehicle, owner,                 SLE_UINT8),
 		    SLE_VAR(Vehicle, vehstatus,             SLE_UINT8),
-		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U8 | SLE_VAR_U16,    SL_MIN_VERSION,   SLV_5),
-		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_UINT16,                   SLV_5, SL_MAX_VERSION),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U8  | SLE_VAR_U32,    SL_MIN_VERSION,   SLV_5),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U16 | SLE_VAR_U32, SLV_5, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Vehicle, current_order.dest,    SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 
 		    SLE_VAR(Vehicle, sprite_cache.sprite_seq.seq[0].sprite, SLE_FILE_U16 | SLE_VAR_U32),
 		SLE_CONDVAR(Vehicle, age,                   SLE_FILE_U16 | SLE_VAR_I32,   SL_MIN_VERSION,  SLV_31),
@@ -1060,6 +1066,25 @@ struct VEHSChunkHandler : ChunkHandler {
 
 			/* Advanced vehicle lists got added */
 			if (IsSavegameVersionBefore(SLV_60)) v->group_id = DEFAULT_GROUP;
+
+			/* Old savegames used 0xFFFF for INVALID_STATION */
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				if (v->type == VEH_AIRCRAFT) {
+					Aircraft *a = Aircraft::From(v);
+					if (a->targetairport == 0xFFFF) a->targetairport = INVALID_STATION;
+				}
+
+				if (v->type == VEH_DISASTER) {
+					DisasterVehicle *d = DisasterVehicle::From(v);
+					if (d->current_order.GetDestination() == 0xFFFF) d->current_order.SetDestination(INVALID_STATION);
+				}
+
+				if (v->last_station_visited == 0xFFFF) v->last_station_visited = INVALID_STATION;
+				if (v->last_loading_station == 0xFFFF) v->last_loading_station = INVALID_STATION;
+				if (v->current_order.GetDestination() == 0xFFFF) v->current_order.SetDestination(INVALID_STATION);
+				if (v->group_id == 0xFFFD) v->group_id = ALL_GROUP;
+				if (v->group_id == 0xFFFE) v->group_id = DEFAULT_GROUP;
+			}
 		}
 	}
 

@@ -1064,7 +1064,7 @@ static const OldChunks vehicle_ship_chunk[] = {
 
 static const OldChunks vehicle_air_chunk[] = {
 	OCL_SVAR(  OC_UINT8, Aircraft, pos ),
-	OCL_SVAR(  OC_FILE_U8 | OC_VAR_U16, Aircraft, targetairport ),
+	OCL_SVAR(  OC_FILE_U8 | OC_VAR_U32, Aircraft, targetairport ),
 	OCL_SVAR( OC_UINT16, Aircraft, crashed_counter ),
 	OCL_SVAR(  OC_UINT8, Aircraft, state ),
 
@@ -1143,7 +1143,7 @@ static const OldChunks vehicle_chunk[] = {
 	OCL_SVAR( OC_UINT16, Vehicle, load_unload_ticks ),
 	OCL_SVAR( OC_FILE_U16 | OC_VAR_U32, Vehicle, date_of_last_service ),
 	OCL_SVAR( OC_UINT16, Vehicle, service_interval ),
-	OCL_SVAR( OC_FILE_U8 | OC_VAR_U16, Vehicle, last_station_visited ),
+	OCL_SVAR( OC_FILE_U8 | OC_VAR_U32, Vehicle, last_station_visited ),
 	OCL_SVAR( OC_TTD | OC_UINT8, Vehicle, tick_counter ),
 	OCL_CNULL( OC_TTD, 2 ), ///< max_speed, now it is calculated.
 	OCL_CNULL( OC_TTO, 1 ), ///< max_speed, now it is calculated.

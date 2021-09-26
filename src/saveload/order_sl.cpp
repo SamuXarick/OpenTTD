@@ -107,7 +107,8 @@ SaveLoadTable GetOrderDescription()
 	static const SaveLoad _order_desc[] = {
 		     SLE_VAR(Order, type,           SLE_UINT8),
 		     SLE_VAR(Order, flags,          SLE_UINT8),
-		     SLE_VAR(Order, dest,           SLE_UINT16),
+		 SLE_CONDVAR(Order, dest,           SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		 SLE_CONDVAR(Order, dest,           SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		     SLE_REF(Order, next,           REF_ORDER),
 		 SLE_CONDVAR(Order, refit_cargo,    SLE_UINT8,   SLV_36, SL_MAX_VERSION),
 		 SLE_CONDVAR(Order, wait_time,      SLE_UINT16,  SLV_67, SL_MAX_VERSION),
@@ -187,6 +188,13 @@ struct ORDRChunkHandler : ChunkHandler {
 			while ((index = SlIterateArray()) != -1) {
 				Order *order = new (index) Order();
 				SlObject(order, slt);
+
+				if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+					/* Old savegames used 0xFFFF for INVALID_STATION */
+					if ((order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT)) && order->GetDestination() == 0xFFFF) {
+						order->SetDestination(INVALID_STATION);
+					}
+				}
 			}
 		}
 	}
@@ -252,7 +260,8 @@ SaveLoadTable GetOrderBackupDescription()
 	static const SaveLoad _order_backup_desc[] = {
 		     SLE_VAR(OrderBackup, user,                     SLE_UINT32),
 		     SLE_VAR(OrderBackup, tile,                     SLE_UINT32),
-		     SLE_VAR(OrderBackup, group,                    SLE_UINT16),
+		 SLE_CONDVAR(OrderBackup, group,                    SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		 SLE_CONDVAR(OrderBackup, group,                    SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		 SLE_CONDVAR(OrderBackup, service_interval,         SLE_FILE_U32 | SLE_VAR_U16,  SL_MIN_VERSION, SLV_192),
 		 SLE_CONDVAR(OrderBackup, service_interval,         SLE_UINT16,                SLV_192, SL_MAX_VERSION),
 		    SLE_SSTR(OrderBackup, name,                     SLE_STR),
@@ -299,6 +308,11 @@ struct BKORChunkHandler : ChunkHandler {
 			/* set num_orders to 0 so it's a valid OrderList */
 			OrderBackup *ob = new (index) OrderBackup();
 			SlObject(ob, slt);
+
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				if (ob->group == 0xFFFD) ob->group = ALL_GROUP;
+				if (ob->group == 0xFFFE) ob->group = DEFAULT_GROUP;
+			}
 		}
 	}
 

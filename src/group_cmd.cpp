@@ -304,6 +304,13 @@ Group::Group(Owner owner)
 {
 	this->owner = owner;
 	this->folded = false;
+	Company *c = Company::GetIfValid(this->owner);
+	if (c != nullptr) c->num_groups++;
+}
+
+Group::~Group() {
+	Company *c = Company::GetIfValid(this->owner);
+	if (c != nullptr) c->num_groups--;
 }
 
 
@@ -320,6 +327,9 @@ std::tuple<CommandCost, GroupID> CmdCreateGroup(DoCommandFlag flags, VehicleType
 
 	if (!Group::CanAllocateItem()) return { CMD_ERROR, INVALID_GROUP };
 
+	const Company *c = Company::Get(_current_company);
+	if (c->num_groups >= MAX_NUM_GROUPS_PER_COMPANY) return { CMD_ERROR, INVALID_GROUP };
+
 	const Group *pg = Group::GetIfValid(parent_group);
 	if (pg != nullptr) {
 		if (pg->owner != _current_company) return { CMD_ERROR, INVALID_GROUP };
@@ -332,7 +342,6 @@ std::tuple<CommandCost, GroupID> CmdCreateGroup(DoCommandFlag flags, VehicleType
 		g->parent = INVALID_GROUP;
 
 		if (pg == nullptr) {
-			const Company *c = Company::Get(_current_company);
 			g->livery.colour1 = c->livery[LS_DEFAULT].colour1;
 			g->livery.colour2 = c->livery[LS_DEFAULT].colour2;
 			if (c->settings.renew_keep_length) SetBit(g->flags, GroupFlags::GF_REPLACE_WAGON_REMOVAL);

@@ -1174,14 +1174,25 @@ static void CheckCaches()
 		i++;
 	}
 
-	/* Check company infrastructure cache. */
-	std::vector<CompanyInfrastructure> old_infrastructure;
-	for (const Company *c : Company::Iterate()) old_infrastructure.push_back(c->infrastructure);
+	uint32 old_num_groups[MAX_COMPANIES] = {};             // Check company number of groups.
+	uint32 old_num_stations[MAX_COMPANIES] = {};           // Check company number of stations.
+	std::vector<CompanyInfrastructure> old_infrastructure; // Check company infrastructure cache.
+	for (const Company *c : Company::Iterate()) {
+		old_num_groups[c->index] = c->num_groups;
+		old_num_stations[c->index] = c->num_stations;
+		old_infrastructure.push_back(c->infrastructure);
+	}
 
 	AfterLoadCompanyStats();
 
 	i = 0;
 	for (const Company *c : Company::Iterate()) {
+		if (old_num_groups[c->index] != c->num_groups) {
+			Debug(desync, 2, "number of groups cache mismatch: company {}", c->index);
+		}
+		if (old_num_stations[c->index] != c->num_stations) {
+			Debug(desync, 2, "number of stations cache mismatch: company {}", c->index);
+		}
 		if (MemCmpT(old_infrastructure.data() + i, &c->infrastructure) != 0) {
 			Debug(desync, 2, "infrastructure cache mismatch: company {}", c->index);
 		}

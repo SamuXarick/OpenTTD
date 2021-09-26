@@ -129,6 +129,9 @@ struct Company : CompanyProperties, CompanyPool::PoolItem<&_company_pool> {
 
 	CompanyInfrastructure infrastructure; ///< NOSAVE: Counts of company owned infrastructure.
 
+	uint32 num_groups; ///< NOSAVE: Number of groups created
+	uint32 num_stations; ///< NOSAVE: Number of stations created
+
 	/**
 	 * Is this company a valid company, controlled by the computer (a NoAI program)?
 	 * @param index Index in the pool.

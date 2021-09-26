@@ -10,14 +10,15 @@
 #ifndef GROUP_TYPE_H
 #define GROUP_TYPE_H
 
-typedef uint16 GroupID; ///< Type for all group identifiers.
+typedef uint32 GroupID; ///< Type for all group identifiers.
 
-static const GroupID NEW_GROUP     = 0xFFFC; ///< Sentinel for a to-be-created group.
-static const GroupID ALL_GROUP     = 0xFFFD; ///< All vehicles are in this group.
-static const GroupID DEFAULT_GROUP = 0xFFFE; ///< Ungrouped vehicles are in this group.
-static const GroupID INVALID_GROUP = 0xFFFF; ///< Sentinel for invalid groups.
+static const GroupID NEW_GROUP     = 0xFFFFC; ///< Sentinel for a to-be-created group.
+static const GroupID ALL_GROUP     = 0xFFFFD; ///< All vehicles are in this group.
+static const GroupID DEFAULT_GROUP = 0xFFFFE; ///< Ungrouped vehicles are in this group.
+static const GroupID INVALID_GROUP = 0xFFFFF; ///< Sentinel for invalid groups.
 
 static const uint MAX_LENGTH_GROUP_NAME_CHARS = 32; ///< The maximum length of a group name in characters including '\0'
+static const uint MAX_NUM_GROUPS_PER_COMPANY = 64000; ///< The maximum number of groups a company can create.
 
 struct Group;
 

@@ -175,7 +175,7 @@ struct FlowSaveLoad {
 	bool restricted;
 };
 
-typedef std::pair<const StationID, std::list<CargoPacket *> > StationCargoPair;
+typedef std::pair<StationID, std::list<CargoPacket *> > StationCargoPair;
 
 static OldPersistentStorage _old_st_persistent_storage;
 
@@ -262,7 +262,8 @@ public:
 class SlStationCargo : public DefaultSaveLoadHandler<SlStationCargo, GoodsEntry> {
 public:
 	inline static const SaveLoad description[] = {
-		    SLE_VAR(StationCargoPair, first,  SLE_UINT16),
+		SLE_CONDVAR(StationCargoPair, first, SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(StationCargoPair, first, SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		SLE_REFLIST(StationCargoPair, second, REF_CARGO_PACKET),
 	};
 	inline const static SaveLoadCompatTable compat_description = _station_cargo_sl_compat;
@@ -282,6 +283,12 @@ public:
 		StationCargoPair pair;
 		for (uint j = 0; j < num_dests; ++j) {
 			SlObject(&pair, this->GetLoadDescription());
+
+			/* Convert old INVALID_STATION to the current value */
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				if (pair.first == 0xFFFF) pair.first = INVALID_STATION;
+			}
+
 			const_cast<StationCargoPacketMap &>(*(ge->cargo.Packets()))[pair.first].swap(pair.second);
 			assert(pair.second.empty());
 		}
@@ -290,7 +297,7 @@ public:
 	void FixPointers(GoodsEntry *ge) const override
 	{
 		for (StationCargoPacketMap::ConstMapIterator it = ge->cargo.Packets()->begin(); it != ge->cargo.Packets()->end(); ++it) {
-			SlObject(const_cast<StationCargoPair *>(&(*it)), this->GetDescription());
+			SlObject((StationCargoPair *)(&(*it)), this->GetDescription());
 		}
 	}
 };
@@ -298,8 +305,10 @@ public:
 class SlStationFlow : public DefaultSaveLoadHandler<SlStationFlow, GoodsEntry> {
 public:
 	inline static const SaveLoad description[] = {
-		    SLE_VAR(FlowSaveLoad, source,     SLE_UINT16),
-		    SLE_VAR(FlowSaveLoad, via,        SLE_UINT16),
+		SLE_CONDVAR(FlowSaveLoad, source,     SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(FlowSaveLoad, source,     SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
+		SLE_CONDVAR(FlowSaveLoad, via,        SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(FlowSaveLoad, via,        SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		    SLE_VAR(FlowSaveLoad, share,      SLE_UINT32),
 		SLE_CONDVAR(FlowSaveLoad, restricted, SLE_BOOL, SLV_187, SL_MAX_VERSION),
 	};
@@ -338,6 +347,13 @@ public:
 		StationID prev_source = INVALID_STATION;
 		for (uint32 j = 0; j < num_flows; ++j) {
 			SlObject(&flow, this->GetLoadDescription());
+
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				/* Convert old value for INVALID_STATION to current */
+				if (flow.source == 0xFFFF) flow.source = INVALID_STATION;
+				if (flow.via == 0xFFFF) flow.via = INVALID_STATION;
+			}
+
 			if (fs == nullptr || prev_source != flow.source) {
 				fs = &(ge->flows.insert(std::make_pair(flow.source, FlowStat(flow.via, flow.share, flow.restricted))).first->second);
 			} else {

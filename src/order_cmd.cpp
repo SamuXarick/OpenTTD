@@ -190,14 +190,14 @@ bool Order::Equals(const Order &other) const
 }
 
 /**
- * Pack this order into a 32 bits integer, or actually only
+ * Pack this order into a 64 bits integer, or actually only
  * the type, flags and destination.
  * @return the packed representation.
  * @note unpacking is done in the constructor.
  */
-uint32 Order::Pack() const
+uint64 Order::Pack() const
 {
-	return this->dest << 16 | this->flags << 8 | this->type;
+	return (uint64)this->dest << 16 | (uint64)this->flags << 8 | this->type;
 }
 
 /**
@@ -231,11 +231,11 @@ uint16 Order::MapOldOrder() const
  * Create an order based on a packed representation of that order.
  * @param packed the packed representation.
  */
-Order::Order(uint32 packed)
+Order::Order(uint64 packed)
 {
 	this->type    = (OrderType)GB(packed,  0,  8);
 	this->flags   = GB(packed,  8,  8);
-	this->dest    = GB(packed, 16, 16);
+	this->dest    = GB(packed, 16, 20);
 	this->next    = nullptr;
 	this->refit_cargo   = CT_NO_REFIT;
 	this->wait_time     = 0;

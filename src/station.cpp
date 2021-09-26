@@ -72,6 +72,8 @@ Station::Station(TileIndex tile) :
 	last_vehicle_type(VEH_INVALID)
 {
 	/* this->random_bits is set in Station::AddFacility() */
+	Company *c = Company::GetIfValid(_current_company);
+	if (c != nullptr) c->num_stations++;
 }
 
 /**
@@ -157,6 +159,9 @@ Station::~Station()
 
 	_station_kdtree.Remove(this->index);
 	if (this->sign.kdtree_valid) _viewport_sign_kdtree.Remove(ViewportSignKdtreeItem::MakeStation(this->index));
+
+	Company *c = Company::GetIfValid(this->owner);
+	if (c != nullptr) c->num_stations--;
 }
 
 

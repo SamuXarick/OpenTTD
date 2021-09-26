@@ -99,7 +99,8 @@ public:
 		SLE_CONDVAR(Node, xy,          SLE_UINT32, SLV_191, SL_MAX_VERSION),
 		    SLE_VAR(Node, supply,      SLE_UINT32),
 		    SLE_VAR(Node, demand,      SLE_UINT32),
-		    SLE_VAR(Node, station,     SLE_UINT16),
+		SLE_CONDVAR(Node, station,     SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		SLE_CONDVAR(Node, station,     SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		    SLE_VAR(Node, last_update, SLE_INT32),
 		SLEG_STRUCTLIST("edges", SlLinkgraphEdge),
 	};
@@ -125,6 +126,13 @@ public:
 		for (NodeID from = 0; from < length; ++from) {
 			_linkgraph_from = from;
 			SlObject(&lg->nodes[from], this->GetLoadDescription());
+
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				/* LinkGraph's BaseNode station should be either INVALID_STATION or a valid station */
+				if (lg->nodes[from].station == 0xFFFF) {
+					lg->nodes[from].station = INVALID_STATION;
+				}
+			}
 		}
 	}
 };

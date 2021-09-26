@@ -2208,7 +2208,7 @@ void ShowVehicleListWindow(CompanyID company, VehicleType vehicle_type, StationI
 
 void ShowVehicleListWindow(CompanyID company, VehicleType vehicle_type, TileIndex depot_tile)
 {
-	uint16 depot_airport_index;
+	uint32 depot_airport_index;
 
 	if (vehicle_type == VEH_AIRCRAFT) {
 		depot_airport_index = GetStationIndex(depot_tile);

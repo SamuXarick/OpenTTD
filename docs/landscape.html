@@ -522,7 +522,8 @@
      </li>
      <li>m5 bit 7 set, bit 6 set: railway depot
       <ul>
-       <li>m2: Depot index</li>
+       <li>m2 bits 7..0: Depot index, bits 0 to 15 (upper bits in m3)</li>
+       <li>m3 bits 3..0: Depot index, bits 16 to 19 (lower bits in m2)</li>
        <li>m5 bits 1..0: exit towards
         <table>
          <tr>
@@ -665,7 +666,8 @@
      <li>m5 bit 7 set, bit 6 clear: road depot
       <ul>
        <li>m1 bits 4..0: <a href="#OwnershipInfo">owner</a> of the depot</li>
-       <li>m2: Depot index</li>
+       <li>m2 bits 7..0: Depot index, bits 0 to 15 (upper bits in m3)</li>
+       <li>m3 bits 3..0: Depot index, bits 16 to 19 (lower bits in m2)</li>
        <li>m5 bits 1..0: exit towards:
         <table>
          <tr>
@@ -873,7 +875,7 @@
      <li>m1 bit 7: Ship docking tile status (for buoys)</li>
      <li>m1 bits 6..5: water class for buoys, water part of docks and for airport tiles</li>
      <li>m1 bits 4..0: <a href="#OwnershipInfo">owner</a> of the station</li>
-     <li>m2: index into the array of stations</li>
+     <li>m2: index into the array of stations, bits 0 to 15 (upper bits in m8)</li>
      <li>m3 bits 7..4: persistent random data for railway stations/waypoints and airports)</li>
      <li>m3 bits 7..4: <a href="#OwnershipInfo">owner</a> of tram tracks (road stop)</li>
      <li>m4: custom station id; 0 means standard graphics</li>
@@ -994,6 +996,7 @@
 
      <li>m7 bits 4..0: <a href="#OwnershipInfo">owner</a> of road (road stops)</li>
      <li>m7: animation frame (railway stations/waypoints, airports)</li>
+     <li>m8 bits 15..12: index into the array of stations, bits 16 to 19 (lower bits in m2)</li>
      <li>m8 bits 11..6: <a href="#TramType">Tramtype</a></li>
      <li>m8 bits 5..0: <a href="#TrackType">track type</a> for railway stations/waypoints</li>
      <li>m8 bits 5..0: custom road stop id; 0 means standard graphics</li>
@@ -1012,7 +1015,8 @@
      <li>m1 bit 7: Ship docking tile status</li>
      <li>m1 bits 6..5 : Water class (sea, canal or river)
      <li>m1 bits 4..0: <a href="#OwnershipInfo">owner</a> (for sea, rivers, and coasts normally <tt>11</tt>)</li>
-     <li>m2: Depot index (for depots only)</li>
+     <li>m2 bits 7..0: Depot index (for depots only), bits 0 to 15 (upper bits in m3)</li>
+     <li>m3 bits 3..0: Depot index (for depots only), bits 16 to 19 (lower bits in m2)</li>
      <li>m4: Random data for canal or river tiles</li>
      <li>m5: tile type:
       <table>

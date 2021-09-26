@@ -14,8 +14,8 @@
 
 typedef byte VehicleOrderID;  ///< The index of an order within its current vehicle (not pool related)
 typedef uint32 OrderID;
-typedef uint16 OrderListID;
-typedef uint16 DestinationID;
+typedef uint32 OrderListID;
+typedef uint32 DestinationID;
 
 /** Invalid vehicle order index (sentinel) */
 static const VehicleOrderID INVALID_VEH_ORDER_ID = 0xFF;
