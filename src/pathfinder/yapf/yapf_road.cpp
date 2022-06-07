@@ -16,7 +16,7 @@
 
 
 template <class Types>
-class CYapfCostRoadT
+class CYapfCostRoadT : public CYapfCostBase
 {
 public:
 	typedef typename Types::Tpf Tpf; ///< pathfinder (derived from THIS class)
@@ -35,23 +35,10 @@ protected:
 		return *static_cast<Tpf *>(this);
 	}
 
-	int SlopeCost(TileIndex tile, TileIndex next_tile, Trackdir trackdir)
+	int SlopeCost(TileIndex tile, Trackdir trackdir)
 	{
-		/* height of the center of the current tile */
-		int x1 = TileX(tile) * TILE_SIZE;
-		int y1 = TileY(tile) * TILE_SIZE;
-		int z1 = GetSlopePixelZ(x1 + TILE_SIZE / 2, y1 + TILE_SIZE / 2);
-
-		/* height of the center of the next tile */
-		int x2 = TileX(next_tile) * TILE_SIZE;
-		int y2 = TileY(next_tile) * TILE_SIZE;
-		int z2 = GetSlopePixelZ(x2 + TILE_SIZE / 2, y2 + TILE_SIZE / 2);
-
-		if (z2 - z1 > 1) {
-			/* Slope up */
-			return Yapf().PfGetSettings().road_slope_penalty;
-		}
-		return 0;
+		if (!stSlopeCost(tile, trackdir)) return 0;
+		return Yapf().PfGetSettings().road_slope_penalty;
 	}
 
 	/** return one tile cost */
@@ -102,6 +89,30 @@ public:
 	inline void SetMaxCost(int max_cost)
 	{
 		m_max_cost = max_cost;
+	}
+
+	inline int StartTileCost(TileIndex tile, Trackdir trackdir)
+	{
+		/* base tile cost depending on distance between edges */
+		int cost = Yapf().OneTileCost(tile, trackdir);
+
+		const RoadVehicle *v = Yapf().GetVehicle();
+
+		/* add hilly terrain penalty */
+		cost += Yapf().SlopeCost(v->tile, trackdir);
+
+		/* add min/max speed penalties */
+		int min_speed = 0;
+		int max_veh_speed = std::min<int>(v->GetDisplayMaxSpeed(), v->current_order.GetMaxSpeed() * 2);
+		int max_speed = INT_MAX; // no limit
+		/* max_speed is already in roadvehicle units, no need to further modify (divide by 2) */
+		uint16 road_speed = GetRoadTypeInfo(GetRoadType(tile, GetRoadTramType(RoadVehicle::From(v)->roadtype)))->max_speed;
+		if (road_speed > 0) max_speed = std::min<int>(max_speed, road_speed);
+		if (max_speed < max_veh_speed) cost += YAPF_TILE_LENGTH * (max_veh_speed - max_speed) * 4 / max_veh_speed;
+		if (min_speed > max_veh_speed) cost += YAPF_TILE_LENGTH * (min_speed - max_veh_speed);
+
+		/* save also tile cost */
+		return cost;
 	}
 
 	/**
@@ -155,7 +166,7 @@ public:
 			tiles += F.m_tiles_skipped + 1;
 
 			/* add hilly terrain penalty */
-			segment_cost += Yapf().SlopeCost(tile, F.m_new_tile, trackdir);
+			segment_cost += Yapf().SlopeCost(tile, trackdir);
 
 			/* add min/max speed penalties */
 			int min_speed = 0;

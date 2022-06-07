@@ -260,12 +260,80 @@ protected:
 	}
 
 public:
+	inline int StartTileCost(TileIndex tile, Trackdir trackdir)
+	{
+		/* base tile cost depending on distance */
+		int c = IsDiagonalTrackdir(trackdir) ? YAPF_TILE_LENGTH : YAPF_TILE_CORNER_LENGTH;
+
+		const Ship *v = Yapf().GetVehicle();
+
+		/* compute curve penalty only when ship is not in depot */
+		if (!v->IsChainInDepot()) {
+			/* is ship checking whether to reverse? */
+			Trackdir veh_dir = v->GetVehicleTrackdir();
+			bool reversing = veh_dir != trackdir;
+
+			/* if so, is it trying all reverse directions? */
+			Trackdir td_rev = ReverseTrackdir(veh_dir);
+			bool unorthodox_reversing = reversing && td_rev != trackdir;
+
+			/* Try to compute the previous trackdir, which is to be used for calculating curve penalty below.
+			 * Note that it is not always possible to get the exact direction the ship was before. In these
+			 * cases, it may get the trackdir which results in the lowest penalty. */
+			if (!unorthodox_reversing) {
+				/* move back to the old tile / trackdirs (where ship is coming from) */
+				TrackFollower F(v);
+				F.Follow(tile, td_rev);
+
+				if (HasTrackdir(F.m_new_td_bits, NextTrackdir(td_rev))) {
+					/* use vehicle's current direction if that's possible... */
+					veh_dir = NextTrackdir(veh_dir);
+				} else if (F.m_new_td_bits != TRACKDIR_BIT_NONE) {
+					/* ... otherwise use first usable one. */
+					veh_dir = ReverseTrackdir((Trackdir)FindFirstBit2x64(F.m_new_td_bits));
+				} else {
+					/* ship didn't come from the old tile, may be checking whether to reverse */
+					veh_dir = reversing ? td_rev : NextTrackdir(veh_dir);
+				}
+			}
+
+			/* additional penalty for curves */
+			if (unorthodox_reversing) {
+				/* can be a 90 to 135 deg curve penalty */
+				c += Yapf().PfGetSettings().ship_curve90_penalty;
+				if ((IsDiagonalTrackdir(veh_dir) && !IsDiagonalTrackdir(trackdir)) || (!IsDiagonalTrackdir(veh_dir) && IsDiagonalTrackdir(trackdir))) {
+					c += Yapf().PfGetSettings().ship_curve45_penalty;
+				}
+			} else {
+				c += CurveCost(veh_dir, trackdir);
+			}
+		}
+
+		if (IsDockingTile(tile)) {
+			/* Check docking tile for occupancy */
+			uint count = 0;
+			HasVehicleOnPos(tile, &count, &CountShipProc);
+			c += count * 3 * YAPF_TILE_LENGTH;
+		}
+
+		/* Ocean/canal speed penalty. */
+		const ShipVehicleInfo *svi = ShipVehInfo(v->engine_type);
+		byte speed_frac = (GetEffectiveWaterClass(tile) == WATER_CLASS_SEA) ? svi->ocean_speed_frac : svi->canal_speed_frac;
+		if (speed_frac > 0) c += YAPF_TILE_LENGTH * speed_frac / (256 - speed_frac);
+
+		/* apply it */
+		return c;
+	}
+
 	inline int CurveCost(Trackdir td1, Trackdir td2)
 	{
 		assert(IsValidTrackdir(td1));
 		assert(IsValidTrackdir(td2));
 
-		if (HasTrackdir(TrackdirCrossesTrackdirs(td1), td2)) {
+		if (td2 == ReverseTrackdir(td1) || (td1 == td2 && !IsDiagonalTrackdir(td1))) {
+			/* 180-deg curve penalty */
+			return 2 * Yapf().PfGetSettings().ship_curve90_penalty;
+		} else if (HasTrackdir(TrackdirCrossesTrackdirs(td1), td2)) {
 			/* 90-deg curve penalty */
 			return Yapf().PfGetSettings().ship_curve90_penalty;
 		} else if (td2 != NextTrackdir(td1)) {

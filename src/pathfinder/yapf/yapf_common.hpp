@@ -45,6 +45,7 @@ public:
 			Trackdir td = (Trackdir)FindFirstBit2x64(tdb);
 			Node &n1 = Yapf().CreateNewNode();
 			n1.Set(nullptr, m_orgTile, td, is_choice);
+			n1.m_cost = Yapf().StartTileCost(m_orgTile, td);
 			Yapf().AddStartupNode(n1);
 		}
 	}
