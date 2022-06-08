@@ -21,6 +21,7 @@
 #include "newgrf_profiling.h"
 #include "widgets/statusbar_widget.h"
 
+#include "console_func.h"
 #include "safeguards.h"
 
 Year      _cur_year;   ///< Current year, starting at 0
@@ -301,5 +302,10 @@ void IncreaseDate()
 	if (new_month) OnNewMonth();
 
 	/* yes, call various yearly loops */
-	if (new_year) OnNewYear();
+	if (new_year) {
+		IConsolePrint(CC_HELP, "_cur_year = {} , _pathfinder_calls = {} , _cacheclear_calls_no_pf = {} , _cacheclear_calls_pathfind = {}",
+			_cur_year - 1, _pathfinder_calls, _cacheclear_calls_no_pf, _cacheclear_calls_pathfind);
+		_pathfinder_calls = _cacheclear_calls_no_pf = _cacheclear_calls_pathfind = 0;
+		OnNewYear();
+	}
 }

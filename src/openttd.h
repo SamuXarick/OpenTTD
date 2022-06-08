@@ -85,4 +85,8 @@ void SwitchToMode(SwitchMode new_mode);
 
 bool RequestNewGRFScan(struct NewGRFScanCallback *callback = nullptr);
 
+extern int _pathfinder_calls;
+extern int _cacheclear_calls_no_pf;
+extern int _cacheclear_calls_pathfind;
+
 #endif /* OPENTTD_H */

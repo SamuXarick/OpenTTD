@@ -926,7 +926,10 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 	trackdirs &= DiagdirReachesTrackdirs(enterdir);
 	if (trackdirs == TRACKDIR_BIT_NONE) {
 		/* If vehicle expected a path, it no longer exists, so invalidate it. */
-		if (!v->path.empty()) v->path.clear();
+		if (!v->path.empty()) {
+			v->path.clear();
+			_cacheclear_calls_no_pf++;
+		}
 		/* No reachable tracks, so we'll reverse */
 		return_track(_road_reverse_table[enterdir]);
 	}
@@ -960,6 +963,7 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 		if (!v->path.empty() && v->path.tile.front() == tile) {
 			/* Vehicle expected a choice here, invalidate its path. */
 			v->path.clear();
+			_cacheclear_calls_no_pf++;
 		}
 		return_track(FindFirstBit2x64(trackdirs));
 	}
@@ -969,6 +973,7 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 		if (v->path.tile.front() != tile) {
 			/* Vehicle didn't expect a choice here, invalidate its path. */
 			v->path.clear();
+			_cacheclear_calls_pathfind++;
 		} else {
 			Trackdir trackdir = v->path.td.front();
 
@@ -980,6 +985,7 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 
 			/* Vehicle expected a choice which is no longer available. */
 			v->path.clear();
+			_cacheclear_calls_pathfind++;
 		}
 	}
 
@@ -989,6 +995,7 @@ static Trackdir RoadFindPathToDest(RoadVehicle *v, TileIndex tile, DiagDirection
 
 		default: NOT_REACHED();
 	}
+	_pathfinder_calls++;
 	v->HandlePathfindingResult(path_found);
 
 found_best_track:;

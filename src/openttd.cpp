@@ -96,6 +96,10 @@ bool _save_config = false;
 bool _request_newgrf_scan = false;
 NewGRFScanCallback *_request_newgrf_scan_callback = nullptr;
 
+int _pathfinder_calls = 0;
+int _cacheclear_calls_no_pf = 0;
+int _cacheclear_calls_pathfind = 0;
+
 /**
  * Error handling for fatal user errors.
  * @param s the string to print.
@@ -996,6 +1000,9 @@ bool SafeLoad(const std::string &filename, SaveLoadOperation fop, DetailedFileTy
 
 void SwitchToMode(SwitchMode new_mode)
 {
+	_pathfinder_calls = 0;
+	_cacheclear_calls_no_pf = 0;
+	_cacheclear_calls_pathfind = 0;
 	/* If we are saving something, the network stays in its current state */
 	if (new_mode != SM_SAVE_GAME) {
 		/* If the network is active, make it not-active */
