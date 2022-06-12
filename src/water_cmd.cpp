@@ -40,6 +40,7 @@
 #include "water_cmd.h"
 #include "landscape_cmd.h"
 #include "pathfinder/water_regions.h"
+#include "signs_cmd.h"
 
 #include "table/strings.h"
 
@@ -1172,7 +1173,21 @@ static void DoFloodTile(TileIndex target)
 		FloodVehicles(target);
 
 		/* flood flat tile */
+		TileType type = GetTileType(target);
+		std::string text;
+		if (type == MP_HOUSE) text = "h";
+		if (type == MP_ROAD) text = "r";
+		if (type == MP_CLEAR) text = "c";
+		if (type == MP_INDUSTRY) text = "i";
+		if (type == MP_OBJECT) text = "o";
+		if (type == MP_TUNNELBRIDGE) text = "b";
+		if (type == MP_TREES) text = "t";
+		if (type == MP_RAILWAY) text = "rl";
+		if (type == MP_STATION) text = "s";
+		if (type == MP_WATER) text = "w";
+		if (type == MP_VOID) text = "v";
 		if (Command<CMD_LANDSCAPE_CLEAR>::Do(DC_EXEC, target).Succeeded()) {
+			if (Town::GetNumItems() != 0) Command<CMD_PLACE_SIGN>::Do(DC_EXEC, target, text);
 			MakeSea(target);
 			MarkTileDirtyByTile(target);
 			flooded = true;
