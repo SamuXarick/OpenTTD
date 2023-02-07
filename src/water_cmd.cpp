@@ -37,6 +37,7 @@
 #include "company_gui.h"
 #include "newgrf_generic.h"
 #include "industry.h"
+#include "cheat_type.h"
 #include "water_cmd.h"
 #include "landscape_cmd.h"
 
@@ -116,38 +117,60 @@ CommandCost CmdBuildShipDepot(DoCommandFlag flags, TileIndex tile, Axis axis)
 	if (!Depot::CanAllocateItem()) return CMD_ERROR;
 
 	WaterClass wc1 = GetWaterClass(tile);
+	Owner oc1 = wc1 == WATER_CLASS_CANAL ? GetCanalOwner(tile) : INVALID_OWNER;
 	WaterClass wc2 = GetWaterClass(tile2);
+	Owner oc2 = wc2 == WATER_CLASS_CANAL ? GetCanalOwner(tile2) : INVALID_OWNER;
 	CommandCost cost = CommandCost(EXPENSES_CONSTRUCTION, _price[PR_BUILD_DEPOT_SHIP]);
+	CommandCost ret;
 
 	bool add_cost = !IsWaterTile(tile);
-	CommandCost ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags | DC_AUTO, tile);
-	if (ret.Failed()) return ret;
-	if (add_cost) {
-		cost.AddCost(ret);
+	if (!add_cost && IsCanal(tile)) {
+		ret = EnsureNoVehicleOnGround(tile);
+		if (ret.Failed()) return ret;
+		if (oc1 != OWNER_NONE) {
+			ret = CheckTileOwnership(tile);
+			if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+		}
+	} else {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
+		if (ret.Failed()) return ret;
+		if (add_cost) {
+			cost.AddCost(ret);
+			if (wc1 == WATER_CLASS_CANAL && oc1 != OWNER_NONE) {
+				ret = CheckOwnership(oc1, tile);
+				if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+			}
+		}
 	}
 	add_cost = !IsWaterTile(tile2);
-	ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags | DC_AUTO, tile2);
-	if (ret.Failed()) return ret;
-	if (add_cost) {
-		cost.AddCost(ret);
+	if (!add_cost && IsCanal(tile2)) {
+		ret = EnsureNoVehicleOnGround(tile2);
+		if (ret.Failed()) return ret;
+		if (oc2 != OWNER_NONE) {
+			ret = CheckTileOwnership(tile2);
+			if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+		}
+	} else {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile2);
+		if (ret.Failed()) return ret;
+		if (add_cost) {
+			cost.AddCost(ret);
+			if (wc2 == WATER_CLASS_CANAL && oc2 != OWNER_NONE) {
+				ret = CheckOwnership(oc2, tile2);
+				if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+			}
+		}
 	}
 
 	if (flags & DC_EXEC) {
 		Depot *depot = new Depot(tile);
 		depot->build_date = _date;
 
-		uint new_water_infra = 2 * LOCK_DEPOT_TILE_FACTOR;
-		/* Update infrastructure counts after the tile clears earlier.
-		 * Clearing object tiles may result in water tiles which are already accounted for in the water infrastructure total.
-		 * See: MakeWaterKeepingClass() */
-		if (wc1 == WATER_CLASS_CANAL && !(HasTileWaterClass(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL && IsTileOwner(tile, _current_company))) new_water_infra++;
-		if (wc2 == WATER_CLASS_CANAL && !(HasTileWaterClass(tile2) && GetWaterClass(tile2) == WATER_CLASS_CANAL && IsTileOwner(tile2, _current_company))) new_water_infra++;
-
-		Company::Get(_current_company)->infrastructure.water += new_water_infra;
+		Company::Get(_current_company)->infrastructure.water += 2 * LOCK_DEPOT_TILE_FACTOR;
 		DirtyCompanyInfrastructureWindows(_current_company);
 
-		MakeShipDepot(tile,  _current_company, depot->index, DEPOT_PART_NORTH, axis, wc1);
-		MakeShipDepot(tile2, _current_company, depot->index, DEPOT_PART_SOUTH, axis, wc2);
+		MakeShipDepot(tile,  _current_company, oc1, depot->index, DEPOT_PART_NORTH, axis, wc1);
+		MakeShipDepot(tile2, _current_company, oc2, depot->index, DEPOT_PART_SOUTH, axis, wc2);
 		CheckForDockingTile(tile);
 		CheckForDockingTile(tile2);
 		MarkTileDirtyByTile(tile);
@@ -241,15 +264,27 @@ void MakeWaterKeepingClass(TileIndex tile, Owner o)
 		wc = WATER_CLASS_CANAL;
 	}
 
+	bool river = HasTileCanalOnRiver(tile);
 	/* Zero map array and terminate animation */
 	DoClearSquare(tile);
 
 	/* Maybe change to water */
 	switch (wc) {
-		case WATER_CLASS_SEA:   MakeSea(tile);                break;
-		case WATER_CLASS_CANAL: MakeCanal(tile, o, Random()); break;
-		case WATER_CLASS_RIVER: MakeRiver(tile, Random());    break;
-		default: break;
+		case WATER_CLASS_SEA:
+			MakeSea(tile);
+			break;
+
+		case WATER_CLASS_CANAL:
+			MakeCanal(tile, o, Random());
+			if (river) SetCanalOnRiver(tile);
+			break;
+
+		case WATER_CLASS_RIVER:
+			MakeRiver(tile, Random());
+			break;
+
+		default:
+			break;
 	}
 
 	if (wc != WATER_CLASS_INVALID) CheckForDockingTile(tile);
@@ -262,8 +297,10 @@ static CommandCost RemoveShipDepot(TileIndex tile, DoCommandFlag flags)
 
 	CommandCost ret = CheckTileOwnership(tile);
 	if (ret.Failed()) return ret;
+	Owner oc1 = GetWaterClass(tile) == WATER_CLASS_CANAL ? GetCanalOwner(tile) : INVALID_OWNER;
 
 	TileIndex tile2 = GetOtherShipDepotTile(tile);
+	Owner oc2 = GetWaterClass(tile2) == WATER_CLASS_CANAL ? GetCanalOwner(tile2) : INVALID_OWNER;
 
 	/* do not check for ship on tile when company goes bankrupt */
 	if (!(flags & DC_BANKRUPT)) {
@@ -281,8 +318,8 @@ static CommandCost RemoveShipDepot(TileIndex tile, DoCommandFlag flags)
 			DirtyCompanyInfrastructureWindows(c->index);
 		}
 
-		MakeWaterKeepingClass(tile,  GetTileOwner(tile));
-		MakeWaterKeepingClass(tile2, GetTileOwner(tile2));
+		MakeWaterKeepingClass(tile, oc1);
+		MakeWaterKeepingClass(tile2, oc2);
 	}
 
 	return CommandCost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_DEPOT_SHIP]);
@@ -307,33 +344,73 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 
 	/* middle tile */
 	WaterClass wc_middle = HasTileWaterGround(tile) ? GetWaterClass(tile) : WATER_CLASS_CANAL;
-	ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
-	if (ret.Failed()) return ret;
-	cost.AddCost(ret);
-
-	/* lower tile */
-	if (!IsWaterTile(tile - delta)) {
-		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile - delta);
+	if (!IsWaterTile(tile)) {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
 		if (ret.Failed()) return ret;
 		cost.AddCost(ret);
-		cost.AddCost(_price[PR_BUILD_CANAL]);
+		/* Add an extra cost only if not building on a river. */
+		if (wc_middle == WATER_CLASS_CANAL) cost.AddCost(_price[PR_BUILD_CANAL]);
+	}
+
+	/* lower tile */
+	bool is_already_canal_lower = HasTileWaterGround(tile - delta) && GetWaterClass(tile - delta) == WATER_CLASS_CANAL;
+
+	WaterClass wc_lower = HasTileWaterGround(tile - delta) ? GetWaterClass(tile - delta) : WATER_CLASS_CANAL;
+	Owner oc_lower = is_already_canal_lower ? GetCanalOwner(tile - delta) : _current_company;
+	bool add_cost_lower = !IsWaterTile(tile - delta);
+	if (!add_cost_lower && IsCanal(tile - delta)) {
+		if (oc_lower != OWNER_NONE) {
+			ret = CheckTileOwnership(tile - delta);
+			if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+		}
+	} else {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile - delta);
+		if (ret.Failed()) return ret;
+		if (add_cost_lower) {
+			cost.AddCost(ret);
+			if (wc_lower == WATER_CLASS_CANAL && oc_lower != OWNER_NONE) {
+				ret = CheckOwnership(oc_lower, tile - delta);
+				if (ret.Failed()) {
+					if (!_settings_game.construction.build_on_competitor_canal) return ret;
+				} else {
+					if (!is_already_canal_lower) cost.AddCost(_price[PR_BUILD_CANAL]);
+				}
+			}
+		}
 	}
 	if (!IsTileFlat(tile - delta)) {
 		return_cmd_error(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	}
-	WaterClass wc_lower = IsWaterTile(tile - delta) ? GetWaterClass(tile - delta) : WATER_CLASS_CANAL;
 
 	/* upper tile */
-	if (!IsWaterTile(tile + delta)) {
+	bool is_already_canal_upper = HasTileWaterGround(tile + delta) && GetWaterClass(tile + delta) == WATER_CLASS_CANAL;
+
+	WaterClass wc_upper = HasTileWaterGround(tile + delta) ? GetWaterClass(tile + delta) : WATER_CLASS_CANAL;
+	Owner oc_upper = is_already_canal_upper ? GetCanalOwner(tile + delta) : _current_company;
+	bool add_cost_upper = !IsWaterTile(tile + delta);
+	if (!add_cost_upper && IsCanal(tile + delta)) {
+		if (oc_upper != OWNER_NONE) {
+			ret = CheckTileOwnership(tile + delta);
+			if (ret.Failed() && !_settings_game.construction.build_on_competitor_canal) return ret;
+		}
+	} else {
 		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile + delta);
 		if (ret.Failed()) return ret;
-		cost.AddCost(ret);
-		cost.AddCost(_price[PR_BUILD_CANAL]);
+		if (add_cost_upper) {
+			cost.AddCost(ret);
+			if (wc_upper == WATER_CLASS_CANAL && oc_upper != OWNER_NONE) {
+				ret = CheckOwnership(oc_upper, tile + delta);
+				if (ret.Failed()) {
+					if (!_settings_game.construction.build_on_competitor_canal) return ret;
+				} else {
+					if (!is_already_canal_upper) cost.AddCost(_price[PR_BUILD_CANAL]);
+				}
+			}
+		}
 	}
 	if (!IsTileFlat(tile + delta)) {
 		return_cmd_error(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	}
-	WaterClass wc_upper = IsWaterTile(tile + delta) ? GetWaterClass(tile + delta) : WATER_CLASS_CANAL;
 
 	if (IsBridgeAbove(tile) || IsBridgeAbove(tile - delta) || IsBridgeAbove(tile + delta)) {
 		return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
@@ -344,14 +421,15 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 		Company *c = Company::GetIfValid(_current_company);
 		if (c != nullptr) {
 			/* Counts for the water. */
-			if (!IsWaterTile(tile - delta)) c->infrastructure.water++;
-			if (!IsWaterTile(tile + delta)) c->infrastructure.water++;
+			if (!IsWaterTile(tile)) c->infrastructure.water++;
+			if (wc_lower == WATER_CLASS_CANAL && !is_already_canal_lower) c->infrastructure.water++;
+			if (wc_upper == WATER_CLASS_CANAL && !is_already_canal_upper) c->infrastructure.water++;
 			/* Count for the lock itself. */
 			c->infrastructure.water += 3 * LOCK_DEPOT_TILE_FACTOR; // Lock is three tiles.
 			DirtyCompanyInfrastructureWindows(_current_company);
 		}
 
-		MakeLock(tile, _current_company, dir, wc_lower, wc_upper, wc_middle);
+		MakeLock(tile, _current_company, oc_lower, oc_upper, dir, wc_lower, wc_upper, wc_middle);
 		CheckForDockingTile(tile - delta);
 		CheckForDockingTile(tile + delta);
 		MarkTileDirtyByTile(tile);
@@ -386,6 +464,13 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
 	if (ret.Failed()) return ret;
 
+	Owner oc_lower = GetWaterClass(tile - delta) == WATER_CLASS_CANAL ? GetCanalOwner(tile - delta) : INVALID_OWNER;
+	Owner oc_upper = GetWaterClass(tile + delta) == WATER_CLASS_CANAL ? GetCanalOwner(tile + delta) : INVALID_OWNER;
+
+	CommandCost cost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_LOCK]);
+	/* Add an extra cost only if it was not built on a river. */
+	if (GetWaterClass(tile) != WATER_CLASS_RIVER) cost.AddCost(_price[PR_CLEAR_CANAL]);
+
 	if (flags & DC_EXEC) {
 		/* Remove middle part from company infrastructure count. */
 		Company *c = Company::GetIfValid(GetTileOwner(tile));
@@ -397,16 +482,17 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 		if (GetWaterClass(tile) == WATER_CLASS_RIVER) {
 			MakeRiver(tile, Random());
 		} else {
+			if (c != nullptr) c->infrastructure.water--;
 			DoClearSquare(tile);
 		}
-		MakeWaterKeepingClass(tile + delta, GetTileOwner(tile + delta));
-		MakeWaterKeepingClass(tile - delta, GetTileOwner(tile - delta));
+		MakeWaterKeepingClass(tile - delta, oc_lower);
+		MakeWaterKeepingClass(tile + delta, oc_upper);
 		MarkCanalsAndRiversAroundDirty(tile);
 		MarkCanalsAndRiversAroundDirty(tile - delta);
 		MarkCanalsAndRiversAroundDirty(tile + delta);
 	}
 
-	return CommandCost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_LOCK]);
+	return cost;
 }
 
 /**
@@ -475,6 +561,7 @@ CommandCost CmdBuildCanal(DoCommandFlag flags, TileIndex tile, TileIndex start_t
 		/* Outside the editor, prevent building canals over your own or OWNER_NONE owned canals */
 		if (water && IsCanal(current_tile) && _game_mode != GM_EDITOR && (IsTileOwner(current_tile, _current_company) || IsTileOwner(current_tile, OWNER_NONE))) continue;
 
+		bool river = HasTileWaterClass(current_tile) && GetWaterClass(current_tile) == WATER_CLASS_RIVER;
 		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, current_tile);
 		if (ret.Failed()) return ret;
 
@@ -506,6 +593,7 @@ CommandCost CmdBuildCanal(DoCommandFlag flags, TileIndex tile, TileIndex start_t
 					}
 
 					MakeCanal(current_tile, _current_company, Random());
+					if (river) SetCanalOnRiver(current_tile);
 					break;
 			}
 			MarkTileDirtyByTile(current_tile);
@@ -546,12 +634,22 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 				if (ret.Failed()) return ret;
 			}
 
+			if (IsRiver(tile) && _game_mode == GM_NORMAL && !_settings_game.construction.dynamite_river && !_cheats.magic_bulldozer.value) {
+				return CommandCost();
+			}
+
 			if (flags & DC_EXEC) {
 				if (IsCanal(tile) && Company::IsValidID(owner)) {
 					Company::Get(owner)->infrastructure.water--;
 					DirtyCompanyInfrastructureWindows(owner);
 				}
+				bool docking = IsDockingTile(tile);
+				bool river = HasTileCanalOnRiver(tile);
 				DoClearSquare(tile);
+				if (river) {
+					MakeRiver(tile, Random());
+					SetDockingTile(tile, docking);
+				}
 				MarkCanalsAndRiversAroundDirty(tile);
 			}
 
@@ -951,25 +1049,61 @@ static Foundation GetFoundation_Water(TileIndex tile, Slope tileh)
 
 static void GetTileDesc_Water(TileIndex tile, TileDesc *td)
 {
+	Owner canal_owner = INVALID_OWNER;
+
 	switch (GetWaterTileType(tile)) {
 		case WATER_TILE_CLEAR:
 			switch (GetWaterClass(tile)) {
-				case WATER_CLASS_SEA:   td->str = STR_LAI_WATER_DESCRIPTION_WATER; break;
-				case WATER_CLASS_CANAL: td->str = STR_LAI_WATER_DESCRIPTION_CANAL; break;
-				case WATER_CLASS_RIVER: td->str = STR_LAI_WATER_DESCRIPTION_RIVER; break;
-				default: NOT_REACHED();
+				case WATER_CLASS_SEA:
+					td->str = STR_LAI_WATER_DESCRIPTION_WATER;
+					break;
+
+				case WATER_CLASS_CANAL:
+					if (HasTileCanalOnRiver(tile)) {
+						td->str = STR_LAI_WATER_DESCRIPTION_CANALISED_RIVER;
+					} else {
+						td->str = STR_LAI_WATER_DESCRIPTION_CANAL;
+					}
+					break;
+
+				case WATER_CLASS_RIVER:
+					td->str = STR_LAI_WATER_DESCRIPTION_RIVER;
+					break;
+
+				default:
+					NOT_REACHED();
 			}
 			break;
-		case WATER_TILE_COAST: td->str = STR_LAI_WATER_DESCRIPTION_COAST_OR_RIVERBANK; break;
-		case WATER_TILE_LOCK : td->str = STR_LAI_WATER_DESCRIPTION_LOCK;               break;
+
+		case WATER_TILE_COAST:
+			td->str = STR_LAI_WATER_DESCRIPTION_COAST_OR_RIVERBANK;
+			break;
+
+		case WATER_TILE_LOCK:
+			td->str = STR_LAI_WATER_DESCRIPTION_LOCK;
+			if (GetWaterClass(tile) == WATER_CLASS_CANAL) canal_owner = GetCanalOwner(tile);
+			break;
+
 		case WATER_TILE_DEPOT:
 			td->str = STR_LAI_WATER_DESCRIPTION_SHIP_DEPOT;
 			td->build_date = Depot::GetByTile(tile)->build_date;
+			if (GetWaterClass(tile) == WATER_CLASS_CANAL) canal_owner = GetCanalOwner(tile);
 			break;
-		default: NOT_REACHED();
+
+		default:
+			NOT_REACHED();
 	}
 
-	td->owner[0] = GetTileOwner(tile);
+	if (canal_owner == INVALID_OWNER) {
+		td->owner[0] = GetTileOwner(tile);
+	} else {
+		td->owner_type[0] = STR_LAND_AREA_INFORMATION_OWNER;
+		td->owner[0] = GetTileOwner(tile);
+		if (canal_owner != td->owner[0]) {
+			td->owner_type[1] = STR_LAND_AREA_INFORMATION_CANAL_OWNER;
+			td->owner[1] = canal_owner;
+		}
+	}
 }
 
 /**
@@ -1334,21 +1468,21 @@ static bool ClickTile_Water(TileIndex tile)
 
 static void ChangeTileOwner_Water(TileIndex tile, Owner old_owner, Owner new_owner)
 {
+	if (HasTileWaterGround(tile) && GetWaterClass(tile) == WATER_CLASS_CANAL) {
+		if (IsCanal(tile) || IsShipDepot(tile) || IsLock(tile)) {
+			if (GetCanalOwner(tile) == old_owner) {
+				/* No need to dirty company windows here, we'll redraw the whole screen anyway. */
+				Company::Get(old_owner)->infrastructure.water--;
+				if (new_owner != INVALID_OWNER) Company::Get(new_owner)->infrastructure.water++;
+				SetCanalOwner(tile, new_owner == INVALID_OWNER ? OWNER_NONE : new_owner);
+			}
+		}
+	}
+
 	if (!IsTileOwner(tile, old_owner)) return;
 
-	bool is_lock_middle = IsLock(tile) && GetLockPart(tile) == LOCK_PART_MIDDLE;
-
-	/* No need to dirty company windows here, we'll redraw the whole screen anyway. */
-	if (is_lock_middle) Company::Get(old_owner)->infrastructure.water -= 3 * LOCK_DEPOT_TILE_FACTOR; // Lock has three parts.
 	if (new_owner != INVALID_OWNER) {
-		if (is_lock_middle) Company::Get(new_owner)->infrastructure.water += 3 * LOCK_DEPOT_TILE_FACTOR; // Lock has three parts.
-		/* Only subtract from the old owner here if the new owner is valid,
-		 * otherwise we clear ship depots and canal water below. */
-		if (GetWaterClass(tile) == WATER_CLASS_CANAL && !is_lock_middle) {
-			Company::Get(old_owner)->infrastructure.water--;
-			Company::Get(new_owner)->infrastructure.water++;
-		}
-		if (IsShipDepot(tile)) {
+		if (IsShipDepot(tile) || IsLock(tile)) {
 			Company::Get(old_owner)->infrastructure.water -= LOCK_DEPOT_TILE_FACTOR;
 			Company::Get(new_owner)->infrastructure.water += LOCK_DEPOT_TILE_FACTOR;
 		}
@@ -1363,7 +1497,7 @@ static void ChangeTileOwner_Water(TileIndex tile, Owner old_owner, Owner new_own
 	/* Set owner of canals and locks ... and also canal under dock there was before.
 	 * Check if the new owner after removing depot isn't OWNER_WATER. */
 	if (IsTileOwner(tile, old_owner)) {
-		if (GetWaterClass(tile) == WATER_CLASS_CANAL && !is_lock_middle) Company::Get(old_owner)->infrastructure.water--;
+		if (IsLock(tile)) Company::Get(old_owner)->infrastructure.water -= LOCK_DEPOT_TILE_FACTOR;
 		SetTileOwner(tile, OWNER_NONE);
 	}
 }
@@ -1375,8 +1509,23 @@ static VehicleEnterTileStatus VehicleEnter_Water(Vehicle *v, TileIndex tile, int
 
 static CommandCost TerraformTile_Water(TileIndex tile, DoCommandFlag flags, int z_new, Slope tileh_new)
 {
-	/* Canals can't be terraformed */
-	if (IsWaterTile(tile) && IsCanal(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+	bool no_err_message = _game_mode == GM_NORMAL && !_settings_game.construction.dynamite_river && !_cheats.magic_bulldozer.value;
+
+	/* Canals and rivers can't be terraformed */
+	if (IsCanal(tile)) {
+		if (HasTileCanalOnRiver(tile) && no_err_message) {
+			return CMD_ERROR;
+		}
+		return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+	}
+
+	/* Rivers can't be terraformed */
+	if (IsRiver(tile)) {
+		if (no_err_message) {
+			return CMD_ERROR;
+		}
+		return_cmd_error(STR_ERROR_MUST_CLEAR_RIVER_FIRST);
+	}
 
 	return Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
 }
