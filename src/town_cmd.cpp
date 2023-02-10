@@ -46,8 +46,7 @@
 #include "depot_base.h"
 #include "object_map.h"
 #include "object_base.h"
-#include "ai/ai.hpp"
-#include "game/game.hpp"
+#include "script/script_trigger.hpp"
 #include "town_cmd.h"
 #include "landscape_cmd.h"
 #include "road_cmd.h"
@@ -2240,8 +2239,7 @@ std::tuple<CommandCost, Money, TownID> CmdFoundTown(DoCommandFlag flags, TileInd
 
 				AddTileNewsItem(STR_NEWS_NEW_TOWN, NewsType::IndustryOpen, tile);
 			}
-			AI::BroadcastNewEvent(new ScriptEventTownFounded(t->index));
-			Game::NewEvent(new ScriptEventTownFounded(t->index));
+			ScriptTrigger::BroadcastNewEvent<ScriptEventTownFounded>(t->index);
 		}
 	}
 	return { cost, 0, new_town };
@@ -3390,8 +3388,7 @@ static CommandCost TownActionRoadRebuild(Town *t, DoCommandFlag flags)
 		AddNewsItem(
 			TimerGameEconomy::UsingWallclockUnits() ? STR_NEWS_ROAD_REBUILDING_MINUTES : STR_NEWS_ROAD_REBUILDING_MONTHS,
 			NewsType::General, NewsStyle::Normal, {}, NewsReferenceType::Town, t->index, NewsReferenceType::None, UINT32_MAX);
-		AI::BroadcastNewEvent(new ScriptEventRoadReconstruction(_current_company, t->index));
-		Game::NewEvent(new ScriptEventRoadReconstruction(_current_company, t->index));
+		ScriptTrigger::BroadcastNewEvent<ScriptEventRoadReconstruction>(_current_company, t->index);
 	}
 	return CommandCost();
 }
@@ -3545,8 +3542,7 @@ static CommandCost TownActionBuyRights(Town *t, DoCommandFlag flags)
 		SetDParam(2, t->index);
 		SetDParamStr(3, cni->company_name);
 		AddNewsItem(STR_MESSAGE_NEWS_FORMAT, NewsType::General, NewsStyle::Company, {}, NewsReferenceType::Town, t->index, NewsReferenceType::None, UINT32_MAX, std::move(cni));
-		AI::BroadcastNewEvent(new ScriptEventExclusiveTransportRights(_current_company, t->index));
-		Game::NewEvent(new ScriptEventExclusiveTransportRights(_current_company, t->index));
+		ScriptTrigger::BroadcastNewEvent<ScriptEventExclusiveTransportRights>(_current_company, t->index);
 	}
 	return CommandCost();
 }

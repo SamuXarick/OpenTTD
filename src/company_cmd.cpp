@@ -19,9 +19,9 @@
 #include "network/network_func.h"
 #include "network/network_base.h"
 #include "network/network_admin.h"
-#include "ai/ai.hpp"
 #include "ai/ai_instance.hpp"
 #include "ai/ai_config.hpp"
+#include "script/script_trigger.hpp"
 #include "company_manager_face.h"
 #include "window_func.h"
 #include "strings_func.h"
@@ -32,7 +32,6 @@
 #include "vehicle_base.h"
 #include "vehicle_func.h"
 #include "smallmap_gui.h"
-#include "game/game.hpp"
 #include "goal_base.h"
 #include "story_base.h"
 #include "company_cmd.h"
@@ -424,8 +423,7 @@ set_name:;
 		c->name_2 = strp;
 
 		MarkWholeScreenDirty();
-		AI::BroadcastNewEvent(new ScriptEventCompanyRenamed(c->index, name));
-		Game::NewEvent(new ScriptEventCompanyRenamed(c->index, name));
+		ScriptTrigger::BroadcastNewEvent<ScriptEventCompanyRenamed>(c->index, name);
 
 		if (c->is_ai) {
 			auto cni = std::make_unique<CompanyNewsInformation>(c);
@@ -633,8 +631,7 @@ Company *DoStartupNewCompany(bool is_ai, CompanyID company = INVALID_COMPANY)
 
 	if (is_ai && (!_networking || _network_server)) AI::StartNew(c->index);
 
-	AI::BroadcastNewEvent(new ScriptEventCompanyNew(c->index), c->index);
-	Game::NewEvent(new ScriptEventCompanyNew(c->index));
+	ScriptTrigger::BroadcastNewEventExceptForCompany<ScriptEventCompanyNew>(c->index, c->index);
 
 	return c;
 }
@@ -962,8 +959,7 @@ CommandCost CmdCompanyCtrl(DoCommandFlag flags, CompanyCtrlAction cca, CompanyID
 
 			CompanyID c_index = c->index;
 			delete c;
-			AI::BroadcastNewEvent(new ScriptEventCompanyBankrupt(c_index));
-			Game::NewEvent(new ScriptEventCompanyBankrupt(c_index));
+			ScriptTrigger::BroadcastNewEvent<ScriptEventCompanyBankrupt>(c_index);
 			CompanyAdminRemove(c_index, (CompanyRemoveReason)reason);
 
 			if (StoryPage::GetNumItems() == 0 || Goal::GetNumItems() == 0) InvalidateWindowData(WC_MAIN_TOOLBAR, 0);
@@ -1189,8 +1185,7 @@ CommandCost CmdRenameCompany(DoCommandFlag flags, const std::string &text)
 
 		SetDParam(0, c->index);
 		std::string new_name = GetString(STR_COMPANY_NAME);
-		AI::BroadcastNewEvent(new ScriptEventCompanyRenamed(c->index, new_name));
-		Game::NewEvent(new ScriptEventCompanyRenamed(c->index, new_name));
+		ScriptTrigger::BroadcastNewEvent<ScriptEventCompanyRenamed>(c->index, new_name);
 	}
 
 	return CommandCost();
@@ -1244,8 +1239,7 @@ CommandCost CmdRenamePresident(DoCommandFlag flags, const std::string &text)
 
 		SetDParam(0, c->index);
 		std::string new_name = GetString(STR_PRESIDENT_NAME);
-		AI::BroadcastNewEvent(new ScriptEventPresidentRenamed(c->index, new_name));
-		Game::NewEvent(new ScriptEventPresidentRenamed(c->index, new_name));
+		ScriptTrigger::BroadcastNewEvent<ScriptEventPresidentRenamed>(c->index, new_name);
 	}
 
 	return CommandCost();
