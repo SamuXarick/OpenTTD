@@ -1,0 +1,79 @@
+/*
+ * This file is part of OpenTTD.
+ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
+ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+GSList.Valuate <-
+GSBridgeList.Valuate <-
+GSBridgeList_Length.Valuate <-
+GSCargoList.Valuate <-
+GSCargoList_IndustryAccepting.Valuate <-
+GSCargoList_IndustryProducing.Valuate <-
+GSCargoList_StationAccepting.Valuate <-
+GSClientList.Valuate <-
+GSClientList_Company.Valuate <-
+GSDepotList.Valuate <-
+GSEngineList.Valuate <-
+GSGroupList.Valuate <-
+GSIndustryList.Valuate <-
+GSIndustryList_CargoAccepting.Valuate <-
+GSIndustryList_CargoProducing.Valuate <-
+GSIndustryTypeList.Valuate <-
+GSNewGRFList.Valuate <-
+GSObjectTypeList.Valuate <-
+GSRailTypeList.Valuate <-
+GSRoadTypeList.Valuate <-
+GSSignList.Valuate <-
+GSStationList.Valuate <-
+GSStationList_Cargo.Valuate <-
+GSStationList_CargoPlanned.Valuate <-
+GSStationList_CargoPlannedByFrom.Valuate <-
+GSStationList_CargoPlannedByVia.Valuate <-
+GSStationList_CargoPlannedFromByVia.Valuate <-
+GSStationList_CargoPlannedViaByFrom.Valuate <-
+GSStationList_CargoWaiting.Valuate <-
+GSStationList_CargoWaitingByFrom.Valuate <-
+GSStationList_CargoWaitingByVia.Valuate <-
+GSStationList_CargoWaitingFromByVia.Valuate <-
+GSStationList_CargoWaitingViaByFrom.Valuate <-
+GSStationList_Vehicle.Valuate <-
+GSStoryPageElementList.Valuate <-
+GSStoryPageList.Valuate <-
+GSSubsidyList.Valuate <-
+GSTileList.Valuate <-
+GSTileList_IndustryAccepting.Valuate <-
+GSTileList_IndustryProducing.Valuate <-
+GSTileList_StationCoverage.Valuate <-
+GSTileList_StationType.Valuate <-
+GSTownEffectList.Valuate <-
+GSTownList.Valuate <-
+GSVehicleList.Valuate <-
+GSVehicleList_DefaultGroup.Valuate <-
+GSVehicleList_Depot.Valuate <-
+GSVehicleList_Group.Valuate <-
+GSVehicleList_SharedOrders.Valuate <-
+GSVehicleList_Station.Valuate <-
+GSVehicleList_Waypoint.Valuate <-
+GSWaypointList.Valuate <-
+GSWaypointList_Vehicle.Valuate <-
+function(valuator_function, ...)
+{
+	local list = GSList();
+
+	switch (vargc) {
+		case 0: foreach (item, _ in this) list[item] = valuator_function(item); this.Clear(); this.AddList(list); return;
+		case 1: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0]); this.Clear(); this.AddList(list); return;
+		case 2: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1]); this.Clear(); this.AddList(list); return;
+		case 3: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]); this.Clear(); this.AddList(list); return;
+		case 4: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]); this.Clear(); this.AddList(list); return;
+		case 5: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]); this.Clear(); this.AddList(list); return;
+		case 6: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]); this.Clear(); this.AddList(list); return;
+		case 7: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]); this.Clear(); this.AddList(list); return;
+		case 8: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]); this.Clear(); this.AddList(list); return;
+		case 9: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]); this.Clear(); this.AddList(list); return;
+		case 10: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]); this.Clear(); this.AddList(list); return;
+		default: throw "Too many arguments in valuator function";
+	}
+}
