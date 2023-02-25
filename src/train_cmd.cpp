@@ -3335,6 +3335,13 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 						}
 						goto reverse_train_direction;
 					} else {
+						if (HasReservedTracks(gp.new_tile, chosen_track)) {
+							Vehicle *other_train = nullptr;
+							PBSTileInfo origin = FollowTrainReservation(v, &other_train);
+							if (other_train != nullptr && other_train->index != v->index) {
+								FreeTrainTrackReservation(Train::From(other_train));
+							}
+						}
 						TryReserveRailTrack(gp.new_tile, TrackBitsToTrack(chosen_track), false);
 					}
 				} else {
