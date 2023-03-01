@@ -7669,7 +7669,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
   GetLocation(1):           29253
   GetLocation(1000):        -1
   GetStationID(33411):      6
-  GetStationID(34411):      65535
+  GetStationID(34411):      1048575
   GetStationID(33411):      6
   HasRoadType(3, TRAM):     false
   HasRoadType(3, ROAD):     false

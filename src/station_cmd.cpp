@@ -705,6 +705,7 @@ static CommandCost BuildStationPart(Station **st, DoCommandFlag flags, bool reus
 	} else {
 		/* allocate and initialize new station */
 		if (!Station::CanAllocateItem()) return_cmd_error(STR_ERROR_TOO_MANY_STATIONS_LOADING);
+		if (Company::IsValidID(_current_company) && Company::Get(_current_company)->num_stations >= MAX_NUM_STATIONS_PER_COMPANY) return_cmd_error(STR_ERROR_TOO_MANY_STATIONS_LOADING);
 
 		if (flags & DC_EXEC) {
 			*st = new Station(area.tile);
@@ -4052,7 +4053,7 @@ static uint UpdateStationWaiting(Station *st, CargoID type, uint amount, SourceT
 	if (amount == 0) return 0;
 
 	StationID next = ge.GetVia(st->index);
-	ge.cargo.Append(new CargoPacket(st->index, st->xy, amount, source_type, source_id), next);
+	ge.cargo.Append(new CargoPacket(st->index, st->xy, (uint16)amount, source_type, source_id), next);
 	LinkGraph *lg = nullptr;
 	if (ge.link_graph == INVALID_LINK_GRAPH) {
 		if (LinkGraph::CanAllocateItem()) {

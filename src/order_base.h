@@ -21,7 +21,7 @@
 #include "saveload/saveload.h"
 
 typedef Pool<Order, OrderID, 256, 0xFF0000> OrderPool;
-typedef Pool<OrderList, OrderListID, 128, 64000> OrderListPool;
+typedef Pool<OrderList, OrderListID, 128, 0xFF000> OrderListPool;
 extern OrderPool _order_pool;
 extern OrderListPool _orderlist_pool;
 
@@ -61,7 +61,7 @@ public:
 	Order() : flags(0), refit_cargo(CT_NO_REFIT), wait_time(0), travel_time(0), max_speed(UINT16_MAX) {}
 	~Order();
 
-	Order(uint32 packed);
+	Order(uint64 packed);
 
 	/**
 	 * Check whether this order is of the given type.
@@ -245,7 +245,7 @@ public:
 	void AssignOrder(const Order &other);
 	bool Equals(const Order &other) const;
 
-	uint32 Pack() const;
+	uint64 Pack() const;
 	uint16 MapOldOrder() const;
 	void ConvertFromOldSavegame();
 };

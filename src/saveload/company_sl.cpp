@@ -95,8 +95,11 @@ CompanyManagerFace ConvertFromOldCompanyManagerFace(uint32 face)
 /** Rebuilding of company statistics after loading a savegame. */
 void AfterLoadCompanyStats()
 {
-	/* Reset infrastructure statistics to zero. */
-	for (Company *c : Company::Iterate()) MemSetT(&c->infrastructure, 0);
+	for (Company *c : Company::Iterate()) {
+		MemSetT(&c->infrastructure, 0); // Reset infrastructure statistics to zero.
+		c->num_groups = 0;              // Reset number of groups to zero.
+		c->num_stations = 0;            // Reset number of stations to zero.
+	}
 
 	/* Collect airport count. */
 	for (const Station *st : Station::Iterate()) {
@@ -235,6 +238,16 @@ void AfterLoadCompanyStats()
 			default:
 				break;
 		}
+	}
+
+	for (const Group *g : Group::Iterate()) {
+		c = Company::GetIfValid(g->owner);
+		if (c != nullptr) c->num_groups++;
+	}
+
+	for (const BaseStation *st : BaseStation::Iterate()) {
+		c = Company::GetIfValid(st->owner);
+		if (c != nullptr) c->num_stations++;
 	}
 }
 

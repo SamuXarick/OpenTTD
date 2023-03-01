@@ -18,7 +18,7 @@
 #include "livery.h"
 #include <string>
 
-typedef Pool<Group, GroupID, 16, 64000> GroupPool;
+typedef Pool<Group, GroupID, 16, 0xFF000> GroupPool;
 extern GroupPool _group_pool; ///< Pool of groups.
 
 /** Statistics and caches on the vehicles in a group. */
@@ -85,6 +85,7 @@ struct Group : GroupPool::PoolItem<&_group_pool> {
 	GroupID parent;             ///< Parent group
 
 	Group(CompanyID owner = INVALID_COMPANY);
+	~Group();
 };
 
 

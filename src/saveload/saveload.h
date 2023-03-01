@@ -345,6 +345,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_MULTITRACK_LEVEL_CROSSINGS,         ///< 302  PR#9931 v13.0  Multi-track level crossings.
 	SLV_NEWGRF_ROAD_STOPS,                  ///< 303  PR#10144 NewGRF road stops.
 	SLV_LINKGRAPH_EDGES,                    ///< 304  PR#10314 Explicitly store link graph edges destination, PR#10471 int64 instead of uint64 league rating
+	SLV_INCREASE_STATIONIDS_POOL,           ///< 305  Increase maximum number of stations from 64k to ~1044k.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };

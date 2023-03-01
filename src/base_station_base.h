@@ -15,7 +15,7 @@
 #include "viewport_type.h"
 #include "station_map.h"
 
-typedef Pool<BaseStation, StationID, 32, 64000> StationPool;
+typedef Pool<BaseStation, StationID, 32, 0xFF000> StationPool;
 extern StationPool _station_pool;
 
 struct StationSpecList {

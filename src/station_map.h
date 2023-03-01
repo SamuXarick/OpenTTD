@@ -28,7 +28,7 @@ typedef byte StationGfx; ///< Index of station graphics. @see _station_display_d
 static inline StationID GetStationIndex(Tile t)
 {
 	assert(IsTileType(t, MP_STATION));
-	return (StationID)t.m2();
+	return (StationID)(t.m2() | (GB(t.m8(), 12, 4) << 16));
 }
 
 
@@ -572,14 +572,15 @@ static inline void MakeStation(Tile t, Owner o, StationID sid, StationType st, b
 	SetTileOwner(t, o);
 	SetWaterClass(t, wc);
 	SetDockingTile(t, false);
-	t.m2() = sid;
+	SB(t.m2(), 0, 16, GB(sid, 0, 16));
+	SB(t.m8(), 12, 4, GB(sid, 16, 4));
 	t.m3() = 0;
 	t.m4() = 0;
 	t.m5() = section;
 	SB(t.m6(), 2, 1, 0);
 	SB(t.m6(), 3, 3, st);
 	t.m7() = 0;
-	t.m8() = 0;
+	SB(t.m8(), 0, 12, 0);
 }
 
 /**

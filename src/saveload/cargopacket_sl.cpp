@@ -57,7 +57,7 @@
 		}
 	}
 
-	if (IsSavegameVersionBefore(SLV_120)) {
+	if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
 		/* CargoPacket's source should be either INVALID_STATION or a valid station */
 		for (CargoPacket *cp : CargoPacket::Iterate()) {
 			if (!Station::IsValidID(cp->source)) cp->source = INVALID_STATION;
@@ -88,7 +88,8 @@
 SaveLoadTable GetCargoPacketDesc()
 {
 	static const SaveLoad _cargopacket_desc[] = {
-		     SLE_VAR(CargoPacket, source,          SLE_UINT16),
+		 SLE_CONDVAR(CargoPacket, source,          SLE_FILE_U16 | SLE_VAR_U32, SL_MIN_VERSION, SLV_INCREASE_STATIONIDS_POOL),
+		 SLE_CONDVAR(CargoPacket, source,          SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 		     SLE_VAR(CargoPacket, source_xy,       SLE_UINT32),
 		     SLE_VAR(CargoPacket, loaded_at_xy,    SLE_UINT32),
 		     SLE_VAR(CargoPacket, count,           SLE_UINT16),

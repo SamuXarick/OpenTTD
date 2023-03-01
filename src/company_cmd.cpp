@@ -640,11 +640,13 @@ bool MayCompanyTakeOver(CompanyID cbig, CompanyID csmall)
 	const Company *c1 = Company::Get(cbig);
 	const Company *c2 = Company::Get(csmall);
 
-	/* Do the combined vehicle counts stay within the limits? */
+	/* Do the combined vehicle, group and station counts stay within the limits? */
 	return c1->group_all[VEH_TRAIN].num_vehicle + c2->group_all[VEH_TRAIN].num_vehicle <= _settings_game.vehicle.max_trains &&
 		c1->group_all[VEH_ROAD].num_vehicle     + c2->group_all[VEH_ROAD].num_vehicle     <= _settings_game.vehicle.max_roadveh &&
 		c1->group_all[VEH_SHIP].num_vehicle     + c2->group_all[VEH_SHIP].num_vehicle     <= _settings_game.vehicle.max_ships &&
-		c1->group_all[VEH_AIRCRAFT].num_vehicle + c2->group_all[VEH_AIRCRAFT].num_vehicle <= _settings_game.vehicle.max_aircraft;
+		c1->group_all[VEH_AIRCRAFT].num_vehicle + c2->group_all[VEH_AIRCRAFT].num_vehicle <= _settings_game.vehicle.max_aircraft &&
+		c1->num_groups + c2->num_groups <= MAX_NUM_GROUPS_PER_COMPANY &&
+		c1->num_stations + c2->num_stations <= MAX_NUM_STATIONS_PER_COMPANY;
 }
 
 /**

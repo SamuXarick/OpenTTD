@@ -14,8 +14,8 @@
 #include "tilearea_type.h"
 #include <set>
 
-typedef uint16 StationID;
-typedef uint16 RoadStopID;
+typedef uint32 StationID;
+typedef uint32 RoadStopID;
 
 struct BaseStation;
 struct Station;
@@ -23,10 +23,12 @@ struct RoadStop;
 struct StationSpec;
 struct Waypoint;
 
-static const StationID NEW_STATION = 0xFFFE;
-static const StationID INVALID_STATION = 0xFFFF;
+static const StationID NEW_STATION = 0xFFFFE;
+static const StationID INVALID_STATION = 0xFFFFF;
 
-typedef SmallStack<StationID, StationID, INVALID_STATION, 8, 0xFFFD> StationIDStack;
+static const uint MAX_NUM_STATIONS_PER_COMPANY = 64000; ///< The maximum number of stations a company can create.
+
+typedef SmallStack<StationID, StationID, INVALID_STATION, 8, 0xFFFFD> StationIDStack;
 
 /** Station types */
 enum StationType {

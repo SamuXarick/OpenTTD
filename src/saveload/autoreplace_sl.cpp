@@ -21,7 +21,8 @@ static const SaveLoad _engine_renew_desc[] = {
 	    SLE_VAR(EngineRenew, to,       SLE_UINT16),
 
 	    SLE_REF(EngineRenew, next,     REF_ENGINE_RENEWS),
-	SLE_CONDVAR(EngineRenew, group_id, SLE_UINT16, SLV_60, SL_MAX_VERSION),
+	SLE_CONDVAR(EngineRenew, group_id, SLE_FILE_U16 | SLE_VAR_U32, SLV_60, SLV_INCREASE_STATIONIDS_POOL),
+	SLE_CONDVAR(EngineRenew, group_id, SLE_UINT32,                 SLV_INCREASE_STATIONIDS_POOL, SL_MAX_VERSION),
 	SLE_CONDVAR(EngineRenew, replace_when_old, SLE_BOOL, SLV_175, SL_MAX_VERSION),
 };
 
@@ -52,7 +53,12 @@ struct ERNWChunkHandler : ChunkHandler {
 			if (IsSavegameVersionBefore(SLV_60)) {
 				er->group_id = ALL_GROUP;
 			} else if (IsSavegameVersionBefore(SLV_71)) {
-				if (er->group_id == DEFAULT_GROUP) er->group_id = ALL_GROUP;
+				if (er->group_id == 0xFFFE) er->group_id = ALL_GROUP;
+			}
+
+			if (IsSavegameVersionBefore(SLV_INCREASE_STATIONIDS_POOL)) {
+				if (er->group_id == 0xFFFD) er->group_id = ALL_GROUP;
+				if (er->group_id == 0xFFFE) er->group_id = DEFAULT_GROUP;
 			}
 		}
 	}

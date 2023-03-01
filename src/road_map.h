@@ -685,7 +685,9 @@ static inline void MakeRoadDepot(Tile t, Owner owner, DepotID did, DiagDirection
 	SetTileType(t, MP_ROAD);
 	SetTileOwner(t, owner);
 	t.m2() = did;
-	t.m3() = 0;
+	SB(t.m2(), 0, 16, GB(did, 0, 16));
+	SB(t.m3(), 0, 4, GB(did, 16, 4));
+	SB(t.m3(), 4, 4, 0);
 	t.m4() = INVALID_ROADTYPE;
 	t.m5() = ROAD_TILE_DEPOT << 6 | dir;
 	SB(t.m6(), 2, 4, 0);
