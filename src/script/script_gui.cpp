@@ -76,7 +76,7 @@ struct ScriptListWindow : public Window {
 
 		this->vscroll->SetCount(this->info_list->size() + 1);
 
-		/* Try if we can find the currently selected AI */
+		/* Try if we can find the currently selected Script */
 		this->selected = -1;
 		if (this->script_config->HasScript()) {
 			ScriptInfo *info = this->script_config->GetInfo();
@@ -230,12 +230,12 @@ struct ScriptListWindow : public Window {
 
 		this->vscroll->SetCount(this->info_list->size() + 1);
 
-		/* selected goes from -1 .. length of ai list - 1. */
+		/* selected goes from -1 .. length of info_list - 1. */
 		this->selected = std::min(this->selected, this->vscroll->GetCount() - 2);
 	}
 };
 
-/** Widgets for the AI list window. */
+/** Widgets for the Script list window. */
 static constexpr NWidgetPart _nested_script_list_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_MAUVE),
@@ -257,7 +257,7 @@ static constexpr NWidgetPart _nested_script_list_widgets[] = {
 	EndContainer(),
 };
 
-/** Window definition for the ai list window. */
+/** Window definition for the Script list window. */
 static WindowDesc _script_list_desc(__FILE__, __LINE__,
 	WDP_CENTER, "settings_script_list", 200, 234,
 	WC_SCRIPT_LIST, WC_NONE,
@@ -266,8 +266,8 @@ static WindowDesc _script_list_desc(__FILE__, __LINE__,
 );
 
 /**
- * Open the Script list window to chose a script for the given company slot.
- * @param slot The slot to change the script of.
+ * Open the Script list window to chose a Script for the given company slot or game script.
+ * @param slot The slot to change the AI of.
  * @param show_all Whether to show all available versions.
  */
 void ShowScriptListWindow(CompanyID slot, bool show_all)
@@ -319,7 +319,7 @@ struct ScriptSettingsWindow : public Window {
 
 	/**
 	 * Rebuilds the list of visible settings. AI settings with the flag
-	 * AICONFIG_AI_DEVELOPER set will only be visible if the game setting
+	 * SCRIPTCONFIG_DEVELOPER set will only be visible if the game setting
 	 * gui.ai_developer_tools is enabled.
 	 */
 	void RebuildVisibleSettings()
@@ -626,7 +626,7 @@ void ShowScriptSettingsWindow(CompanyID slot)
 }
 
 
-/** Window for displaying the textfile of a AI. */
+/** Window for displaying the textfile of a Script. */
 struct ScriptTextfileWindow : public TextfileWindow {
 	CompanyID slot;              ///< View the textfile of this CompanyID slot.
 	ScriptConfig *script_config; ///< The configuration we selected.
@@ -686,7 +686,7 @@ static bool SetScriptButtonColour(NWidgetCore &button, bool dead, bool paused)
 	/* Dead scripts are indicated with red background and
 	 * paused scripts are indicated with yellow background. */
 	Colours colour = dead ? COLOUR_RED :
-		(paused ? COLOUR_YELLOW : COLOUR_GREY);
+			(paused ? COLOUR_YELLOW : COLOUR_GREY);
 	if (button.colour != colour) {
 		button.colour = colour;
 		return true;
@@ -695,15 +695,15 @@ static bool SetScriptButtonColour(NWidgetCore &button, bool dead, bool paused)
 }
 
 /**
- * Window with everything an AI prints via ScriptLog.
+ * Window with everything a Script prints via ScriptLog.
  */
 struct ScriptDebugWindow : public Window {
 	static const uint MAX_BREAK_STR_STRING_LENGTH = 256;   ///< Maximum length of the break string.
 
 	struct FilterState {
-		std::string break_string; ///< The string to match to the AI output
-		CompanyID script_debug_company; ///< The AI that is (was last) being debugged.
-		bool break_check_enabled; ///< Stop an AI when it prints a matching string
+		std::string break_string; ///< The string to match to the Script output
+		CompanyID script_debug_company; ///< The Script that is (was last) being debugged.
+		bool break_check_enabled; ///< Stop a Script when it prints a matching string
 		bool case_sensitive_break_check; ///< Is the matching done case-sensitive
 	};
 
@@ -732,7 +732,7 @@ struct ScriptDebugWindow : public Window {
 	}
 
 	/**
-	 * Check whether the currently selected AI/GS is dead.
+	 * Check whether the currently selected Script is dead.
 	 * @return true if dead.
 	 */
 	bool IsDead() const
@@ -764,7 +764,7 @@ struct ScriptDebugWindow : public Window {
 	 */
 	void SelectValidDebugCompany()
 	{
-		/* Check if the currently selected company is still active. */
+		/* Check if the currently selected Script is still active. */
 		if (this->IsValidDebugCompany(this->filter.script_debug_company)) return;
 
 		this->filter.script_debug_company = INVALID_COMPANY;
@@ -1015,8 +1015,8 @@ struct ScriptDebugWindow : public Window {
 	}
 
 	/**
-	 * Change all settings to select another Script.
-	 * @param show_ai The new AI to show.
+	 * Change log to select another Script.
+	 * @param show_script The new Script to show.
 	 * @param new_window Open the script in a new window.
 	 */
 	void ChangeToScript(CompanyID show_script, bool new_window = false)
@@ -1033,7 +1033,7 @@ struct ScriptDebugWindow : public Window {
 
 		this->highlight_row = -1; // The highlight of one Script make little sense for another Script.
 
-		/* Close AI settings window to prevent confusion */
+		/* Close Script settings window to prevent confusion */
 		CloseWindowByClass(WC_SCRIPT_SETTINGS);
 
 		this->InvalidateData(-1);
@@ -1212,7 +1212,7 @@ struct ScriptDebugWindow : public Window {
 		return w->OnHotkey(hotkey);
 	}
 
-	static inline HotkeyList hotkeys{"aidebug", {
+	static inline HotkeyList hotkeys{"scriptdebug", {
 		Hotkey('1', "company_1", WID_SCRD_COMPANY_BUTTON_START),
 		Hotkey('2', "company_2", WID_SCRD_COMPANY_BUTTON_START + 1),
 		Hotkey('3', "company_3", WID_SCRD_COMPANY_BUTTON_START + 2),
@@ -1302,8 +1302,8 @@ static WindowDesc _script_debug_desc(__FILE__, __LINE__,
 );
 
 /**
- * Open the Script debug window and select the given company.
- * @param show_company Display debug information about this AI company.
+ * Open the Script debug window and select the given company or game script.
+ * @param show_company Display debug information about this AI company or game script.
  * @param new_window Show in new window instead of existing window.
  */
 Window *ShowScriptDebugWindow(CompanyID show_company, bool new_window)
@@ -1345,10 +1345,10 @@ void InitializeScriptGui()
 	ScriptDebugWindow::initial_state.script_debug_company = INVALID_COMPANY;
 }
 
-/** Open the AI debug window if one of the AI scripts has crashed. */
+/** Open the Script debug window if one of the scripts has crashed. */
 void ShowScriptDebugWindowIfScriptError()
 {
-	/* Network clients can't debug AIs. */
+	/* Network clients can't debug Scripts. */
 	if (_networking && !_network_server) return;
 
 	for (const Company *c : Company::Iterate()) {
