@@ -167,8 +167,8 @@ struct GSConfigWindow : public Window {
 			case WID_GSC_GSLIST: {
 				StringID text = STR_AI_CONFIG_NONE;
 
-				if (GameConfig::GetConfig()->GetInfo() != nullptr) {
-					SetDParamStr(0, GameConfig::GetConfig()->GetInfo()->GetName());
+				if (this->gs_config->GetInfo() != nullptr) {
+					SetDParamStr(0, this->gs_config->GetInfo()->GetName());
 					text = STR_JUST_RAW_STRING;
 				}
 
@@ -246,7 +246,7 @@ struct GSConfigWindow : public Window {
 	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
 	{
 		if (widget >= WID_GSC_TEXTFILE && widget < WID_GSC_TEXTFILE + TFT_CONTENT_END) {
-			if (GameConfig::GetConfig() == nullptr) return;
+			if (this->gs_config == nullptr) return;
 
 			ShowScriptTextfileWindow((TextfileType)(widget - WID_GSC_TEXTFILE), (CompanyID)OWNER_DEITY);
 			return;
@@ -414,10 +414,9 @@ struct GSConfigWindow : public Window {
 
 		this->SetWidgetDisabledState(WID_GSC_CHANGE, (_game_mode == GM_NORMAL) || !IsEditable());
 
-		const GameConfig *config = GameConfig::GetConfig();
-		this->SetWidgetDisabledState(WID_GSC_OPEN_URL, config->GetInfo() == nullptr || config->GetInfo()->GetURL().empty());
+		this->SetWidgetDisabledState(WID_GSC_OPEN_URL, this->gs_config->GetInfo() == nullptr || this->gs_config->GetInfo()->GetURL().empty());
 		for (TextfileType tft = TFT_CONTENT_BEGIN; tft < TFT_CONTENT_END; tft++) {
-			this->SetWidgetDisabledState(WID_GSC_TEXTFILE + tft, !config->GetTextfile(tft, (CompanyID)OWNER_DEITY).has_value());
+			this->SetWidgetDisabledState(WID_GSC_TEXTFILE + tft, !this->gs_config->GetTextfile(tft, (CompanyID)OWNER_DEITY).has_value());
 		}
 		this->RebuildVisibleSettings();
 		this->CloseChildWindows(WC_DROPDOWN_MENU);
