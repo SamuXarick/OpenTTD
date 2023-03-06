@@ -547,6 +547,8 @@ void AfterLoadVehiclesPhase2(bool part_of_load)
 		if (v->type != VEH_EFFECT) v->UpdatePosition();
 		v->UpdateViewport(false);
 	}
+
+	GroupStatistics::UpdateAfterLoad();
 }
 
 bool TrainController(Train *v, Vehicle *nomove, bool reverse = true); // From train_cmd.cpp
