@@ -11,10 +11,8 @@
 #include "script_vehiclelist.hpp"
 #include "script_group.hpp"
 #include "script_map.hpp"
-#include "script_station.hpp"
 #include "script_waypoint.hpp"
 #include "../../depot_map.h"
-#include "../../vehicle_base.h"
 #include "../../vehiclelist_func.h"
 #include "../../train.h"
 
@@ -63,7 +61,8 @@ ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 	}
 
 	FindVehiclesWithOrder(
-		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && (type == VEH_INVALID || v->type == type); },
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[type](VehicleType vtype) { return type == VEH_INVALID || vtype == type; },
 		[station_id](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT)) && order->GetDestination() == station_id; },
 		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
 	);
@@ -78,7 +77,7 @@ ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 	::CompanyID owner = ScriptObject::GetCompany();
 
 	FindVehiclesWithOrder(
-		[is_deity, owner](const Vehicle *v) { return is_deity || v->owner == owner; },
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
 		[waypoint_id](const Order *order) { return order->IsType(OT_GOTO_WAYPOINT) && order->GetDestination() == waypoint_id; },
 		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
 	);
@@ -125,7 +124,8 @@ ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 	::CompanyID owner = ScriptObject::GetCompany();
 
 	FindVehiclesWithOrder(
-		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && v->type == type; },
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[type](VehicleType vtype) { return vtype == type; },
 		[dest](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && order->GetDestination() == dest; },
 		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
 	);
@@ -145,12 +145,9 @@ ScriptVehicleList_Group::ScriptVehicleList_Group(GroupID group_id)
 	EnforceCompanyModeValid_Void();
 	if (!ScriptGroup::IsValidGroup(group_id)) return;
 
-	::CompanyID owner = ScriptObject::GetCompany();
-
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[group_id](const Vehicle *v) { return v->group_id == group_id; }
-	);
+	for (const Vehicle *v : ::Group::Get(group_id)->statistics.vehicle_list) {
+		this->AddItem(v->index.base());
+	}
 }
 
 ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::VehicleType vehicle_type)
@@ -160,8 +157,7 @@ ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::Ve
 
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[vehicle_type](const Vehicle *v) { return v->type == (::VehicleType)vehicle_type && v->group_id == ScriptGroup::GROUP_DEFAULT; }
-	);
+	for (const Vehicle *v : Company::Get(owner)->group_default[(::VehicleType)vehicle_type].vehicle_list) {
+		this->AddItem(v->index.base());
+	}
 }
