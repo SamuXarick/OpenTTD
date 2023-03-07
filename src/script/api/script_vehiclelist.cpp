@@ -15,7 +15,6 @@
 #include "script_waypoint.hpp"
 #include "../../depot_map.h"
 #include "../../vehicle_base.h"
-#include "../../vehiclelist_func.h"
 #include "../../train.h"
 
 #include "../../safeguards.h"
@@ -62,11 +61,20 @@ ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 		type = static_cast<::VehicleType>(sqtype);
 	}
 
-	FindVehiclesWithOrder(
-		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && (type == VEH_INVALID || v->type == type); },
-		[station_id](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT)) && order->GetDestination() == station_id; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
-	);
+	for (const Company *c : Company::Iterate()) {
+		if (c->index != owner && !is_deity) continue;
+		for (VehicleType vtype = VEH_BEGIN; vtype < VEH_COMPANY_END; vtype++) {
+			if (type != VEH_INVALID && vtype != type) continue;
+			for (const Vehicle *v : c->group_all[vtype].vehicle_list) {
+				for (const Order &order : v->Orders()) {
+					if ((order.IsType(OT_GOTO_STATION) || order.IsType(OT_GOTO_WAYPOINT)) && order.GetDestination() == station_id) {
+						this->AddItem(v->index.base());
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
@@ -77,11 +85,19 @@ ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	FindVehiclesWithOrder(
-		[is_deity, owner](const Vehicle *v) { return is_deity || v->owner == owner; },
-		[waypoint_id](const Order *order) { return order->IsType(OT_GOTO_WAYPOINT) && order->GetDestination() == waypoint_id; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
-	);
+	for (const Company *c : Company::Iterate()) {
+		if (c->index != owner && !is_deity) continue;
+		for (VehicleType vtype = VEH_BEGIN; vtype < VEH_AIRCRAFT; vtype++) { // There are no aircraft waypoints in the game
+			for (const Vehicle *v : c->group_all[vtype].vehicle_list) {
+				for (const Order &order : v->Orders()) {
+					if (order.IsType(OT_GOTO_WAYPOINT) && order.GetDestination() == waypoint_id) {
+						this->AddItem(v->index.base());
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
@@ -124,11 +140,17 @@ ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	FindVehiclesWithOrder(
-		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && v->type == type; },
-		[dest](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && order->GetDestination() == dest; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
-	);
+	for (const Company *c : Company::Iterate()) {
+		if (c->index != owner && !is_deity) continue;
+		for (const Vehicle *v : c->group_all[type].vehicle_list) {
+			for (const Order &order : v->Orders()) {
+				if (order.IsType(OT_GOTO_DEPOT) && order.GetDestination() == dest) {
+					this->AddItem(v->index.base());
+					break;
+				}
+			}
+		}
+	}
 }
 
 ScriptVehicleList_SharedOrders::ScriptVehicleList_SharedOrders(VehicleID vehicle_id)
