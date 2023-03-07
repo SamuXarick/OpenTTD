@@ -122,12 +122,10 @@ ScriptVehicleList_Group::ScriptVehicleList_Group(GroupID group_id)
 	EnforceCompanyModeValid_Void();
 	if (!ScriptGroup::IsValidGroup((ScriptGroup::GroupID)group_id)) return;
 
-	CompanyID owner = ScriptObject::GetCompany();
-
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[group_id](const Vehicle *v) { return v->group_id == group_id; }
-	);
+	const VehicleList &vehicle_list = ::Group::Get((::GroupID)group_id)->statistics.vehicle_list;
+	for (const Vehicle *v : vehicle_list) {
+		this->AddItem(v->index);
+	}
 }
 
 ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::VehicleType vehicle_type)
@@ -135,10 +133,8 @@ ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::Ve
 	EnforceCompanyModeValid_Void();
 	if (vehicle_type < ScriptVehicle::VT_RAIL || vehicle_type > ScriptVehicle::VT_AIR) return;
 
-	CompanyID owner = ScriptObject::GetCompany();
-
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[vehicle_type](const Vehicle *v) { return v->type == (::VehicleType)vehicle_type && v->group_id == ScriptGroup::GROUP_DEFAULT; }
-	);
+	const VehicleList &vehicle_list = Company::Get(ScriptObject::GetCompany())->group_default[(::VehicleType)vehicle_type].vehicle_list;
+	for (const Vehicle *v : vehicle_list) {
+		this->AddItem(v->index);
+	}
 }
