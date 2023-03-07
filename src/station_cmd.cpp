@@ -2205,11 +2205,12 @@ static CommandCost RemoveRoadStop(TileIndex tile, DoCommandFlags flags, int repl
 		 * this station, then look for any currently heading to the tile. */
 		StationID station_id = st->index;
 		FindVehiclesWithOrder(
-			[](const Vehicle *v) { return v->type == VEH_ROAD; },
+			[&st](const Company *c) { return c->index == st->owner; },
+			[](VehicleType type) { return type == VEH_ROAD; },
 			[station_id](const Order *order) { return order->IsType(OT_GOTO_STATION) && order->GetDestination() == station_id; },
-			[station_id, tile](Vehicle *v) {
+			[station_id, tile](const Vehicle *v) {
 				if (v->current_order.IsType(OT_GOTO_STATION) && v->dest_tile == tile) {
-					v->SetDestTile(v->GetOrderStationLocation(station_id));
+					const_cast<Vehicle *>(v)->SetDestTile(const_cast<Vehicle *>(v)->GetOrderStationLocation(station_id));
 				}
 			}
 		);

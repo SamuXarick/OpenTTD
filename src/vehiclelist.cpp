@@ -74,7 +74,8 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 	switch (vli.type) {
 		case VL_STATION_LIST:
 			FindVehiclesWithOrder(
-				[&vli](const Vehicle *v) { return v->type == vli.vtype; },
+				[&vli](const Company *c) { return vli.company == OWNER_NONE || c->index == vli.company; },
+				[&vli](VehicleType type) { return type == vli.vtype; },
 				[&vli](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT) || order->IsType(OT_IMPLICIT)) && order->GetDestination() == vli.ToStationID(); },
 				[&list](const Vehicle *v) { list->push_back(v); }
 			);
@@ -92,11 +93,20 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 		}
 
 		case VL_GROUP_LIST:
+			if (vli.ToGroupID() == DEFAULT_GROUP) {
+				for (const Vehicle *v : Company::Get(vli.company)->group_default[vli.vtype].vehicle_list) {
+					list->push_back(v);
+				}
+				break;
+			}
+
 			if (vli.ToGroupID() != ALL_GROUP) {
-				for (const Vehicle *v : Vehicle::Iterate()) {
-					if (v->type == vli.vtype && v->IsPrimaryVehicle() &&
-							v->owner == vli.company && GroupIsInGroup(v->group_id, vli.ToGroupID())) {
-						list->push_back(v);
+				for (const Group *g : Group::Iterate()) {
+					if (g->owner != vli.company || g->vehicle_type != vli.vtype) continue;
+					if (GroupIsInGroup(g->index, vli.ToGroupID())) {
+						for (const Vehicle *v : g->statistics.vehicle_list) {
+							list->push_back(v);
+						}
 					}
 				}
 				break;
@@ -104,16 +114,15 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 			[[fallthrough]];
 
 		case VL_STANDARD:
-			for (const Vehicle *v : Vehicle::Iterate()) {
-				if (v->type == vli.vtype && v->owner == vli.company && v->IsPrimaryVehicle()) {
-					list->push_back(v);
-				}
+			for (const Vehicle *v : Company::Get(vli.company)->group_all[vli.vtype].vehicle_list) {
+				list->push_back(v);
 			}
 			break;
 
 		case VL_DEPOT_LIST:
 			FindVehiclesWithOrder(
-				[&vli](const Vehicle *v) { return v->type == vli.vtype; },
+				[&vli](const Company *c) { return c->index == vli.company; },
+				[&vli](VehicleType type) { return type == vli.vtype; },
 				[&vli](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && !(order->GetDepotActionType() & ODATFB_NEAREST_DEPOT) && order->GetDestination() == vli.ToDestinationID(); },
 				[&list](const Vehicle *v) { list->push_back(v); }
 			);
