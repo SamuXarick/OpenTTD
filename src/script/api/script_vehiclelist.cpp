@@ -167,12 +167,9 @@ ScriptVehicleList_Group::ScriptVehicleList_Group(GroupID group_id)
 	EnforceCompanyModeValid_Void();
 	if (!ScriptGroup::IsValidGroup(group_id)) return;
 
-	::CompanyID owner = ScriptObject::GetCompany();
-
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[group_id](const Vehicle *v) { return v->group_id == group_id; }
-	);
+	for (const Vehicle *v : ::Group::Get(group_id)->statistics.vehicle_list) {
+		this->AddItem(v->index.base());
+	}
 }
 
 ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::VehicleType vehicle_type)
@@ -182,8 +179,7 @@ ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::Ve
 
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	ScriptList::FillList<Vehicle>(this,
-		[owner](const Vehicle *v) { return v->owner == owner && v->IsPrimaryVehicle(); },
-		[vehicle_type](const Vehicle *v) { return v->type == (::VehicleType)vehicle_type && v->group_id == ScriptGroup::GROUP_DEFAULT; }
-	);
+	for (const Vehicle *v : Company::Get(owner)->group_default[(::VehicleType)vehicle_type].vehicle_list) {
+		this->AddItem(v->index.base());
+	}
 }
