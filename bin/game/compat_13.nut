@@ -6,3 +6,10 @@
  */
 
 GSLog.Info("13 API compatibility in effect.");
+
+/* 14 returns the time in milliseconds */
+GSDate._GetSystemTime <- GSDate.GetSystemTime;
+GSDate.GetSystemTime <- function()
+{
+	return GSDate._GetSystemTime() / 1000;
+}

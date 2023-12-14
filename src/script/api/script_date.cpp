@@ -63,7 +63,5 @@
 
 /* static */ SQInteger ScriptDate::GetSystemTime()
 {
-	time_t t;
-	time(&t);
-	return t;
+	return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 }

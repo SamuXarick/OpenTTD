@@ -82,8 +82,7 @@ public:
 
 	/**
 	 * Get the time of the host system.
-	 * @return The amount of seconds passed since 1 Jan 1970.
-	 * @api -ai
+	 * @return The amount of milliseconds passed since 1 Jan 1970.
 	 * @note This uses the clock of the host system, which can skew or be set back. Use with caution.
 	 */
 	static SQInteger GetSystemTime();

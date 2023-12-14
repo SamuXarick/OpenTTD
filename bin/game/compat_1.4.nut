@@ -40,3 +40,10 @@ GSRoad.HasRoadType <- function(tile, road_type)
 	}
 	return false;
 }
+
+/* 14 returns the time in milliseconds */
+GSDate._GetSystemTime <- GSDate.GetSystemTime;
+GSDate.GetSystemTime <- function()
+{
+	return GSDate._GetSystemTime() / 1000;
+}
