@@ -205,23 +205,21 @@ uint16_t GroupStatistics::GetNumEngines(EngineID engine) const
  */
 /* static */ void GroupStatistics::UpdateProfits()
 {
-	/* Set up the engine count for all companies */
-	for (Company *c : Company::Iterate()) {
-		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
-			c->group_all[type].ClearProfits();
-			c->group_default[type].ClearProfits();
-		}
-	}
-
-	/* Recalculate */
 	for (Group *g : Group::Iterate()) {
 		g->statistics.ClearProfits();
 	}
 
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->IsPrimaryVehicle()) {
-			GroupStatistics::AddProfitLastYear(v);
-			if (v->age > VEHICLE_PROFIT_MIN_AGE) GroupStatistics::VehicleReachedMinAge(v);
+	for (Company *c : Company::Iterate()) {
+		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+			c->group_all[type].ClearProfits();
+			c->group_default[type].ClearProfits();
+
+			/* Recalculate */
+			const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				GroupStatistics::AddProfitLastYear(v);
+				if (v->age > VEHICLE_PROFIT_MIN_AGE) GroupStatistics::VehicleReachedMinAge(v);
+			}
 		}
 	}
 }
