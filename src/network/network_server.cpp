@@ -1500,17 +1500,21 @@ void NetworkPopulateCompanyStats(NetworkCompanyStats *stats)
 	memset(stats, 0, sizeof(*stats) * MAX_COMPANIES);
 
 	/* Go through all vehicles and count the type of vehicles */
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (!Company::IsValidID(v->owner) || !v->IsPrimaryVehicle()) continue;
-		byte type = 0;
-		switch (v->type) {
-			case VEH_TRAIN: type = NETWORK_VEH_TRAIN; break;
-			case VEH_ROAD: type = RoadVehicle::From(v)->IsBus() ? NETWORK_VEH_BUS : NETWORK_VEH_LORRY; break;
-			case VEH_AIRCRAFT: type = NETWORK_VEH_PLANE; break;
-			case VEH_SHIP: type = NETWORK_VEH_SHIP; break;
-			default: continue;
+	for (const Company *c : Company::Iterate()) {
+		for (VehicleType vtype = VEH_BEGIN; vtype < VEH_COMPANY_END; vtype++) {
+			const VehicleList &vehicle_list = c->group_all[vtype].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				byte type = 0;
+				switch (vtype) {
+					case VEH_TRAIN: type = NETWORK_VEH_TRAIN; break;
+					case VEH_ROAD: type = RoadVehicle::From(v)->IsBus() ? NETWORK_VEH_BUS : NETWORK_VEH_LORRY; break;
+					case VEH_AIRCRAFT: type = NETWORK_VEH_PLANE; break;
+					case VEH_SHIP: type = NETWORK_VEH_SHIP; break;
+					default: continue;
+				}
+				stats[c->index].num_vehicle[type]++;
+			}
 		}
-		stats[v->owner].num_vehicle[type]++;
 	}
 
 	/* Go through all stations and count the types of stations */
