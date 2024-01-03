@@ -754,8 +754,13 @@ CommandCost CmdDepotMassAutoReplace(DoCommandFlag flags, TileIndex tile, Vehicle
  */
 bool IsUniqueVehicleName(const std::string &name)
 {
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (!v->name.empty() && v->name == name) return false;
+	for (const Company *c : Company::Iterate()) {
+		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+			const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				if (!v->name.empty() && v->name == name) return false;
+			}
+		}
 	}
 
 	return true;
