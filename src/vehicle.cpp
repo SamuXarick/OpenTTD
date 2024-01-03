@@ -1824,11 +1824,13 @@ VehicleEnterTileStatus VehicleEnterTile(Vehicle *v, TileIndex tile, int x, int y
  */
 FreeUnitIDGenerator::FreeUnitIDGenerator(VehicleType type, CompanyID owner) : cache(nullptr), maxid(0), curid(0)
 {
+	const Company *c = Company::GetIfValid(owner);
+	if (c == nullptr) return;
+
 	/* Find maximum */
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->type == type && v->owner == owner) {
-			this->maxid = std::max<UnitID>(this->maxid, v->unitnumber);
-		}
+	const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+	for (const Vehicle *v : vehicle_list) {
+		this->maxid = std::max<UnitID>(this->maxid, v->unitnumber);
 	}
 
 	if (this->maxid == 0) return;
@@ -1839,10 +1841,8 @@ FreeUnitIDGenerator::FreeUnitIDGenerator(VehicleType type, CompanyID owner) : ca
 	this->cache = CallocT<bool>(this->maxid + 2);
 
 	/* Fill the cache */
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->type == type && v->owner == owner) {
-			this->cache[v->unitnumber] = true;
-		}
+	for (const Vehicle *v : vehicle_list) {
+		this->cache[v->unitnumber] = true;
 	}
 }
 
