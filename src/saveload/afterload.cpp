@@ -290,8 +290,11 @@ static void InitializeWindowsAndCaches()
 			it->tile = t->xy;
 		}
 	}
-	for (RoadVehicle *rv : RoadVehicle::Iterate()) {
-		if (rv->IsFrontEngine()) {
+
+	for (const Company *c : Company::Iterate()) {
+		const VehicleList &vehicle_list = c->group_all[VEH_ROAD].vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			RoadVehicle *rv = RoadVehicle::From(Vehicle::Get(v->index));
 			rv->CargoChanged();
 		}
 	}
