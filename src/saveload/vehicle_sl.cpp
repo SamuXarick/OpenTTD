@@ -168,10 +168,11 @@ void UpdateOldAircraft()
 		st->airport.flags = 0; // reset airport
 	}
 
-	for (Aircraft *a : Aircraft::Iterate()) {
-		/* airplane has another vehicle with subtype 4 (shadow), helicopter also has 3 (rotor)
-		 * skip those */
-		if (a->IsNormalAircraft()) {
+	for (const Company *c : Company::Iterate()) {
+		const VehicleList &vehicle_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			Aircraft *a = Aircraft::From(Vehicle::Get(v->index));
+
 			/* airplane in terminal stopped doesn't hurt anyone, so goto next */
 			if ((a->vehstatus & VS_STOPPED) && a->state == 0) {
 				a->state = HANGAR;
