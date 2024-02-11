@@ -290,8 +290,11 @@ static void InitializeWindowsAndCaches()
 			it->tile = t->xy;
 		}
 	}
-	for (RoadVehicle *rv : RoadVehicle::Iterate()) {
-		if (rv->IsFrontEngine()) {
+
+	for (const Company *c : Company::Iterate()) {
+		const VehicleList &vehicle_list = c->group_all[VEH_ROAD].vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			RoadVehicle *rv = RoadVehicle::From(Vehicle::Get(v->index));
 			rv->CargoChanged();
 		}
 	}
@@ -1477,8 +1480,13 @@ bool AfterLoadGame()
 			order->SetRefit(CARGO_NO_REFIT);
 		}
 
-		for (Vehicle *v : Vehicle::Iterate()) {
-			v->current_order.SetRefit(CARGO_NO_REFIT);
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *v : vehicle_list) {
+					Vehicle::Get(v->index)->current_order.SetRefit(CARGO_NO_REFIT);
+				}
+			}
 		}
 	}
 
@@ -1561,8 +1569,13 @@ bool AfterLoadGame()
 		 * wasn't enough though as it was cleared when the vehicle started
 		 * loading again, even if it didn't actually load anything, so now the
 		 * amount that has been paid is stored. */
-		for (Vehicle *v : Vehicle::Iterate()) {
-			ClrBit(v->vehicle_flags, 2);
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *v : vehicle_list) {
+					ClrBit(Vehicle::Get(v->index)->vehicle_flags, 2);
+				}
+			}
 		}
 	}
 
@@ -1576,8 +1589,10 @@ bool AfterLoadGame()
 
 	if (IsSavegameVersionBefore(SLV_50)) {
 		/* Aircraft units changed from 8 mph to 1 km-ish/h */
-		for (Aircraft *v : Aircraft::Iterate()) {
-			if (v->subtype <= AIR_AIRCRAFT) {
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				Aircraft *v = Aircraft::From(Vehicle::Get(vehicle->index));
 				const AircraftVehicleInfo *avi = AircraftVehInfo(v->engine_type);
 				v->cur_speed *= 128;
 				v->cur_speed /= 10;
@@ -1609,15 +1624,20 @@ bool AfterLoadGame()
 
 	if (IsSavegameVersionBefore(SLV_57)) {
 		/* Added a FIFO queue of vehicles loading at stations */
-		for (Vehicle *v : Vehicle::Iterate()) {
-			if ((v->type != VEH_TRAIN || Train::From(v)->IsFrontEngine()) &&  // for all locs
-					!(v->vehstatus & (VS_STOPPED | VS_CRASHED)) && // not stopped or crashed
-					v->current_order.IsType(OT_LOADING)) {         // loading
-				Station::Get(v->last_station_visited)->loading_vehicles.push_back(v);
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *vehicle : vehicle_list) {
+					Vehicle *v = Vehicle::Get(vehicle->index);
+					if (!(v->vehstatus & (VS_STOPPED | VS_CRASHED)) && // not stopped or crashed
+							v->current_order.IsType(OT_LOADING)) {     // loading
+						Station::Get(v->last_station_visited)->loading_vehicles.push_back(v);
 
-				/* The loading finished flag is *only* set when actually completely
-				 * finished. Because the vehicle is loading, it is not finished. */
-				ClrBit(v->vehicle_flags, VF_LOADING_FINISHED);
+						/* The loading finished flag is *only* set when actually completely
+						 * finished. Because the vehicle is loading, it is not finished. */
+						ClrBit(v->vehicle_flags, VF_LOADING_FINISHED);
+					}
+				}
 			}
 		}
 	} else if (IsSavegameVersionBefore(SLV_59)) {
@@ -1741,15 +1761,23 @@ bool AfterLoadGame()
 		/* Rework of orders. */
 		for (Order *order : Order::Iterate()) order->ConvertFromOldSavegame();
 
-		for (Vehicle *v : Vehicle::Iterate()) {
-			if (v->orders != nullptr && v->orders->GetFirstOrder() != nullptr && v->orders->GetFirstOrder()->IsType(OT_NOTHING)) {
-				v->orders->FreeChain();
-				v->orders = nullptr;
-			}
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *vehicle : vehicle_list) {
+					Vehicle *v = Vehicle::Get(vehicle->index);
+					if (v->orders != nullptr && v->orders->GetFirstOrder() != nullptr && v->orders->GetFirstOrder()->IsType(OT_NOTHING)) {
+						v->orders->FreeChain();
+						v->orders = nullptr;
+					}
 
-			v->current_order.ConvertFromOldSavegame();
-			if (v->type == VEH_ROAD && v->IsPrimaryVehicle() && v->FirstShared() == v) {
-				for (Order *order : v->Orders()) order->SetNonStopType(ONSF_NO_STOP_AT_INTERMEDIATE_STATIONS);
+					v->current_order.ConvertFromOldSavegame();
+					if (v->type == VEH_ROAD && v->FirstShared() == v) {
+						for (Order *order = v->GetFirstOrder(); order != nullptr; order = order->next) {
+							order->SetNonStopType(ONSF_NO_STOP_AT_INTERMEDIATE_STATIONS);
+						}
+					}
+				}
 			}
 		}
 	} else if (IsSavegameVersionBefore(SLV_94)) {
@@ -1761,10 +1789,16 @@ bool AfterLoadGame()
 			}
 		}
 
-		for (Vehicle *v : Vehicle::Iterate()) {
-			if ((v->current_order.GetUnloadType() & (OUFB_UNLOAD | OUFB_TRANSFER)) == (OUFB_UNLOAD | OUFB_TRANSFER)) {
-				v->current_order.SetUnloadType(OUFB_TRANSFER);
-				v->current_order.SetLoadType(OLFB_NO_LOAD);
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *vehicle : vehicle_list) {
+					Vehicle *v = Vehicle::Get(vehicle->index);
+					if ((v->current_order.GetUnloadType() & (OUFB_UNLOAD | OUFB_TRANSFER)) == (OUFB_UNLOAD | OUFB_TRANSFER)) {
+						v->current_order.SetUnloadType(OUFB_TRANSFER);
+						v->current_order.SetLoadType(OLFB_NO_LOAD);
+					}
+				}
 			}
 		}
 	} else if (IsSavegameVersionBefore(SLV_DEPOT_UNBUNCHING)) {
@@ -1918,13 +1952,16 @@ bool AfterLoadGame()
 	}
 
 	if (IsSavegameVersionBefore(SLV_62)) {
-		GroupStatistics::UpdateAfterLoad(); // Ensure statistics pool is initialised before trying to delete vehicles
 		/* Remove all trams from savegames without tram support.
 		 * There would be trams without tram track under causing crashes sooner or later. */
-		for (RoadVehicle *v : RoadVehicle::Iterate()) {
-			if (v->First() == v && HasBit(EngInfo(v->engine_type)->misc_flags, EF_ROAD_TRAM)) {
-				ShowErrorMessage(STR_WARNING_LOADGAME_REMOVED_TRAMS, INVALID_STRING_ID, WL_CRITICAL);
-				delete v;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_ROAD].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				RoadVehicle *v = RoadVehicle::From(Vehicle::Get(vehicle->index));
+				if (HasBit(EngInfo(v->engine_type)->misc_flags, EF_ROAD_TRAM)) {
+					ShowErrorMessage(STR_WARNING_LOADGAME_REMOVED_TRAMS, INVALID_STRING_ID, WL_CRITICAL);
+					delete v;
+				}
 			}
 		}
 	}
@@ -1992,8 +2029,11 @@ bool AfterLoadGame()
 
 	/* Reserve all tracks trains are currently on. */
 	if (IsSavegameVersionBefore(SLV_101)) {
-		for (const Train *t : Train::Iterate()) {
-			if (t->First() == t) t->ReserveTrackUnderConsist();
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_TRAIN].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				Train::From(Vehicle::Get(v->index))->ReserveTrackUnderConsist();
+			}
 		}
 	}
 
@@ -2014,10 +2054,14 @@ bool AfterLoadGame()
 	}
 
 	if (IsSavegameVersionBefore(SLV_104)) {
-		for (Aircraft *a : Aircraft::Iterate()) {
-			/* Set engine_type of shadow and rotor */
-			if (!a->IsNormalAircraft()) {
-				a->engine_type = a->First()->engine_type;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				Aircraft *v = Aircraft::From(Vehicle::Get(vehicle->index))->Next();
+				for (Aircraft *a = v; a != nullptr; a = a->Next()) {
+					/* Set engine_type of shadow and rotor */
+					a->engine_type = a->First()->engine_type;
+				}
 			}
 		}
 
@@ -2321,9 +2365,13 @@ bool AfterLoadGame()
 	/* The behaviour of force_proceed has been changed. Now
 	 * it counts signals instead of some random time out. */
 	if (IsSavegameVersionBefore(SLV_131)) {
-		for (Train *t : Train::Iterate()) {
-			if (t->force_proceed != TFP_NONE) {
-				t->force_proceed = TFP_STUCK;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_TRAIN].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				Train *t = Train::From(Vehicle::Get(v->index));
+				if (t->force_proceed != TFP_NONE) {
+					t->force_proceed = TFP_STUCK;
+				}
 			}
 		}
 	}
@@ -2350,12 +2398,18 @@ bool AfterLoadGame()
 
 	/* Wait counter and load/unload ticks got split. */
 	if (IsSavegameVersionBefore(SLV_136)) {
-		for (Aircraft *a : Aircraft::Iterate()) {
-			a->turn_counter = a->current_order.IsType(OT_LOADING) ? 0 : a->load_unload_ticks;
-		}
+		for (Company *c : Company::Iterate()) {
+			const VehicleList &aircraft_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+			for (const Vehicle *v : aircraft_list) {
+				Aircraft *a = Aircraft::From(Vehicle::Get(v->index));
+				a->turn_counter = a->current_order.IsType(OT_LOADING) ? 0 : a->load_unload_ticks;
+			}
 
-		for (Train *t : Train::Iterate()) {
-			t->wait_counter = t->current_order.IsType(OT_LOADING) ? 0 : t->load_unload_ticks;
+			const VehicleList &train_list = c->group_all[VEH_TRAIN].vehicle_list;
+			for (const Vehicle *v : train_list) {
+				Train *t = Train::From(Vehicle::Get(v->index));
+				t->wait_counter = t->current_order.IsType(OT_LOADING) ? 0 : t->load_unload_ticks;
+			}
 		}
 	}
 
@@ -2429,17 +2483,20 @@ bool AfterLoadGame()
 	 * For old savegames with such aircraft we just throw them in the air and
 	 * treat the aircraft like they were flying already. */
 	if (IsSavegameVersionBefore(SLV_146)) {
-		for (Aircraft *v : Aircraft::Iterate()) {
-			if (!v->IsNormalAircraft()) continue;
-			Station *st = GetTargetAirportIfValid(v);
-			if (st == nullptr && v->state != FLYING) {
-				v->state = FLYING;
-				UpdateAircraftCache(v);
-				AircraftNextAirportPos_and_Order(v);
-				/* get aircraft back on running altitude */
-				if ((v->vehstatus & VS_CRASHED) == 0) {
-					GetAircraftFlightLevelBounds(v, &v->z_pos, nullptr);
-					SetAircraftPosition(v, v->x_pos, v->y_pos, GetAircraftFlightLevel(v));
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				Aircraft *v = Aircraft::From(Vehicle::Get(vehicle->index));
+				Station *st = GetTargetAirportIfValid(v);
+				if (st == nullptr && v->state != FLYING) {
+					v->state = FLYING;
+					UpdateAircraftCache(v);
+					AircraftNextAirportPos_and_Order(v);
+					/* get aircraft back on running altitude */
+					if ((v->vehstatus & VS_CRASHED) == 0) {
+						GetAircraftFlightLevelBounds(v, &v->z_pos, nullptr);
+						SetAircraftPosition(v, v->x_pos, v->y_pos, GetAircraftFlightLevel(v));
+					}
 				}
 			}
 		}
@@ -2590,11 +2647,15 @@ bool AfterLoadGame()
 
 	if (IsSavegameVersionBefore(SLV_156)) {
 		/* The train's pathfinder lost flag got moved. */
-		for (Train *t : Train::Iterate()) {
-			if (!HasBit(t->flags, 5)) continue;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_TRAIN].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				Train *t = Train::From(Vehicle::Get(v->index));
+				if (!HasBit(t->flags, 5)) continue;
 
-			ClrBit(t->flags, 5);
-			SetBit(t->vehicle_flags, VF_PATHFINDER_LOST);
+				ClrBit(t->flags, 5);
+				SetBit(t->vehicle_flags, VF_PATHFINDER_LOST);
+			}
 		}
 
 		/* Introduced terraform/clear limits. */
@@ -2707,14 +2768,19 @@ bool AfterLoadGame()
 		}
 
 		/* Fill Vehicle::cur_real_order_index */
-		for (Vehicle *v : Vehicle::Iterate()) {
-			if (!v->IsPrimaryVehicle()) continue;
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *vehicle : vehicle_list) {
+					Vehicle *v = Vehicle::Get(vehicle->index);
 
-			/* Older versions are less strict with indices being in range and fix them on the fly */
-			if (v->cur_implicit_order_index >= v->GetNumOrders()) v->cur_implicit_order_index = 0;
+					/* Older versions are less strict with indices being in range and fix them on the fly */
+					if (v->cur_implicit_order_index >= v->GetNumOrders()) v->cur_implicit_order_index = 0;
 
-			v->cur_real_order_index = v->cur_implicit_order_index;
-			v->UpdateRealOrderIndex();
+					v->cur_real_order_index = v->cur_implicit_order_index;
+					v->UpdateRealOrderIndex();
+				}
+			}
 		}
 	}
 
@@ -2892,8 +2958,10 @@ bool AfterLoadGame()
 
 	if (IsSavegameVersionBefore(SLV_182)) {
 		/* Aircraft acceleration variable was bonkers */
-		for (Aircraft *v : Aircraft::Iterate()) {
-			if (v->subtype <= AIR_AIRCRAFT) {
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_AIRCRAFT].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				Aircraft *v = Aircraft::From(Vehicle::Get(vehicle->index));
 				const AircraftVehicleInfo *avi = AircraftVehInfo(v->engine_type);
 				v->acceleration = avi->acceleration;
 			}
@@ -2947,53 +3015,56 @@ bool AfterLoadGame()
 		 * So, make articulated parts catch up. */
 		bool roadside = _settings_game.vehicle.road_side == 1;
 		std::vector<uint> skip_frames;
-		for (RoadVehicle *v : RoadVehicle::Iterate()) {
-			if (!v->IsFrontEngine()) continue;
-			skip_frames.clear();
-			TileIndex prev_tile = v->tile;
-			uint prev_tile_skip = 0;
-			uint cur_skip = 0;
-			for (RoadVehicle *u = v; u != nullptr; u = u->Next()) {
-				if (u->tile != prev_tile) {
-					prev_tile_skip = cur_skip;
-					prev_tile = u->tile;
-				} else {
-					cur_skip = prev_tile_skip;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_ROAD].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				RoadVehicle *v = RoadVehicle::From(Vehicle::Get(vehicle->index));
+				skip_frames.clear();
+				TileIndex prev_tile = v->tile;
+				uint prev_tile_skip = 0;
+				uint cur_skip = 0;
+				for (RoadVehicle *u = v; u != nullptr; u = u->Next()) {
+					if (u->tile != prev_tile) {
+						prev_tile_skip = cur_skip;
+						prev_tile = u->tile;
+					} else {
+						cur_skip = prev_tile_skip;
+					}
+
+					uint &this_skip = skip_frames.emplace_back(prev_tile_skip);
+
+					/* The following 3 curves now take longer than before */
+					switch (u->state) {
+						case 2:
+							cur_skip++;
+							if (u->frame <= (roadside ? 9 : 5)) this_skip = cur_skip;
+							break;
+
+						case 4:
+							cur_skip++;
+							if (u->frame <= (roadside ? 5 : 9)) this_skip = cur_skip;
+							break;
+
+						case 5:
+							cur_skip++;
+							if (u->frame <= (roadside ? 4 : 2)) this_skip = cur_skip;
+							break;
+
+						default:
+							break;
+					}
 				}
+				while (cur_skip > skip_frames[0]) {
+					RoadVehicle *u = v;
+					RoadVehicle *prev = nullptr;
+					for (uint sf : skip_frames) {
+						if (sf >= cur_skip) IndividualRoadVehicleController(u, prev);
 
-				uint &this_skip = skip_frames.emplace_back(prev_tile_skip);
-
-				/* The following 3 curves now take longer than before */
-				switch (u->state) {
-					case 2:
-						cur_skip++;
-						if (u->frame <= (roadside ? 9 : 5)) this_skip = cur_skip;
-						break;
-
-					case 4:
-						cur_skip++;
-						if (u->frame <= (roadside ? 5 : 9)) this_skip = cur_skip;
-						break;
-
-					case 5:
-						cur_skip++;
-						if (u->frame <= (roadside ? 4 : 2)) this_skip = cur_skip;
-						break;
-
-					default:
-						break;
+						prev = u;
+						u = u->Next();
+					}
+					cur_skip--;
 				}
-			}
-			while (cur_skip > skip_frames[0]) {
-				RoadVehicle *u = v;
-				RoadVehicle *prev = nullptr;
-				for (uint sf : skip_frames) {
-					if (sf >= cur_skip) IndividualRoadVehicleController(u, prev);
-
-					prev = u;
-					u = u->Next();
-				}
-				cur_skip--;
 			}
 		}
 	}
@@ -3064,35 +3135,39 @@ bool AfterLoadGame()
 
 	if (IsSavegameVersionBefore(SLV_SHIPS_STOP_IN_LOCKS)) {
 		/* Move ships from lock slope to upper or lower position. */
-		for (Ship *s : Ship::Iterate()) {
-			/* Suitable tile? */
-			if (!IsTileType(s->tile, MP_WATER) || !IsLock(s->tile) || GetLockPart(s->tile) != LOCK_PART_MIDDLE) continue;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_SHIP].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				Ship *s = Ship::From(Vehicle::Get(v->index));
+				/* Suitable tile? */
+				if (!IsTileType(s->tile, MP_WATER) || !IsLock(s->tile) || GetLockPart(s->tile) != LOCK_PART_MIDDLE) continue;
 
-			/* We don't need to adjust position when at the tile centre */
-			int x = s->x_pos & 0xF;
-			int y = s->y_pos & 0xF;
-			if (x == 8 && y == 8) continue;
+				/* We don't need to adjust position when at the tile centre */
+				int x = s->x_pos & 0xF;
+				int y = s->y_pos & 0xF;
+				if (x == 8 && y == 8) continue;
 
-			/* Test if ship is on the second half of the tile */
-			bool second_half;
-			DiagDirection shipdiagdir = DirToDiagDir(s->direction);
-			switch (shipdiagdir) {
-				default: NOT_REACHED();
-				case DIAGDIR_NE: second_half = x < 8; break;
-				case DIAGDIR_NW: second_half = y < 8; break;
-				case DIAGDIR_SW: second_half = x > 8; break;
-				case DIAGDIR_SE: second_half = y > 8; break;
-			}
+				/* Test if ship is on the second half of the tile */
+				bool second_half;
+				DiagDirection shipdiagdir = DirToDiagDir(s->direction);
+				switch (shipdiagdir) {
+					default: NOT_REACHED();
+					case DIAGDIR_NE: second_half = x < 8; break;
+					case DIAGDIR_NW: second_half = y < 8; break;
+					case DIAGDIR_SW: second_half = x > 8; break;
+					case DIAGDIR_SE: second_half = y > 8; break;
+				}
 
-			DiagDirection slopediagdir = GetInclinedSlopeDirection(GetTileSlope(s->tile));
+				DiagDirection slopediagdir = GetInclinedSlopeDirection(GetTileSlope(s->tile));
 
-			/* Heading up slope == passed half way */
-			if ((shipdiagdir == slopediagdir) == second_half) {
-				/* On top half of lock */
-				s->z_pos = GetTileMaxZ(s->tile) * (int)TILE_HEIGHT;
-			} else {
-				/* On lower half of lock */
-				s->z_pos = GetTileZ(s->tile) * (int)TILE_HEIGHT;
+				/* Heading up slope == passed half way */
+				if ((shipdiagdir == slopediagdir) == second_half) {
+					/* On top half of lock */
+					s->z_pos = GetTileMaxZ(s->tile) * (int)TILE_HEIGHT;
+				} else {
+					/* On lower half of lock */
+					s->z_pos = GetTileZ(s->tile) * (int)TILE_HEIGHT;
+				}
 			}
 		}
 	}
@@ -3184,8 +3259,14 @@ bool AfterLoadGame()
 
 	/* Use current order time to approximate last loading time */
 	if (IsSavegameVersionBefore(SLV_LAST_LOADING_TICK)) {
-		for (Vehicle *v : Vehicle::Iterate()) {
-			v->last_loading_tick = std::max(TimerGameTick::counter, static_cast<uint64_t>(v->current_order_time)) - v->current_order_time;
+		for (const Company *c : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+				const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+				for (const Vehicle *vehicle : vehicle_list) {
+					Vehicle *v = Vehicle::Get(vehicle->index);
+					v->last_loading_tick = std::max(TimerGameTick::counter, static_cast<uint64_t>(v->current_order_time)) - v->current_order_time;
+				}
+			}
 		}
 	}
 
@@ -3196,38 +3277,43 @@ bool AfterLoadGame()
 	 * to avoid crashing into the side of the train they're waiting for. */
 	if (IsSavegameVersionBefore(SLV_MULTITRACK_LEVEL_CROSSINGS)) {
 		/* Teleport road vehicles to the nearest depot. */
-		for (RoadVehicle *rv : RoadVehicle::Iterate()) {
-			/* Ignore trailers of articulated vehicles. */
-			if (rv->IsArticulatedPart()) continue;
+		for (const Company *c : Company::Iterate()) {
+			const VehicleList &vehicle_list = c->group_all[VEH_ROAD].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				RoadVehicle *rv = RoadVehicle::From(Vehicle::Get(v->index));
 
-			/* Ignore moving vehicles. */
-			if (rv->cur_speed > 0) continue;
+				/* Ignore trailers of articulated vehicles. */
+				if (rv->IsArticulatedPart()) continue;
 
-			/* Ignore crashed vehicles. */
-			if (rv->vehstatus & VS_CRASHED) continue;
+				/* Ignore moving vehicles. */
+				if (rv->cur_speed > 0) continue;
 
-			/* Ignore vehicles not on level crossings. */
-			TileIndex cur_tile = rv->tile;
-			if (!IsLevelCrossingTile(cur_tile)) continue;
+				/* Ignore crashed vehicles. */
+				if (rv->vehstatus & VS_CRASHED) continue;
 
-			ClosestDepot closestDepot = rv->FindClosestDepot();
+				/* Ignore vehicles not on level crossings. */
+				TileIndex cur_tile = rv->tile;
+				if (!IsLevelCrossingTile(cur_tile)) continue;
 
-			/* Try to find a depot with a distance limit of 512 tiles (Manhattan distance). */
-			if (closestDepot.found && DistanceManhattan(rv->tile, closestDepot.location) < 512u) {
-				/* Teleport all parts of articulated vehicles. */
-				for (RoadVehicle *u = rv; u != nullptr; u = u->Next()) {
-					u->tile = closestDepot.location;
-					int x = TileX(closestDepot.location) * TILE_SIZE + TILE_SIZE / 2;
-					int y = TileY(closestDepot.location) * TILE_SIZE + TILE_SIZE / 2;
-					u->x_pos = x;
-					u->y_pos = y;
-					u->z_pos = GetSlopePixelZ(x, y, true);
+				ClosestDepot closestDepot = rv->FindClosestDepot();
 
-					u->vehstatus |= VS_HIDDEN;
-					u->state = RVSB_IN_DEPOT;
-					u->UpdatePosition();
+				/* Try to find a depot with a distance limit of 512 tiles (Manhattan distance). */
+				if (closestDepot.found && DistanceManhattan(rv->tile, closestDepot.location) < 512u) {
+					/* Teleport all parts of articulated vehicles. */
+					for (RoadVehicle *u = rv; u != nullptr; u = u->Next()) {
+						u->tile = closestDepot.location;
+						int x = TileX(closestDepot.location) * TILE_SIZE + TILE_SIZE / 2;
+						int y = TileY(closestDepot.location) * TILE_SIZE + TILE_SIZE / 2;
+						u->x_pos = x;
+						u->y_pos = y;
+						u->z_pos = GetSlopePixelZ(x, y, true);
+
+						u->vehstatus |= VS_HIDDEN;
+						u->state = RVSB_IN_DEPOT;
+						u->UpdatePosition();
+					}
+					RoadVehLeaveDepot(rv, false);
 				}
-				RoadVehLeaveDepot(rv, false);
 			}
 		}
 
@@ -3343,7 +3429,6 @@ void ReloadNewGRFData()
 	ResetVehicleHash();
 	AfterLoadVehicles(false);
 	StartupEngines();
-	GroupStatistics::UpdateAfterLoad();
 	/* update station graphics */
 	AfterLoadStations();
 	/* Update company statistics. */

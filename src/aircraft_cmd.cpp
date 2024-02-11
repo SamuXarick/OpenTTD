@@ -2161,8 +2161,10 @@ void UpdateAirplanesOnNewStation(const Station *st)
 	const AirportFTAClass *ap = st->airport.GetFTA();
 	Direction rotation = st->airport.tile == INVALID_TILE ? DIR_N : st->airport.rotation;
 
-	for (Aircraft *v : Aircraft::Iterate()) {
-		if (!v->IsNormalAircraft() || v->targetairport != st->index) continue;
+	const VehicleList &vehicle_list = Company::Get(st->owner)->group_all[VEH_AIRCRAFT].vehicle_list;
+	for (const Vehicle *vehicle : vehicle_list) {
+		Aircraft *v = Aircraft::From(Vehicle::Get(vehicle->index));
+		if (v->targetairport != st->index) continue;
 		assert(v->state == FLYING);
 
 		Order *o = &v->current_order;
@@ -2178,5 +2180,5 @@ void UpdateAirplanesOnNewStation(const Station *st)
 	}
 
 	/* Heliports don't have a hangar. Invalidate all go to hangar orders from all aircraft. */
-	if (!st->airport.HasHangar()) RemoveOrderFromAllVehicles(OT_GOTO_DEPOT, st->index, true);
+	if (!st->airport.HasHangar()) RemoveOrderFromAllVehicles(OT_GOTO_DEPOT, st->index, st->owner, true);
 }

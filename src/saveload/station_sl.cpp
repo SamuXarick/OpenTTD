@@ -52,11 +52,16 @@ void MoveBuoysToWaypoints()
 		for (Order *o = ol->GetFirstOrder(); o != nullptr; o = o->next) UpdateWaypointOrder(o);
 	}
 
-	for (Vehicle *v : Vehicle::Iterate()) {
-		VehicleType vt = v->type;
-		if (vt != VEH_SHIP && vt != VEH_TRAIN) continue;
+	for (const Company *c : Company::Iterate()) {
+		const VehicleList &ship_list = c->group_all[VEH_SHIP].vehicle_list;
+		for (const Vehicle *v : ship_list) {
+			UpdateWaypointOrder(&Vehicle::Get(v->index)->current_order);
+		}
 
-		UpdateWaypointOrder(&v->current_order);
+		const VehicleList &train_list = c->group_all[VEH_TRAIN].vehicle_list;
+		for (const Vehicle *v : train_list) {
+			UpdateWaypointOrder(&Vehicle::Get(v->index)->current_order);
+		}
 	}
 
 	/* Now make the stations waypoints */

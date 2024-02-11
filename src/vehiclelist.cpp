@@ -10,7 +10,6 @@
 #include "stdafx.h"
 #include "train.h"
 #include "vehiclelist.h"
-#include "vehiclelist_func.h"
 #include "group.h"
 
 #include "safeguards.h"
@@ -117,11 +116,20 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 
 	switch (vli.type) {
 		case VL_STATION_LIST:
-			FindVehiclesWithOrder(
-				[&vli](const Vehicle *v) { return v->type == vli.vtype; },
-				[&vli](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT) || order->IsType(OT_IMPLICIT)) && order->GetDestination() == vli.index; },
-				[&list](const Vehicle *v) { list->push_back(v); }
-			);
+			for (const Company *c : Company::Iterate()) {
+				/* Only iterate over all companies in the case of neutral Oil Rig stations */
+				if (vli.company != c->index && vli.company != OWNER_NONE) continue;
+				const VehicleList &vehicle_list = c->group_all[vli.vtype].vehicle_list;
+				for (const Vehicle *v : vehicle_list) {
+					for (const Order *order = v->GetFirstOrder(); order != nullptr; order = order->next) {
+						if ((order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT) || order->IsType(OT_IMPLICIT))
+								&& order->GetDestination() == vli.index) {
+							list->push_back(v);
+							break;
+						}
+					}
+				}
+			}
 			break;
 
 		case VL_SHARED_ORDERS: {
@@ -136,32 +144,48 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 		}
 
 		case VL_GROUP_LIST:
+			if (vli.index == DEFAULT_GROUP) {
+				const VehicleList &vehicle_list = Company::Get(vli.company)->group_default[vli.vtype].vehicle_list;
+				for (const Vehicle *v : vehicle_list) {
+					list->push_back(v);
+				}
+				break;
+			}
+
 			if (vli.index != ALL_GROUP) {
-				for (const Vehicle *v : Vehicle::Iterate()) {
-					if (v->type == vli.vtype && v->IsPrimaryVehicle() &&
-							v->owner == vli.company && GroupIsInGroup(v->group_id, vli.index)) {
-						list->push_back(v);
+				for (const Group *g : Group::Iterate()) {
+					if (g->owner != vli.company || g->vehicle_type != vli.vtype) continue;
+					if (GroupIsInGroup(g->index, vli.index)) {
+						const VehicleList &vehicle_list = g->statistics.vehicle_list;
+						for (const Vehicle *v : vehicle_list) {
+							list->push_back(v);
+						}
 					}
 				}
 				break;
 			}
 			[[fallthrough]];
 
-		case VL_STANDARD:
-			for (const Vehicle *v : Vehicle::Iterate()) {
-				if (v->type == vli.vtype && v->owner == vli.company && v->IsPrimaryVehicle()) {
-					list->push_back(v);
+		case VL_STANDARD: {
+			const VehicleList &vehicle_list = Company::Get(vli.company)->group_all[vli.vtype].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				list->push_back(v);
+			}
+			break;
+		}
+
+		case VL_DEPOT_LIST: {
+			const VehicleList &vehicle_list = Company::Get(vli.company)->group_all[vli.vtype].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				for (const Order *order = v->GetFirstOrder(); order != nullptr; order = order->next) {
+					if (order->IsType(OT_GOTO_DEPOT) && !(order->GetDepotActionType() & ODATFB_NEAREST_DEPOT) && order->GetDestination() == vli.index) {
+						list->push_back(v);
+						break;
+					}
 				}
 			}
 			break;
-
-		case VL_DEPOT_LIST:
-			FindVehiclesWithOrder(
-				[&vli](const Vehicle *v) { return v->type == vli.vtype; },
-				[&vli](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && !(order->GetDepotActionType() & ODATFB_NEAREST_DEPOT) && order->GetDestination() == vli.index; },
-				[&list](const Vehicle *v) { list->push_back(v); }
-			);
-			break;
+		}
 
 		default: return false;
 	}

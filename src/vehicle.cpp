@@ -1824,11 +1824,13 @@ VehicleEnterTileStatus VehicleEnterTile(Vehicle *v, TileIndex tile, int x, int y
  */
 FreeUnitIDGenerator::FreeUnitIDGenerator(VehicleType type, CompanyID owner) : cache(nullptr), maxid(0), curid(0)
 {
+	const Company *c = Company::GetIfValid(owner);
+	if (c == nullptr) return;
+
 	/* Find maximum */
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->type == type && v->owner == owner) {
-			this->maxid = std::max<UnitID>(this->maxid, v->unitnumber);
-		}
+	const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+	for (const Vehicle *v : vehicle_list) {
+		this->maxid = std::max<UnitID>(this->maxid, v->unitnumber);
 	}
 
 	if (this->maxid == 0) return;
@@ -1839,10 +1841,8 @@ FreeUnitIDGenerator::FreeUnitIDGenerator(VehicleType type, CompanyID owner) : ca
 	this->cache = CallocT<bool>(this->maxid + 2);
 
 	/* Fill the cache */
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->type == type && v->owner == owner) {
-			this->cache[v->unitnumber] = true;
-		}
+	for (const Vehicle *v : vehicle_list) {
+		this->cache[v->unitnumber] = true;
 	}
 }
 
@@ -2944,31 +2944,37 @@ void Vehicle::RemoveFromShared()
 
 static IntervalTimer<TimerGameEconomy> _economy_vehicles_yearly({TimerGameEconomy::YEAR, TimerGameEconomy::Priority::VEHICLE}, [](auto)
 {
-	for (Vehicle *v : Vehicle::Iterate()) {
-		if (v->IsPrimaryVehicle()) {
-			/* show warning if vehicle is not generating enough income last 2 years (corresponds to a red icon in the vehicle list) */
-			Money profit = v->GetDisplayProfitThisYear();
-			if (v->age >= 730 && profit < 0) {
-				if (_settings_client.gui.vehicle_income_warn && v->owner == _local_company) {
-					SetDParam(0, v->index);
-					SetDParam(1, profit);
-					AddVehicleAdviceNewsItem(
-						TimerGameEconomy::UsingWallclockUnits() ? STR_NEWS_VEHICLE_UNPROFITABLE_PERIOD : STR_NEWS_VEHICLE_UNPROFITABLE_YEAR,
-						v->index);
-				}
-				AI::NewEvent(v->owner, new ScriptEventVehicleUnprofitable(v->index));
-			}
+	for (const Company *c : Company::Iterate()) {
+		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+			const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+			for (const Vehicle *vehicle : vehicle_list) {
+				Vehicle *v = Vehicle::Get(vehicle->index);
 
-			v->profit_last_year = v->profit_this_year;
-			v->profit_this_year = 0;
-			SetWindowDirty(WC_VEHICLE_DETAILS, v->index);
+				/* show warning if vehicle is not generating enough income last 2 years (corresponds to a red icon in the vehicle list) */
+				Money profit = v->GetDisplayProfitThisYear();
+				if (v->age >= 730 && profit < 0) {
+					if (_settings_client.gui.vehicle_income_warn && v->owner == _local_company) {
+						SetDParam(0, v->index);
+						SetDParam(1, profit);
+						AddVehicleAdviceNewsItem(
+							TimerGameEconomy::UsingWallclockUnits() ? STR_NEWS_VEHICLE_UNPROFITABLE_PERIOD : STR_NEWS_VEHICLE_UNPROFITABLE_YEAR,
+							v->index);
+					}
+					AI::NewEvent(v->owner, new ScriptEventVehicleUnprofitable(v->index));
+				}
+
+				v->profit_last_year = v->profit_this_year;
+				v->profit_this_year = 0;
+				SetWindowDirty(WC_VEHICLE_DETAILS, v->index);
+
+			}
+			GroupStatistics::UpdateProfits();
+			SetWindowClassesDirty(WC_TRAINS_LIST);
+			SetWindowClassesDirty(WC_SHIPS_LIST);
+			SetWindowClassesDirty(WC_ROADVEH_LIST);
+			SetWindowClassesDirty(WC_AIRCRAFT_LIST);
 		}
 	}
-	GroupStatistics::UpdateProfits();
-	SetWindowClassesDirty(WC_TRAINS_LIST);
-	SetWindowClassesDirty(WC_SHIPS_LIST);
-	SetWindowClassesDirty(WC_ROADVEH_LIST);
-	SetWindowClassesDirty(WC_AIRCRAFT_LIST);
 });
 
 /**

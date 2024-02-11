@@ -39,6 +39,8 @@ void GroupStatistics::Clear()
 
 	/* This is also called when NewGRF change. So the number of engines might have changed. Reset. */
 	this->num_engines.clear();
+
+	this->vehicle_list.clear();
 }
 
 /**
@@ -148,6 +150,16 @@ uint16_t GroupStatistics::GetNumEngines(EngineID engine) const
 		stats.num_vehicle_min_age += delta;
 		stats.profit_last_year_min_age += v->GetDisplayProfitLastYear() * delta;
 	}
+
+	auto it_all = std::find(stats_all.vehicle_list.begin(), stats_all.vehicle_list.end(), v);
+	auto it = std::find(stats.vehicle_list.begin(), stats.vehicle_list.end(), v);
+	if (delta == 1) {
+		if (it_all == stats_all.vehicle_list.end()) stats_all.vehicle_list.push_back(v);
+		if (it == stats.vehicle_list.end()) stats.vehicle_list.push_back(v);
+	} else {
+		if (it_all != stats_all.vehicle_list.end()) stats_all.vehicle_list.erase(it_all);
+		if (it != stats.vehicle_list.end()) stats.vehicle_list.erase(it);
+	}
 }
 
 /**
@@ -193,23 +205,21 @@ uint16_t GroupStatistics::GetNumEngines(EngineID engine) const
  */
 /* static */ void GroupStatistics::UpdateProfits()
 {
-	/* Set up the engine count for all companies */
-	for (Company *c : Company::Iterate()) {
-		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
-			c->group_all[type].ClearProfits();
-			c->group_default[type].ClearProfits();
-		}
-	}
-
-	/* Recalculate */
 	for (Group *g : Group::Iterate()) {
 		g->statistics.ClearProfits();
 	}
 
-	for (const Vehicle *v : Vehicle::Iterate()) {
-		if (v->IsPrimaryVehicle()) {
-			GroupStatistics::AddProfitLastYear(v);
-			if (v->age > VEHICLE_PROFIT_MIN_AGE) GroupStatistics::VehicleReachedMinAge(v);
+	for (Company *c : Company::Iterate()) {
+		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+			c->group_all[type].ClearProfits();
+			c->group_default[type].ClearProfits();
+
+			/* Recalculate */
+			const VehicleList &vehicle_list = c->group_all[type].vehicle_list;
+			for (const Vehicle *v : vehicle_list) {
+				GroupStatistics::AddProfitLastYear(v);
+				if (v->age > VEHICLE_PROFIT_MIN_AGE) GroupStatistics::VehicleReachedMinAge(v);
+			}
 		}
 	}
 }
@@ -284,12 +294,11 @@ static void PropagateChildLivery(const Group *g, bool reset_cache)
 {
 	if (reset_cache) {
 		/* Company colour data is indirectly cached. */
-		for (Vehicle *v : Vehicle::Iterate()) {
-			if (v->group_id == g->index && (!v->IsGroundVehicle() || v->IsFrontEngine())) {
-				for (Vehicle *u = v; u != nullptr; u = u->Next()) {
-					u->colourmap = PAL_NONE;
-					u->InvalidateNewGRFCache();
-				}
+		const VehicleList &vehicle_list = g->statistics.vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			for (Vehicle *u = Vehicle::Get(v->index); u != nullptr; u = u->Next()) {
+				u->colourmap = PAL_NONE;
+				u->InvalidateNewGRFCache();
 			}
 		}
 	}
@@ -606,16 +615,13 @@ CommandCost CmdAddSharedVehicleGroup(DoCommandFlag flags, GroupID id_g, VehicleT
 	if (!Group::IsValidID(id_g) || !IsCompanyBuildableVehicleType(type)) return CMD_ERROR;
 
 	if (flags & DC_EXEC) {
-		/* Find the first front engine which belong to the group id_g
-		 * then add all shared vehicles of this front engine to the group id_g */
-		for (const Vehicle *v : Vehicle::Iterate()) {
-			if (v->type == type && v->IsPrimaryVehicle()) {
-				if (v->group_id != id_g) continue;
-
-				/* For each shared vehicles add it to the group */
-				for (Vehicle *v2 = v->FirstShared(); v2 != nullptr; v2 = v2->NextShared()) {
-					if (v2->group_id != id_g) Command<CMD_ADD_VEHICLE_GROUP>::Do(flags, id_g, v2->index, false, VehicleListIdentifier{});
-				}
+		/* For each vehicle belonging to the group id_g
+		 * add all vehicles sharing orders with it to that group */
+		const VehicleList vehicle_list = Group::Get(id_g)->statistics.vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			/* For each shared vehicles add it to the group */
+			for (Vehicle *v2 = v->FirstShared(); v2 != nullptr; v2 = v2->NextShared()) {
+				if (v2->group_id != id_g) Command<CMD_ADD_VEHICLE_GROUP>::Do(flags, id_g, v2->index, false, VehicleListIdentifier{});
 			}
 		}
 
@@ -640,13 +646,10 @@ CommandCost CmdRemoveAllVehiclesGroup(DoCommandFlag flags, GroupID group_id)
 
 	if (flags & DC_EXEC) {
 		/* Find each Vehicle that belongs to the group old_g and add it to the default group */
-		for (const Vehicle *v : Vehicle::Iterate()) {
-			if (v->IsPrimaryVehicle()) {
-				if (v->group_id != group_id) continue;
-
-				/* Add The Vehicle to the default group */
-				Command<CMD_ADD_VEHICLE_GROUP>::Do(flags, DEFAULT_GROUP, v->index, false, VehicleListIdentifier{});
-			}
+		const VehicleList vehicle_list = g->statistics.vehicle_list;
+		for (const Vehicle *v : vehicle_list) {
+			/* Add The Vehicle to the default group */
+			Command<CMD_ADD_VEHICLE_GROUP>::Do(flags, DEFAULT_GROUP, v->index, false, VehicleListIdentifier{});
 		}
 
 		InvalidateWindowData(GetWindowClassForVehicleType(g->vehicle_type), VehicleListIdentifier(VL_GROUP_LIST, g->vehicle_type, _current_company).Pack());
