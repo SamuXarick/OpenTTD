@@ -13,6 +13,7 @@
 #include "../tile_cmd.h"
 #include "../waypoint_base.h"
 #include "../ship.h"
+#include "../depot_base.h"
 
 /**
  * Creates a list containing possible destination tiles for a ship.
@@ -45,6 +46,28 @@ inline std::vector<TileIndex> GetShipDestinationTiles(const Ship *v)
 	assert(!dest_tiles.empty());
 
 	return dest_tiles;
+}
+
+/**
+ * Creates a list containing tiles of possible depot destinations for a ship.
+ * @param v The ship
+ * @param max_distance The maximum distance component (x or y), or 0 for unlimited.
+ * return Vector of tiles filled with all possible depot destinations.
+ */
+inline std::vector<TileIndex> GetShipDepotTiles(const Ship *v, uint max_distance = 0)
+{
+	std::vector<TileIndex> depot_tiles;
+
+	const Owner owner = v->owner;
+	const TileIndex tile = v->tile;
+	for (const Depot *depot : Depot::Iterate()) {
+		const TileIndex depot_tile = depot->xy;
+		if (IsShipDepotTile(depot_tile) && IsTileOwner(depot_tile, owner)) {
+			if (max_distance == 0 || DistanceMax(depot_tile, tile) <= max_distance) depot_tiles.push_back(depot_tile);
+		}
+	}
+
+	return depot_tiles;
 }
 
 /**

@@ -177,6 +177,8 @@ public:
 
 	static std::vector<WaterRegionPatchDesc> FindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length, const std::span<TileIndex> dest_tiles)
 	{
+		const bool find_closest_depot = start_tile == INVALID_TILE;
+		if (find_closest_depot) start_tile = v->tile;
 		const WaterRegionPatchDesc start_water_region_patch = GetWaterRegionPatchInfo(start_tile);
 
 		/* We reserve 4 nodes (patches) per water region. The vast majority of water regions have 1 or 2 regions so this should be a pretty
@@ -190,18 +192,20 @@ public:
 
 		/* If origin and destination are the same we simply return that water patch. */
 		std::vector<WaterRegionPatchDesc> path = { start_water_region_patch };
-		path.reserve(max_returned_path_length);
+		if (!find_closest_depot) path.reserve(max_returned_path_length);
 		if (pf.HasOrigin(start_water_region_patch)) return path;
 
 		/* Find best path. */
 		if (!pf.FindPath(v)) return {}; // Path not found.
 
 		Node *node = pf.GetBestNode();
-		for (int i = 0; i < max_returned_path_length - 1; ++i) {
+		for (int i = 0; i < max_returned_path_length - 1; i += !find_closest_depot) {
 			if (node != nullptr) {
 				node = node->parent;
 				if (node != nullptr) path.push_back(node->key.water_region_patch);
+				continue;
 			}
+			break;
 		}
 
 		assert(!path.empty());
