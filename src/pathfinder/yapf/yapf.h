@@ -36,6 +36,17 @@ Track YapfShipChooseTrack(const Ship *v, TileIndex tile, DiagDirection enterdir,
 bool YapfShipCheckReverse(const Ship *v, Trackdir *trackdir);
 
 /**
+ * Used when user sends ship to the nearest depot or if ship needs servicing using YAPF.
+ * @param v            ship that needs to go to some depot
+ * @param max_penalty  max distance (in pathfinder penalty) from the current ship position
+ *                     (used also as optimization - the pathfinder can stop path finding if max_penalty
+ *                     was reached and no depot was seen)
+ * @param dest_tiles   list of all possible ship depot destination tiles.
+ * @return             the data about the depot
+ */
+FindDepotData YapfShipFindNearestDepot(const Ship *v, int max_penalty, const std::span<TileIndex> dest_tiles);
+
+/**
  * Finds the best path for given road vehicle using YAPF.
  * @param v         the RV that needs to find a path
  * @param tile      the tile to find the path from (should be next tile the RV is about to enter)

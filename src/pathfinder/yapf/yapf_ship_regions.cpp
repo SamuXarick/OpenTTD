@@ -9,6 +9,7 @@
 
 #include "../../stdafx.h"
 #include "../../ship.h"
+#include "../../depot_base.h"
 
 #include "yapf.hpp"
 #include "yapf_ship_regions.h"
@@ -16,7 +17,6 @@
 
 #include "../../safeguards.h"
 
-constexpr int DIRECT_NEIGHBOR_COST = 100;
 constexpr int NODES_PER_REGION = 4;
 constexpr int MAX_NUMBER_OF_NODES = 65536;
 
@@ -190,12 +190,16 @@ public:
 
 	static std::vector<WaterRegionPatchDesc> FindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length, const std::span<TileIndex> dest_tiles)
 	{
+		const bool find_closest_depot = start_tile == INVALID_TILE;
+		if (find_closest_depot) start_tile = v->tile;
+		const int max_cost = max_returned_path_length < 0 ? -max_returned_path_length : 0;
 		const WaterRegionPatchDesc start_water_region_patch = GetWaterRegionPatchInfo(start_tile);
 
 		/* We reserve 4 nodes (patches) per water region. The vast majority of water regions have 1 or 2 regions so this should be a pretty
 		 * safe limit. We cap the limit at 65536 which is at a region size of 16x16 is equivalent to one node per region for a 4096x4096 map. */
 		Tpf pf(std::min(static_cast<int>(Map::Size() * NODES_PER_REGION) / WATER_REGION_NUMBER_OF_TILES, MAX_NUMBER_OF_NODES));
 		pf.SetDestination(start_water_region_patch);
+		pf.SetMaxCost(max_cost);
 
 		for (const TileIndex &tile : dest_tiles) {
 			pf.AddOrigin(GetWaterRegionPatchInfo(tile));
@@ -203,18 +207,20 @@ public:
 
 		/* If origin and destination are the same we simply return that water patch. */
 		std::vector<WaterRegionPatchDesc> path = { start_water_region_patch };
-		path.reserve(max_returned_path_length);
+		if (!find_closest_depot) path.reserve(max_returned_path_length);
 		if (pf.HasOrigin(start_water_region_patch)) return path;
 
 		/* Find best path. */
 		if (!pf.FindPath(v)) return {}; // Path not found.
 
 		Node *node = pf.GetBestNode();
-		for (int i = 0; i < max_returned_path_length - 1; ++i) {
+		for (int i = 0; i != max_returned_path_length - 1; i += !find_closest_depot ? 1 : 0) {
 			if (node != nullptr) {
 				node = node->m_parent;
 				if (node != nullptr) path.push_back(node->m_key.m_water_region_patch);
+				continue;
 			}
+			break;
 		}
 
 		assert(!path.empty());
@@ -233,10 +239,19 @@ public:
 	typedef typename Node::Key Key;               ///< Key to hash tables.
 
 protected:
+	int m_max_cost;
+
+	CYapfCostRegionT() : m_max_cost(0) {}
+
 	/** To access inherited path finder. */
 	Tpf &Yapf() { return *static_cast<Tpf*>(this); }
 
 public:
+	inline void SetMaxCost(int max_cost)
+	{
+		m_max_cost = max_cost;
+	}
+
 	/**
 	 * Called by YAPF to calculate the cost from the origin to the given node.
 	 * Calculates only the cost of given node, adds it to the parent node cost
@@ -244,15 +259,28 @@ public:
 	 */
 	inline bool PfCalcCost(Node &n, const TrackFollower *)
 	{
-		n.m_cost = n.m_parent->m_cost + ManhattanDistance(n.m_key, n.m_parent->m_key);
+		int c = ManhattanDistance(n.m_key, n.m_parent->m_key);
+
+		if (c > DIRECT_NEIGHBOR_COST) {
+			/* Aqueduct speed penalty. */
+			const ShipVehicleInfo *svi = ShipVehInfo(Yapf().GetVehicle()->engine_type);
+			byte speed_frac = svi->canal_speed_frac;
+			if (speed_frac > 0) c += c * speed_frac / (256 - speed_frac);
+		}
 
 		/* Incentivise zigzagging by adding a slight penalty when the search continues in the same direction. */
 		Node *grandparent = n.m_parent->m_parent;
 		if (grandparent != nullptr) {
 			const DiagDirDiff dir_diff = DiagDirDifference(n.m_parent->GetDiagDirFromParent(), n.GetDiagDirFromParent());
-			if (dir_diff != DIAGDIRDIFF_90LEFT && dir_diff != DIAGDIRDIFF_90RIGHT) n.m_cost += 1;
+			if (dir_diff != DIAGDIRDIFF_90LEFT && dir_diff != DIAGDIRDIFF_90RIGHT) c += WATER_REGION_EDGE_LENGTH;
 		}
 
+		/* Finish if we already exceeded the maximum path cost (i.e. when
+		 * searching for the nearest depot). */
+		if (m_max_cost > 0 && (n.m_parent->m_cost + c) > m_max_cost) return false;
+
+		/* Apply it. */
+		n.m_cost = n.m_parent->m_cost + c;
 		return true;
 	}
 };

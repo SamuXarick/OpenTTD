@@ -13,9 +13,13 @@
 #include "../../stdafx.h"
 #include "../../tile_type.h"
 #include "../water_regions.h"
+#include "../pathfinder_type.h"
 
 struct Ship;
 
 std::vector<WaterRegionPatchDesc> YapfShipFindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length, const std::span<TileIndex> dest_tiles);
+std::vector<WaterRegionPatchDesc> YapfShipFindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length, const std::span<TileIndex> dest_tiles);
+
+constexpr int DIRECT_NEIGHBOR_COST = YAPF_TILE_LENGTH * WATER_REGION_EDGE_LENGTH;
 
 #endif /* YAPF_SHIP_REGIONS_H */
