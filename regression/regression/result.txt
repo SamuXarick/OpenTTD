@@ -9471,7 +9471,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
   IsStoppedInDepot():   false
   --Accounting--
     GetCosts():         -5947
-    Should be:          -5946
+    Should be:          -5947
   GetName():            Road Vehicle #1
   SetName():            true
   GetName():            MyVehicleName
@@ -9480,12 +9480,12 @@ ERROR: IsEnd() is invalid as Begin() is never called
     GetLocation():       33417
     GetEngineType():     153
     GetUnitNumber():     1
-    GetAge():            1
+    GetAge():            0
     GetMaxAge():         5490
-    GetAgeLeft():        5489
+    GetAgeLeft():        5490
     GetCurrentSpeed():   7
     GetRunningCost():    421
-    GetProfitThisYear(): -1
+    GetProfitThisYear(): 0
     GetProfitLastYear(): 0
     GetCurrentValue():   5947
     GetVehicleType():    1
@@ -9495,7 +9495,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
     IsInDepot():         false
     GetNumWagons():      1
     GetWagonEngineType(): 153
-    GetWagonAge():       1
+    GetWagonAge():       0
     GetLength():         8
   GetOwner():           1
   BuildVehicle():       14
@@ -9520,9 +9520,9 @@ ERROR: IsEnd() is invalid as Begin() is never called
   GetNumWagons():       3
   GetLength():          24
   GetWagonEngineType(): 9
-  GetWagonAge():        0
+  GetWagonAge():        1
   GetWagonEngineType(): 27
-  GetWagonAge():        0
+  GetWagonAge():        1
   GetWagonEngineType(): 27
   GetWagonAge():        0
   GetWagonEngineType(): 65535
@@ -9570,11 +9570,11 @@ ERROR: IsEnd() is invalid as Begin() is never called
     14 => 1
     12 => 1
   Age ListDump:
+    17 => 1
+    16 => 1
+    14 => 1
+    13 => 1
     12 => 1
-    17 => 0
-    16 => 0
-    14 => 0
-    13 => 0
   MaxAge ListDump:
     16 => 10980
     14 => 10980
@@ -9582,10 +9582,10 @@ ERROR: IsEnd() is invalid as Begin() is never called
     13 => 5490
     12 => 5490
   AgeLeft ListDump:
-    16 => 10980
-    14 => 10980
-    17 => 7320
-    13 => 5490
+    16 => 10979
+    14 => 10979
+    17 => 7319
+    13 => 5489
     12 => 5489
   CurrentSpeed ListDump:
     12 => 27
@@ -9746,22 +9746,3 @@ ERROR: IsEnd() is invalid as Begin() is never called
   -2147483648 >  2147483647:   false
    13725      > -2147483648:   true
 --Valuate() with excessive CPU usage--
-Your script made an error: excessive CPU usage in valuator function
-
-*FUNCTION [unknown()] regression/main.nut line [2051]
-*FUNCTION [Valuate()] NATIVE line [-1]
-*FUNCTION [Start()] regression/main.nut line [2052]
-
-[id] 0
-[this] TABLE
-[Infinite] CLOSURE
-[list] INSTANCE
-[this] INSTANCE
-Your script made an error: excessive CPU usage in valuator function
-
-*FUNCTION [Start()] regression/main.nut line [2052]
-
-[Infinite] CLOSURE
-[list] INSTANCE
-[this] INSTANCE
-ERROR: The script died unexpectedly.
