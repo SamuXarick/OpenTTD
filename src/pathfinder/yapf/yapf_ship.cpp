@@ -380,9 +380,10 @@ public:
 	 * @param v Ship
 	 * @param max_penalty maximum pathfinder cost.
 	 * @param depot_tiles list of all possible depot destinations.
+	 * @param may_reverse whether the ship is allowed to reverse.
 	 * @return FindDepotData with the best depot tile, cost and whether to reverse.
 	 */
-	static inline FindDepotData FindNearestDepot(const Ship *v, int max_penalty, const std::span<TileIndex> depot_tiles)
+	static inline FindDepotData FindNearestDepot(const Ship *v, int max_penalty, const std::span<TileIndex> depot_tiles, bool may_reverse)
 	{
 		FindDepotData depot;
 		if (depot_tiles.empty()) return depot;
@@ -392,7 +393,7 @@ public:
 		TileIndex tile = INVALID_TILE;
 		Trackdir best_origin_dir = INVALID_TRACKDIR;
 
-		const bool search_both_ways = max_penalty == 0;
+		const bool search_both_ways = may_reverse && max_penalty == 0;
 		const Trackdir forward_dir = v->GetVehicleTrackdir();
 		const Trackdir reverse_dir = ReverseTrackdir(forward_dir);
 		const TrackdirBits forward_dirs = TrackdirToTrackdirBits(forward_dir);
@@ -539,8 +540,8 @@ bool YapfShipCheckReverse(const Ship *v, Trackdir *trackdir)
 	return CYapfShip::CheckShipReverse(v, trackdir, dest_tiles);
 }
 
-FindDepotData YapfShipFindNearestDepot(const Ship *v, int max_penalty)
+FindDepotData YapfShipFindNearestDepot(const Ship *v, int max_penalty, bool may_reverse)
 {
 	std::vector<TileIndex> depot_tiles = GetShipDepotTiles(v, max_penalty / YAPF_TILE_LENGTH);
-	return CYapfShip::FindNearestDepot(v, max_penalty, depot_tiles);
+	return CYapfShip::FindNearestDepot(v, max_penalty, depot_tiles, may_reverse);
 }
