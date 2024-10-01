@@ -99,6 +99,24 @@
 
 #include "safeguards.h"
 
+#include "map_func.h"
+#include "water.h"
+#include <unordered_map>
+struct DEBUG_DrawInstruction {
+	TileIndex tile;
+	TrackBits tracks;
+	std::unordered_map<Track, int> color_hints;
+};
+
+struct DEBUG_DrawRectangleInstruction {
+	TileIndex tile;
+	int color_hint;
+};
+
+std::unordered_map<uint32_t, DEBUG_DrawInstruction> _DEBUG_drawInstructions;
+std::unordered_map<uint32_t, DEBUG_DrawRectangleInstruction> _DEBUG_drawRectangleInstructions;
+
+
 Point _tile_fract_coords;
 
 
@@ -962,7 +980,7 @@ static const HighLightStyle _autorail_type[6][2] = {
  * @param *ti TileInfo Tile that is being drawn
  * @param autorail_type Offset into _AutorailTilehSprite[][]
  */
-static void DrawAutorailSelection(const TileInfo *ti, uint autorail_type)
+static void DrawAutorailSelection(const TileInfo *ti, uint autorail_type, PaletteID override_palette = 666666)
 {
 	SpriteID image;
 	PaletteID pal;
@@ -988,6 +1006,8 @@ static void DrawAutorailSelection(const TileInfo *ti, uint autorail_type)
 		image = SPR_AUTORAIL_BASE - offset;
 		pal = PALETTE_SEL_TILE_RED;
 	}
+
+	if (override_palette != 666666) pal = override_palette;
 
 	DrawSelectionSprite(image, _thd.make_square_red ? PALETTE_SEL_TILE_RED : pal, ti, 7, foundation_part);
 }
@@ -1289,7 +1309,42 @@ static void ViewportAddLandscape()
 				_vd.last_foundation_child[1] = nullptr;
 
 				_tile_type_procs[tile_type]->draw_tile_proc(&_cur_ti);
-				if (_cur_ti.tile != INVALID_TILE) DrawTileSelection(&_cur_ti);
+				if (_cur_ti.tile != INVALID_TILE) {
+					DrawTileSelection(&_cur_ti);
+
+					const std::unordered_map<TrackBits, HighLightStyle> trackbit_highlightstyle_map = {
+						{TRACK_BIT_X, HT_DIR_X},
+						{TRACK_BIT_Y, HT_DIR_Y},
+						{TRACK_BIT_UPPER, HT_DIR_HU},
+						{TRACK_BIT_LOWER, HT_DIR_HL},
+						{TRACK_BIT_RIGHT, HT_DIR_VR},
+						{TRACK_BIT_LEFT, HT_DIR_VL} };
+
+					const auto it = _DEBUG_drawInstructions.find(_cur_ti.tile.base());
+					const auto it_rect = _DEBUG_drawRectangleInstructions.find(_cur_ti.tile.base());
+
+					if (it != _DEBUG_drawInstructions.end()) {
+						for (Track t : SetTrackBitIterator(it->second.tracks)) {
+							PaletteID pal = PAL_NONE;
+							if (it->second.color_hints[t] == 1) pal = PALETTE_SEL_TILE_RED;
+							if (it->second.color_hints[t] == 2) pal = PALETTE_SEL_TILE_BLUE;
+							if (it->second.color_hints[t] == 3) pal = PALETTE_ALL_BLACK;
+							if (it->second.color_hints[t] == 4) pal = PALETTE_TO_TRANSPARENT;
+							if (it->second.color_hints[t] == 5) pal = PALETTE_TILE_RED_PULSATING;
+							DrawAutorailSelection(&_cur_ti, _autorail_type[trackbit_highlightstyle_map.at(TrackToTrackBits(t))][0], pal);
+						}
+					}
+					if (it_rect != _DEBUG_drawRectangleInstructions.end()) {
+						PaletteID pal = PAL_NONE;
+						if (it_rect->second.color_hint == 1) pal = PALETTE_SEL_TILE_RED;
+						if (it_rect->second.color_hint == 2) pal = PALETTE_SEL_TILE_BLUE;
+						if (it_rect->second.color_hint == 3) pal = PALETTE_ALL_BLACK;
+						if (it_rect->second.color_hint == 4) pal = PALETTE_TO_TRANSPARENT;
+						if (it_rect->second.color_hint == 5) pal = PALETTE_TILE_RED_PULSATING;
+						DrawTileSelectionRect(&_cur_ti, pal);
+					}
+				}
+
 			}
 		}
 	}
@@ -3664,4 +3719,28 @@ void SetViewportCatchmentTown(const Town *t, bool sel)
 		MarkWholeScreenDirty();
 	}
 	if (_viewport_highlight_town != nullptr) SetWindowDirty(WC_TOWN_VIEW, _viewport_highlight_town->index);
+}
+
+void DEBUG_addDrawInstruction(TileIndex tile, Track track, int color_hint, bool override) // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+{
+	if (HasBit(_DEBUG_drawInstructions[tile.base()].tracks, track) && !override) return;
+
+	_DEBUG_drawInstructions.at(tile.base()).tracks |= TrackToTrackBits(track);
+	_DEBUG_drawInstructions.at(tile.base()).color_hints[track] = color_hint;
+	MarkTileDirtyByTile(tile);
+}
+
+void DEBUG_addDrawRectangleInstruction(TileIndex tile, int color_hint, bool override) // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+{
+	if (_DEBUG_drawRectangleInstructions.count(tile.base()) > 0 && !override) return;
+
+	_DEBUG_drawRectangleInstructions[tile.base()] = { tile, color_hint };
+	MarkTileDirtyByTile(tile);
+}
+
+void DEBUG_clearDrawInstructions()
+{
+	_DEBUG_drawInstructions.clear();
+	_DEBUG_drawRectangleInstructions.clear();
+	MarkWholeScreenDirty();
 }

@@ -15,6 +15,7 @@
 #include "../water_regions.h"
 
 #include "../../safeguards.h"
+#include "viewport_func.h"
 
 constexpr int DIRECT_NEIGHBOR_COST = 100;
 constexpr int NODES_PER_REGION = 4;
@@ -82,6 +83,16 @@ struct CYapfRegionNodeT {
 	inline int GetCost() { return m_cost; }
 	inline int GetCostEstimate() { return m_estimate; }
 	inline bool operator<(const Node &other) const { return m_estimate < other.m_estimate; }
+
+	TileIndex GetTile()
+	{
+		return TileXY(1, 1);
+	}
+
+	Trackdir GetTrackdir()
+	{
+		return TRACKDIR_BEGIN;
+	}
 };
 
 /** YAPF origin for water regions. */
@@ -212,10 +223,18 @@ public:
 		if (!pf.FindPath(v)) return {}; // Path not found.
 
 		Node *node = pf.GetBestNode();
+
+		auto *n = node;
+		while (n != nullptr){
+			n = n->m_parent;
+			if (n != nullptr) DEBUG_MarkRegion(n->m_key.m_water_region_patch.x, n->m_key.m_water_region_patch.y, n->m_key.m_water_region_patch.label, 4, true);
+		}
+
 		for (int i = 0; i < max_returned_path_length - 1; i += !find_closest_depot) {
 			if (node != nullptr) {
 				node = node->m_parent;
 				if (node != nullptr) path.push_back(node->m_key.m_water_region_patch);
+				if (node != nullptr) DEBUG_MarkRegion(node->m_key.m_water_region_patch.x, node->m_key.m_water_region_patch.y, node->m_key.m_water_region_patch.label, 3, true);
 				continue;
 			}
 			break;

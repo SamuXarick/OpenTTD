@@ -13,6 +13,9 @@
 #include "../../debug.h"
 #include "../../settings_type.h"
 
+#include "viewport_func.h"
+#define ENABLE_YAPF_DEBUG_DRAWING 1 // TODO KB Remove
+
 /**
  * CYapfBaseT - A-star type path finder base class.
  *  Derive your own pathfinder from it. You must provide the following template argument:
@@ -129,6 +132,9 @@ public:
 
 			m_nodes.PopOpenNode(best_open_node->GetKey());
 			m_nodes.InsertClosedNode(*best_open_node);
+#ifdef ENABLE_YAPF_DEBUG_DRAWING
+			DEBUG_addDrawInstruction(best_open_node->GetTile(), TrackdirToTrack(best_open_node->GetTrackdir()), 3, true);// 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+#endif
 		}
 
 		const bool destination_found = (m_pBestDestNode != nullptr);
@@ -170,6 +176,9 @@ public:
 	/** Add new node (created by CreateNewNode and filled with data) into open list */
 	inline void AddStartupNode(Node &n)
 	{
+#ifdef ENABLE_YAPF_DEBUG_DRAWING
+		DEBUG_addDrawInstruction(n.GetTile(), TrackdirToTrack(n.GetTrackdir()), 3);// 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+#endif
 		Yapf().PfNodeCacheFetch(n);
 		/* insert the new node only if it is not there */
 		if (m_nodes.FindOpenNode(n.m_key) == nullptr) {
@@ -273,6 +282,9 @@ public:
 		/* the new node is really new
 		 * add it to the open list */
 		m_nodes.InsertOpenNode(n);
+		#ifdef ENABLE_YAPF_DEBUG_DRAWING
+			DEBUG_addDrawInstruction(n.GetTile(), TrackdirToTrack(n.GetTrackdir()), 1);// 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+		#endif
 		if (set_intermediate) m_pBestIntermediateNode = &n;
 	}
 

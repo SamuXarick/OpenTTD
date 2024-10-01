@@ -1498,6 +1498,8 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 
 		DrawBridgeMiddle(ti);
 	}
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 

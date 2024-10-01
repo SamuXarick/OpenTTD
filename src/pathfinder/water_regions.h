@@ -68,4 +68,6 @@ void PrintWaterRegionDebugInfo(TileIndex tile);
 using IsShipDepotRegionCallBack = std::function<bool(const TileIndex)>;
 TileIndex GetShipDepotInWaterRegionPatch(const std::span<WaterRegionPatchDesc> high_level_path, IsShipDepotRegionCallBack &callback);
 
+void DEBUG_MarkRegion(int x, int y, int label, int color, bool override);  // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+
 #endif /* WATER_REGIONS_H */

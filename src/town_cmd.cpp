@@ -57,6 +57,7 @@
 #include "timer/timer_game_calendar.h"
 #include "timer/timer_game_economy.h"
 #include "timer/timer_game_tick.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/town_land.h"
@@ -311,6 +312,8 @@ static void DrawTile_Town(TileInfo *ti)
 
 		if (proc >= 0) _town_draw_tile_procs[proc](ti);
 	}
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 static int GetSlopePixelZ_Town(TileIndex tile, uint, uint, bool)

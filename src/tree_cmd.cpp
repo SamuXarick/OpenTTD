@@ -25,6 +25,7 @@
 #include "timer/timer_game_tick.h"
 #include "tree_cmd.h"
 #include "landscape_cmd.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/tree_land.h"
@@ -583,6 +584,8 @@ static void DrawTile_Trees(TileInfo *ti)
 	}
 
 	EndSpriteCombine();
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 

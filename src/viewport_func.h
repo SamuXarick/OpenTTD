@@ -119,4 +119,10 @@ inline void SetViewportCatchmentSpecializedStation(const Waypoint *st, bool sel)
 	SetViewportCatchmentWaypoint(st, sel);
 }
 
+/* TODO KB remove */
+#include "track_type.h"
+void DEBUG_addDrawInstruction(TileIndex tile, Track track, int color_hint, bool override = false);
+void DEBUG_addDrawRectangleInstruction(TileIndex tile, int color_hint, bool override = false);
+void DEBUG_clearDrawInstructions();
+
 #endif /* VIEWPORT_FUNC_H */

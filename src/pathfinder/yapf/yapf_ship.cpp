@@ -241,6 +241,9 @@ public:
 	static Trackdir ChooseShipTrack(const Ship *v, TileIndex &tile, TrackdirBits forward_dirs, TrackdirBits reverse_dirs, const std::span<TileIndex> dest_tiles, int max_penalty,
 		bool &path_found, ShipPathCache &path_cache, Trackdir &best_origin_dir)
 	{
+		DEBUG_clearDrawInstructions();
+		std::deque<std::tuple<Tile, Trackdir, int>> path_drawing;
+
 		std::vector<WaterRegionPatchDesc> high_level_path = YapfShipFindWaterRegionPath(v, tile, NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1, dest_tiles);
 		if (high_level_path.empty()) {
 			path_found = false;
@@ -315,9 +318,14 @@ public:
 				} else {
 					path_cache.clear();
 				}
+				path_drawing.push_front({ node->GetTile(), node->GetTrackdir(), node_water_patch_on_high_level_path ? 0 : 1 });
 				node = node->m_parent;
 			}
 			assert(node->GetTile() == v->tile);
+
+			for (const auto &[tile, trackdir, color] : path_drawing) {
+				DEBUG_addDrawInstruction(tile, TrackdirToTrack(trackdir), color, true); // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+			}
 
 			/* Return INVALID_TRACKDIR to trigger a ship reversal if that is the best option. */
 			best_origin_dir = node->GetTrackdir();

@@ -47,6 +47,7 @@
 #include "timer/timer_game_calendar.h"
 #include "timer/timer_game_economy.h"
 #include "timer/timer_game_tick.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/industry_land.h"
@@ -384,6 +385,8 @@ static void DrawTile_Industry(TileInfo *ti)
 		int proc = dits->draw_proc - 1;
 		if (proc >= 0) _industry_draw_tile_procs[proc](ti);
 	}
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 static int GetSlopePixelZ_Industry(TileIndex tile, uint, uint, bool)

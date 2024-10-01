@@ -42,6 +42,7 @@
 #include "road_cmd.h"
 #include "landscape_cmd.h"
 #include "rail_cmd.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/roadtypes.h"
@@ -1863,6 +1864,8 @@ static void DrawTile_Road(TileInfo *ti)
 		}
 	}
 	DrawBridgeMiddle(ti);
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 /**

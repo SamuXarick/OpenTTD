@@ -13,6 +13,7 @@
 #include "viewport_func.h"
 #include "slope_func.h"
 #include "water.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/sprites.h"
@@ -22,6 +23,8 @@
 static void DrawTile_Void(TileInfo *ti)
 {
 	DrawGroundSprite(SPR_FLAT_BARE_LAND + SlopeToSpriteOffset(ti->tileh), PALETTE_ALL_BLACK);
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 

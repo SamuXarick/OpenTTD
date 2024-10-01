@@ -16,6 +16,7 @@
 #include "core/random_func.hpp"
 #include "newgrf_generic.h"
 #include "landscape_cmd.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/sprites.h"
@@ -125,6 +126,8 @@ static void DrawTile_Clear(TileInfo *ti)
 	}
 
 	DrawBridgeMiddle(ti);
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 static int GetSlopePixelZ_Clear(TileIndex tile, uint x, uint y, bool)

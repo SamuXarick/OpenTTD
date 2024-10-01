@@ -33,6 +33,7 @@
 #include "object_map.h"
 #include "rail_cmd.h"
 #include "landscape_cmd.h"
+#include "pathfinder/water_regions.h"
 
 #include "table/strings.h"
 #include "table/railtypes.h"
@@ -2538,6 +2539,8 @@ static void DrawTile_Track(TileInfo *ti)
 		DrawRailTileSeq(ti, dts, TO_BUILDINGS, relocation, 0, _drawtile_track_palette);
 	}
 	DrawBridgeMiddle(ti);
+
+	if (TileX(ti->tile) % WATER_REGION_EDGE_LENGTH == 0 || TileY(ti->tile) % WATER_REGION_EDGE_LENGTH == 0) DrawGroundSprite(SPR_DOT, PAL_NONE);
 }
 
 void DrawTrainDepotSprite(int x, int y, int dir, RailType railtype)

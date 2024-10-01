@@ -38,6 +38,10 @@ static inline int GetWaterRegionMapSizeY() { return Map::SizeY() / WATER_REGION_
 static inline TWaterRegionIndex GetWaterRegionIndex(int region_x, int region_y) { return GetWaterRegionMapSizeX() * region_y + region_x; }
 static inline TWaterRegionIndex GetWaterRegionIndex(TileIndex tile) { return GetWaterRegionIndex(GetWaterRegionX(tile), GetWaterRegionY(tile)); }
 
+#include "command_func.h"
+#include "signs_cmd.h"
+bool _water_regions_signs_placed = false;
+
 using TWaterRegionPatchLabelArray = std::array<TWaterRegionPatchLabel, WATER_REGION_NUMBER_OF_TILES>;
 
 /**
@@ -125,6 +129,16 @@ public:
 	 */
 	void ForceUpdate()
 	{
+		if (!_water_regions_signs_placed) {
+			for (int region_y = 0; region_y < GetWaterRegionMapSizeY(); region_y++) {
+				for (int region_x = 0; region_x < GetWaterRegionMapSizeX(); region_x++) {
+					std::string text = fmt::format("{},{}", region_x, region_y);
+					Command<CMD_PLACE_SIGN>::Do(DC_EXEC, TileXY(region_x * WATER_REGION_EDGE_LENGTH, region_y * WATER_REGION_EDGE_LENGTH), text);
+				}
+			}
+			_water_regions_signs_placed = true;
+		}
+
 		Debug(map, 3, "Updating water region ({},{})", GetWaterRegionX(this->tile_area.tile), GetWaterRegionY(this->tile_area.tile));
 		this->data.has_cross_region_aqueducts = false;
 
@@ -405,6 +419,8 @@ void VisitWaterRegionPatchNeighbors(const WaterRegionPatchDesc &water_region_pat
 	}
 }
 
+#include "viewport_func.h"
+
 /**
  * Allocates the appropriate amount of water regions for the current map size
  */
@@ -412,6 +428,7 @@ void AllocateWaterRegions()
 {
 	const int number_of_regions = GetWaterRegionMapSizeX() * GetWaterRegionMapSizeY();
 
+	_water_regions_signs_placed = false;
 	_water_region_data.clear();
 	_water_region_data.resize(number_of_regions);
 
@@ -420,11 +437,26 @@ void AllocateWaterRegions()
 
 	Debug(map, 2, "Allocating {} x {} water regions", GetWaterRegionMapSizeX(), GetWaterRegionMapSizeY());
 	assert(_is_water_region_valid.size() == _water_region_data.size());
+	DEBUG_clearDrawInstructions();
 }
 
 void PrintWaterRegionDebugInfo(TileIndex tile)
 {
 	GetUpdatedWaterRegion(tile).PrintDebugInfo();
+}
+
+void DEBUG_MarkRegion(int x, int y, int label, int color, bool override)  // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+{
+	for (int dx = 0; dx < WATER_REGION_EDGE_LENGTH; ++dx) {
+		for (int dy = 0; dy < WATER_REGION_EDGE_LENGTH; ++dy) {
+			int tx = x * WATER_REGION_EDGE_LENGTH + dx;
+			int ty = y * WATER_REGION_EDGE_LENGTH + dy;
+			TileIndex tile = TileXY(tx, ty);
+
+			if (label < 0 || GetWaterRegionPatchInfo(tile).label == label)
+				DEBUG_addDrawRectangleInstruction(tile, color, override);  // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+		}
+	}
 }
 
 /**
