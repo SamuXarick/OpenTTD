@@ -93,13 +93,13 @@ public:
 		return std::find(m_destTiles.begin(), m_destTiles.end(), tile) != m_destTiles.end();
 	}
 
-	inline TileIndex GetShipDepotDestination(const WaterRegionPatchDesc &water_region_patch)
+	inline TileIndex GetShipDepotDestination(const std::span<WaterRegionPatchDesc> high_level_path)
 	{
 		IsShipDepotRegionCallBack HasShipDepot = [&](const TileIndex tile)
 		{
 			return std::find(m_destTiles.begin(), m_destTiles.end(), tile) != m_destTiles.end();
 		};
-		return GetShipDepotInWaterRegionPatch(water_region_patch, HasShipDepot);
+		return GetShipDepotInWaterRegionPatch(high_level_path, HasShipDepot);
 	}
 
 	static inline int CalcEstimate(Node &n, TileIndex destination_tile)
@@ -291,7 +291,7 @@ public:
 
 			/* Return early when only searching for the closest depot tile. */
 			if (find_closest_depot) {
-				tile = is_intermediate_destination ? pf.GetShipDepotDestination(high_level_path.back()) : node->GetTile();
+				tile = is_intermediate_destination ? pf.GetShipDepotDestination(high_level_path) : node->GetTile();
 				return INVALID_TRACKDIR;
 			}
 
