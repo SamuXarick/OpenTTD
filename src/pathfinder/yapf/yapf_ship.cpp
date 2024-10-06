@@ -87,6 +87,8 @@ public:
 
 		if (m_destStation != INVALID_STATION) return IsDockingTile(tile) && IsShipDestinationTile(tile, m_destStation);
 
+		if (n.m_parent == nullptr) return false;
+
 		if (!m_destAnyDepot) return tile == m_destTiles.front();
 
 		return std::find(m_destTiles.begin(), m_destTiles.end(), tile) != m_destTiles.end();
@@ -470,7 +472,7 @@ public:
 		/* Additional penalty for curves. */
 		c += CurveCost(n.m_parent->GetTrackdir(), n.GetTrackdir());
 
-		if (IsDockingTile(n.GetTile())) {
+		if (IsDockingTile(n.GetTile()) && m_max_cost == 0) {
 			/* Check docking tile for occupancy. */
 			uint count = 0;
 			HasVehicleOnPos(n.GetTile(), &count, &CountShipProc);

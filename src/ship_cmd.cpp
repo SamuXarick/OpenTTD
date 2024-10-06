@@ -145,8 +145,33 @@ void Ship::GetImage(Direction direction, EngineImageType image_type, VehicleSpri
 static const Depot *FindClosestShipDepot(const Vehicle *v, uint max_distance, bool may_reverse = false)
 {
 	const TileIndex tile = v->tile;
-	if (IsShipDepotTile(tile) && IsTileOwner(tile, v->owner)) return Depot::GetByTile(tile);
+	if (IsShipDepotTile(tile) && IsTileOwner(tile, v->owner)) {
+		const Depot *depot = Depot::GetByTile(tile);
+		if (depot->xy == tile) {
+			const GetNewVehiclePosResult gp = GetNewVehiclePos(v);
+			if (Ship::From(v)->state != TRACK_BIT_WORMHOLE && gp.old_tile == gp.new_tile && !v->IsInDepot() && tile == gp.new_tile) {
+				const Trackdir trackdir = Ship::From(v)->GetVehicleTrackdir();
+				assert(HasTrackdir(TrackToTrackdirBits(TRACK_X) | TrackToTrackdirBits(TRACK_Y), trackdir));
+				int x = gp.x & 0xF;
+				int y = gp.y & 0xF;
 
+				switch (trackdir) {
+					case TRACKDIR_X_NE:
+						if (x >= 8 && y == 8) return depot;
+						break;
+					case TRACKDIR_Y_SE:
+						if (x == 8 && y <= 8) return depot;
+						break;
+					case TRACKDIR_X_SW:
+						if (x <= 8 && y == 8) return depot;
+						break;
+					case TRACKDIR_Y_NW:
+						if (x == 8 && y >= 8) return depot;
+						break;
+				}
+			}
+		}
+	}
 	FindDepotData sfdd = YapfShipFindNearestDepot(Ship::From(v), max_distance, may_reverse);
 
 	if (sfdd.tile == INVALID_TILE) return nullptr;
@@ -166,6 +191,7 @@ static void CheckIfShipNeedsService(Vehicle *v)
 	const Depot *depot = FindClosestShipDepot(v, max_distance);
 
 	if (depot == nullptr) {
+		assert(!(v->current_order.IsType(OT_GOTO_DEPOT) && v->current_order.GetDepotOrderType() == ODTFB_SERVICE));
 		if (v->current_order.IsType(OT_GOTO_DEPOT)) {
 			v->current_order.MakeDummy();
 			SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
@@ -173,6 +199,9 @@ static void CheckIfShipNeedsService(Vehicle *v)
 		return;
 	}
 
+	if (v->current_order.IsType(OT_GOTO_DEPOT) && v->current_order.GetDepotOrderType() == ODTFB_SERVICE) {
+		assert(v->dest_tile == depot->xy);
+	}
 	v->current_order.MakeGoToDepot(depot->index, ODTFB_SERVICE);
 	v->SetDestTile(depot->xy);
 	SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
