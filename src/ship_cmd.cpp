@@ -145,8 +145,26 @@ void Ship::GetImage(Direction direction, EngineImageType image_type, VehicleSpri
 static const Depot *FindClosestShipDepot(const Vehicle *v, uint max_distance, bool may_reverse = false)
 {
 	const TileIndex tile = v->tile;
-	if (IsShipDepotTile(tile) && IsTileOwner(tile, v->owner)) return Depot::GetByTile(tile);
+	if (IsShipDepotTile(tile) && IsTileOwner(tile, v->owner)) {
+		const Depot *depot = Depot::GetByTile(tile);
+		if (depot->xy == tile) {
+			const GetNewVehiclePosResult gp = GetNewVehiclePos(v);
+			if (tile == gp.new_tile) {
+				const Trackdir trackdir = v->GetVehicleTrackdir();
+				assert(HasTrackdir(TrackBitsToTrackdirBits(TRACK_BIT_CROSS), trackdir));
+				int x = gp.x % TILE_SIZE;
+				int y = gp.y % TILE_SIZE;
+				assert(x == TILE_SIZE / 2 || y == TILE_SIZE / 2);
 
+				if ((trackdir == TRACKDIR_X_NE && x >= TILE_SIZE / 2) ||
+					(trackdir == TRACKDIR_Y_SE && y <= TILE_SIZE / 2) ||
+					(trackdir == TRACKDIR_X_SW && x <= TILE_SIZE / 2) ||
+					(trackdir == TRACKDIR_Y_NW && y >= TILE_SIZE / 2)) {
+					return depot;
+				}
+			}
+		}
+	}
 	FindDepotData sfdd = YapfShipFindNearestDepot(Ship::From(v), max_distance, may_reverse);
 
 	if (sfdd.tile == INVALID_TILE) return nullptr;
@@ -166,6 +184,7 @@ static void CheckIfShipNeedsService(Vehicle *v)
 	const Depot *depot = FindClosestShipDepot(v, max_distance);
 
 	if (depot == nullptr) {
+		assert(!(v->current_order.IsType(OT_GOTO_DEPOT) && (v->current_order.GetDepotOrderType() & ODTFB_SERVICE)));
 		if (v->current_order.IsType(OT_GOTO_DEPOT)) {
 			v->current_order.MakeDummy();
 			SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
@@ -173,6 +192,7 @@ static void CheckIfShipNeedsService(Vehicle *v)
 		return;
 	}
 
+	assert(!(v->current_order.IsType(OT_GOTO_DEPOT) && (v->current_order.GetDepotOrderType() & ODTFB_SERVICE)) || v->dest_tile == depot->xy);
 	v->current_order.MakeGoToDepot(depot->index, ODTFB_SERVICE);
 	v->SetDestTile(depot->xy);
 	SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
