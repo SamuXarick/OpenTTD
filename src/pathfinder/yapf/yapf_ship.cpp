@@ -474,7 +474,7 @@ public:
 		/* Additional penalty for curves. */
 		c += this->CurveCost(n.parent->GetTrackdir(), n.GetTrackdir());
 
-		if (IsDockingTile(n.GetTile())) {
+		if (this->max_cost == 0 && IsDockingTile(n.GetTile()) && Yapf().GetVehicle()->current_order.IsType(OT_GOTO_STATION)) {
 			/* Check docking tile for occupancy. */
 			uint count = 0;
 			HasVehicleOnPos(n.GetTile(), &count, &CountShipProc);
