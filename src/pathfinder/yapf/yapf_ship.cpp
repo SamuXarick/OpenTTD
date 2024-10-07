@@ -295,6 +295,16 @@ public:
 
 			/* Return early when only searching for the closest depot tile. */
 			if (find_closest_depot) {
+				std::deque<std::tuple<TileIndex, Trackdir, int, int, int>> path_track_cost;
+				Node *n = pf.GetBestNode();
+				while (n != nullptr) {
+					path_drawing.push_front({ n->GetTile(), n->GetTrackdir(), 0 });
+					path_track_cost.push_front({ n->GetTile(), n->GetTrackdir(), n->m_cost, n->m_estimate, Delta(n->m_estimate, n->m_cost) });
+					n = n->m_parent;
+				}
+				for (const auto &[tile, trackdir, color] : path_drawing) {
+					DEBUG_addDrawInstruction(tile, TrackdirToTrack(trackdir), color, true); // 0 = normal, 1 = red, 2 = blue, 3 = black, 4 = transparent
+				}
 				tile = is_intermediate_destination ? pf.GetShipDepotDestination(high_level_path) : node->GetTile();
 				return INVALID_TRACKDIR;
 			}
