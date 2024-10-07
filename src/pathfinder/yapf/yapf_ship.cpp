@@ -20,7 +20,6 @@
 #include "../../safeguards.h"
 
 constexpr int NUMBER_OR_WATER_REGIONS_LOOKAHEAD = 4;
-constexpr int MAX_SHIP_PF_NODES = (NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1) * WATER_REGION_NUMBER_OF_TILES * 4; // 4 possible exit dirs per tile.
 
 constexpr int SHIP_LOST_PATH_LENGTH = 8; // The length of the (aimless) path assigned when a ship is lost.
 
@@ -224,7 +223,7 @@ public:
 		 * However the pathfinder can hit the node limit in certain situations such as long aqueducts or maze-like terrain.
 		 * If that happens we run the pathfinder again, but restricted only to the regions provided by the region pathfinder. */
 		for (int attempt = 0; attempt < 2; ++attempt) {
-			Tpf pf(MAX_SHIP_PF_NODES);
+			Tpf pf;
 
 			/* Set origin and destination nodes */
 			pf.SetOrigin(v->tile, forward_dirs | reverse_dirs);
@@ -418,21 +417,64 @@ struct CYapfShip_TypesT
 	typedef CYapfCostShipT<Types>             PfCost;        ///< Cost provider.
 };
 
-struct CYapfShip : CYapfT<CYapfShip_TypesT<CYapfShip, CFollowTrackWater, CShipNodeListExitDir > >
+/* YAPF type 1 - uses TileIndex/Trackdir as Node key */
+struct CYapfShip1 : CYapfT<CYapfShip_TypesT<CYapfShip1, CFollowTrackWater, CShipNodeListTrackDir> >
 {
-	explicit CYapfShip(int max_nodes) { m_max_search_nodes = max_nodes; }
+	explicit CYapfShip1()
+	{
+		/* 12 possible trackdirs per tile. */
+		m_max_search_nodes = (NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1) * WATER_REGION_NUMBER_OF_TILES * 12;
+	}
 };
+
+/* YAPF type 2 - uses TileIndex/DiagDirection as Node key */
+struct CYapfShip2 : CYapfT<CYapfShip_TypesT<CYapfShip2, CFollowTrackWater, CShipNodeListExitDir > >
+{
+	explicit CYapfShip2()
+	{
+		/* 4 possible exit dirs per tile. */
+		m_max_search_nodes = (NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1) * WATER_REGION_NUMBER_OF_TILES * 4;
+	}
+};
+
+static inline bool RequireTrackdirKey()
+{
+	/* If the two curve penalties are not equal, then it is not possible to use the
+	 * ExitDir keyed node list, as it there will be key overlap. Using Trackdir keyed
+	 * nodes means potentially more paths are tested, which would be wasteful if it's
+	 * not necessary.
+	 */
+	return _settings_game.pf.yapf.ship_curve45_penalty != _settings_game.pf.yapf.ship_curve90_penalty;
+}
 
 /** Ship controller helper - path finder invoker. */
 Track YapfShipChooseTrack(const Ship *v, TileIndex tile, bool &path_found, ShipPathCache &path_cache)
 {
+	/* default is YAPF type 2 */
+	typedef Trackdir (*PfnChooseShipTrack)(const Ship *, TileIndex, TrackdirBits, TrackdirBits, bool &path_found, ShipPathCache &path_cache, Trackdir &best_origin_dir);
+	/* check if non-default YAPF type needed */
+	PfnChooseShipTrack pfnChooseShipTrack = CYapfShip2::ChooseShipTrack; // default: ExitDir
+
+	if (_settings_game.pf.yapf.disable_node_optimization || RequireTrackdirKey()) {
+		pfnChooseShipTrack = &CYapfShip1::ChooseShipTrack; // Trackdir
+	}
+
 	Trackdir best_origin_dir = INVALID_TRACKDIR;
 	const TrackdirBits origin_dirs = TrackdirToTrackdirBits(v->GetVehicleTrackdir());
-	const Trackdir td_ret = CYapfShip::ChooseShipTrack(v, tile, origin_dirs, TRACKDIR_BIT_NONE, path_found, path_cache, best_origin_dir);
+	const Trackdir td_ret = pfnChooseShipTrack(v, tile, origin_dirs, TRACKDIR_BIT_NONE, path_found, path_cache, best_origin_dir);
 	return (td_ret != INVALID_TRACKDIR) ? TrackdirToTrack(td_ret) : INVALID_TRACK;
 }
 
 bool YapfShipCheckReverse(const Ship *v, Trackdir *trackdir)
 {
-	return CYapfShip::CheckShipReverse(v, trackdir);
+	/* default is YAPF type 2 */
+	typedef bool (*PfnCheckShipReverse)(const Ship *, Trackdir *);
+	/* check if non-default YAPF type needed */
+	PfnCheckShipReverse pfnCheckShipReverse = CYapfShip2::CheckShipReverse; // default: ExitDir
+
+	if (_settings_game.pf.yapf.disable_node_optimization || RequireTrackdirKey()) {
+		pfnCheckShipReverse = &CYapfShip1::CheckShipReverse; // Trackdir
+	}
+
+	return pfnCheckShipReverse(v, trackdir);
 }
