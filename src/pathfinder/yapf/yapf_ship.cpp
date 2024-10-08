@@ -19,9 +19,11 @@
 
 #include "../../safeguards.h"
 
-constexpr int NUMBER_OR_WATER_REGIONS_LOOKAHEAD = 4;
-
+constexpr int SHIP_EXITDIRS_PER_TILE = 4;
+constexpr int SHIP_TRACKDIRS_PER_TILE = 12;
 constexpr int SHIP_LOST_PATH_LENGTH = 8; // The length of the (aimless) path assigned when a ship is lost.
+
+static inline const int KeysPerTile() { return (_settings_game.pf.yapf.disable_node_optimization || RequireTrackdirKey()) ? SHIP_TRACKDIRS_PER_TILE : SHIP_EXITDIRS_PER_TILE; }
 
 template <class Types>
 class CYapfDestinationTileWaterT
@@ -212,7 +214,8 @@ public:
 	static Trackdir ChooseShipTrack(const Ship *v, TileIndex tile, TrackdirBits forward_dirs, TrackdirBits reverse_dirs,
 		bool &path_found, ShipPathCache &path_cache, Trackdir &best_origin_dir)
 	{
-		const std::vector<WaterRegionPatchDesc> high_level_path = YapfShipFindWaterRegionPath(v, tile, NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1);
+		const int number_of_water_regions_lookahead = RoundDivSU(_settings_game.pf.yapf.max_search_nodes, GetUpdatedWaterRegionNumberOfTiles() * KeysPerTile() * 2) - 1;
+		const std::vector<WaterRegionPatchDesc> high_level_path = YapfShipFindWaterRegionPath(v, tile, number_of_water_regions_lookahead + 1);
 		if (high_level_path.empty()) {
 			path_found = false;
 			/* Make the ship move around aimlessly. This prevents repeated pathfinder calls and clearly indicates that the ship is lost. */
@@ -223,12 +226,12 @@ public:
 		 * However the pathfinder can hit the node limit in certain situations such as long aqueducts or maze-like terrain.
 		 * If that happens we run the pathfinder again, but restricted only to the regions provided by the region pathfinder. */
 		for (int attempt = 0; attempt < 2; ++attempt) {
-			Tpf pf;
+			Tpf pf((number_of_water_regions_lookahead + 1) * CurrentWaterRegionNumberOfTiles() * KeysPerTile());
 
 			/* Set origin and destination nodes */
 			pf.SetOrigin(v->tile, forward_dirs | reverse_dirs);
 			pf.SetDestination(v);
-			const bool is_intermediate_destination = static_cast<int>(high_level_path.size()) >= NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1;
+			const bool is_intermediate_destination = static_cast<int>(high_level_path.size()) >= number_of_water_regions_lookahead + 1;
 			if (is_intermediate_destination) pf.SetIntermediateDestination(high_level_path.back());
 
 			/* Restrict the search area to prevent the low level pathfinder from expanding too many nodes. This can happen
@@ -420,24 +423,16 @@ struct CYapfShip_TypesT
 /* YAPF type 1 - uses TileIndex/Trackdir as Node key */
 struct CYapfShip1 : CYapfT<CYapfShip_TypesT<CYapfShip1, CFollowTrackWater, CShipNodeListTrackDir> >
 {
-	explicit CYapfShip1()
-	{
-		/* 12 possible trackdirs per tile. */
-		m_max_search_nodes = (NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1) * WATER_REGION_NUMBER_OF_TILES * 12;
-	}
+	explicit CYapfShip1(int max_nodes) { m_max_search_nodes = max_nodes; }
 };
 
 /* YAPF type 2 - uses TileIndex/DiagDirection as Node key */
 struct CYapfShip2 : CYapfT<CYapfShip_TypesT<CYapfShip2, CFollowTrackWater, CShipNodeListExitDir > >
 {
-	explicit CYapfShip2()
-	{
-		/* 4 possible exit dirs per tile. */
-		m_max_search_nodes = (NUMBER_OR_WATER_REGIONS_LOOKAHEAD + 1) * WATER_REGION_NUMBER_OF_TILES * 4;
-	}
+	explicit CYapfShip2(int max_nodes) { m_max_search_nodes = max_nodes; }
 };
 
-static inline bool RequireTrackdirKey()
+inline const bool RequireTrackdirKey()
 {
 	/* If the two curve penalties are not equal, then it is not possible to use the
 	 * ExitDir keyed node list, as it there will be key overlap. Using Trackdir keyed

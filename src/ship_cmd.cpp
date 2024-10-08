@@ -150,7 +150,7 @@ void Ship::GetImage(Direction direction, EngineImageType image_type, VehicleSpri
 
 static const Depot *FindClosestShipDepot(const Vehicle *v, uint max_distance)
 {
-	const int max_region_distance = (max_distance / WATER_REGION_EDGE_LENGTH) + 1;
+	const int max_region_distance = (max_distance / GetUpdatedWaterRegionEdgeLength()) + 1;
 
 	static std::unordered_set<int> visited_patch_hashes;
 	static std::deque<WaterRegionPatchDesc> patches_to_search;

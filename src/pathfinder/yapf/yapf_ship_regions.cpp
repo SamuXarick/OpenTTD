@@ -17,8 +17,7 @@
 #include "../../safeguards.h"
 
 constexpr int DIRECT_NEIGHBOR_COST = 100;
-constexpr int NODES_PER_REGION = 4;
-constexpr int MAX_NUMBER_OF_NODES = 65536;
+constexpr uint NODES_PER_REGION = 4;
 
 /** Yapf Node Key that represents a single patch of interconnected water within a water region. */
 struct CYapfRegionPatchNodeKey {
@@ -192,9 +191,15 @@ public:
 	{
 		const WaterRegionPatchDesc start_water_region_patch = GetWaterRegionPatchInfo(start_tile);
 
-		/* We reserve 4 nodes (patches) per water region. The vast majority of water regions have 1 or 2 regions so this should be a pretty
-		 * safe limit. We cap the limit at 65536 which is at a region size of 16x16 is equivalent to one node per region for a 4096x4096 map. */
-		Tpf pf(std::min(static_cast<int>(Map::Size() * NODES_PER_REGION) / WATER_REGION_NUMBER_OF_TILES, MAX_NUMBER_OF_NODES));
+		/**
+		 * We allocate 4 nodes (patches) per water region.
+		 * Most water regions contain 1 or 2 patches, making this a safe limit.
+		 * The maximum limit is:
+		 * - 65536 nodes for a 16x16 region
+		 * - 262144 nodes for an 8x8 region
+		 * This is equivalent to one node per region for a 4096x4096 map.
+		 */
+		Tpf pf(std::min(Map::Size() * NODES_PER_REGION, MAX_MAP_SIZE * MAX_MAP_SIZE) / CurrentWaterRegionNumberOfTiles());
 		pf.SetDestination(start_water_region_patch);
 
 		if (v->current_order.IsType(OT_GOTO_STATION)) {
@@ -310,4 +315,9 @@ struct CYapfRegionWater : CYapfT<CYapfRegion_TypesT<CYapfRegionWater, CRegionNod
 std::vector<WaterRegionPatchDesc> YapfShipFindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length)
 {
 	return CYapfRegionWater::FindWaterRegionPath(v, start_tile, max_returned_path_length);
+}
+
+const int IdealWaterRegionEdgeLength()
+{
+	return (_settings_game.pf.yapf.disable_node_optimization || RequireTrackdirKey()) ? WATER_REGION_EDGE_LENGTH_TRACKDIR : WATER_REGION_EDGE_LENGTH_EXITDIR;
 }
