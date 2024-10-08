@@ -16,8 +16,7 @@
 using TWaterRegionPatchLabel = uint8_t;
 using TWaterRegionIndex = uint;
 
-constexpr int WATER_REGION_EDGE_LENGTH = 16;
-constexpr int WATER_REGION_NUMBER_OF_TILES = WATER_REGION_EDGE_LENGTH * WATER_REGION_EDGE_LENGTH;
+constexpr int MAX_ALLOWED_WATER_REGION_EDGE_LENGTH = 16;
 constexpr TWaterRegionPatchLabel INVALID_WATER_REGION_PATCH = 0;
 
 /**
@@ -64,6 +63,9 @@ void VisitWaterRegionPatchNeighbors(const WaterRegionPatchDesc &water_region_pat
 void AllocateWaterRegions();
 
 void PrintWaterRegionDebugInfo(TileIndex tile);
+
+const int CurrentWaterRegionNumberOfTiles();
+const int GetUpdatedWaterRegionNumberOfTiles();
 
 using IsShipDepotRegionCallBack = std::function<bool(const TileIndex)>;
 TileIndex GetShipDepotInWaterRegionPatch(const std::span<WaterRegionPatchDesc> high_level_path, IsShipDepotRegionCallBack &callback);

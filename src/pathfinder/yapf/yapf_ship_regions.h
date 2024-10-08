@@ -18,4 +18,9 @@ struct Ship;
 
 std::vector<WaterRegionPatchDesc> YapfShipFindWaterRegionPath(const Ship *v, TileIndex start_tile, int max_returned_path_length, const std::span<TileIndex> dest_tiles);
 
+inline const bool RequireTrackdirKey();
+const int IdealWaterRegionEdgeLength();
+constexpr int WATER_REGION_EDGE_LENGTH_EXITDIR = 16;
+constexpr int WATER_REGION_EDGE_LENGTH_TRACKDIR = 8;
+
 #endif /* YAPF_SHIP_REGIONS_H */
