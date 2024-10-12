@@ -105,25 +105,29 @@ public:
 		this->vehicle = v;
 
 		Yapf().PfSetStartupNodes();
+		bool destination_found = true;
 
 		for (;;) {
 			this->num_steps++;
 			Node *best_open_node = this->nodes.GetBestOpenNode();
 			if (best_open_node == nullptr) break;
 
-			if (Yapf().PfDetectDestination(*best_open_node)) {
-				this->best_dest_node = best_open_node;
+			/* if the best open node was worse than the best path found, we can finish */
+			if (this->best_dest_node != nullptr && this->best_dest_node->GetCost() < best_open_node->GetCostEstimate()) {
 				break;
 			}
 
 			Yapf().PfFollowNode(*best_open_node);
-			if (this->max_search_nodes != 0 && this->nodes.ClosedCount() >= this->max_search_nodes) break;
+			if (this->max_search_nodes != 0 && this->nodes.ClosedCount() >= this->max_search_nodes) {
+				destination_found = false;
+				break;
+			}
 
 			this->nodes.PopOpenNode(best_open_node->GetKey());
 			this->nodes.InsertClosedNode(*best_open_node);
 		}
 
-		const bool destination_found = (this->best_dest_node != nullptr);
+		destination_found = (this->best_dest_node != nullptr);
 
 		if (_debug_yapf_level >= 3) {
 			const UnitID veh_idx = (this->vehicle != nullptr) ? this->vehicle->unitnumber : 0;
@@ -223,6 +227,16 @@ public:
 
 		/* have the cost or estimate callbacks marked this node as invalid? */
 		if (!valid) return;
+
+		/* detect the destination */
+		bool bDestination = Yapf().PfDetectDestination(n);
+		if (bDestination) {
+			if (this->best_dest_node == nullptr || n < *this->best_dest_node) {
+				this->best_dest_node = &n;
+			}
+			this->nodes.FoundBestNode(n);
+			return;
+		}
 
 		/* The new node can be set as the best intermediate node only once we're
 		 * certain it will be finalized by being inserted into the open list. */
