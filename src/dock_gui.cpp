@@ -83,7 +83,7 @@ static TileIndex GetOtherAqueductEnd(TileIndex tile_from, TileIndex *tile_to = n
 
 	TileIndex endtile = tile_from;
 	for (int length = 0; IsValidTile(endtile) && TileX(endtile) != 0 && TileY(endtile) != 0; length++) {
-		endtile = TileAdd(endtile, offset);
+		endtile += offset;
 
 		if (length > max_length) break;
 
