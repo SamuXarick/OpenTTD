@@ -444,20 +444,6 @@ inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
 
 
 /**
- * Adds a given offset to a tile.
- *
- * @param tile The tile to add an offset to.
- * @param offset The offset to add.
- * @return The resulting tile.
- */
-#ifndef _DEBUG
-	constexpr TileIndex TileAdd(TileIndex tile, TileIndexDiff offset) { return tile + offset; }
-#else
-	TileIndex TileAdd(TileIndex tile, TileIndexDiff offset);
-#endif
-
-
-/**
  * Add a TileIndexDiffC to a TileIndex and returns the new one.
  *
  * Returns tile + the diff given in diff.
@@ -618,7 +604,7 @@ inline TileIndexDiff TileOffsByDir(Direction dir)
  */
 inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
 {
-	return TileAdd(tile, TileOffsByDir(dir));
+	return tile + TileOffsByDir(dir);
 }
 
 /**
@@ -630,7 +616,7 @@ inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
  */
 inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
 {
-	return TileAdd(tile, TileOffsByDiagDir(dir));
+	return tile + TileOffsByDiagDir(dir);
 }
 
 /**

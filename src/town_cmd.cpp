@@ -1024,7 +1024,7 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 
 		/* Test for roadbit parallel to dir and facing towards the middle axis */
 		if (IsValidTile(tile + cur) &&
-				GetTownRoadBits(TileAdd(tile, cur)) & DiagDirToRoadBits((pos & 2) ? dir : ReverseDiagDir(dir))) return true;
+				GetTownRoadBits(tile + cur) & DiagDirToRoadBits((pos & 2) ? dir : ReverseDiagDir(dir))) return true;
 	}
 	return false;
 }
@@ -1887,7 +1887,7 @@ static bool GrowTown(Town *t)
 			cur_company.Restore();
 			return success;
 		}
-		tile = TileAdd(tile, ToTileIndexDiff(ptr));
+		tile += ToTileIndexDiff(ptr);
 	}
 
 	/* No road available, try to build a random road block by
@@ -1904,7 +1904,7 @@ static bool GrowTown(Town *t)
 					return true;
 				}
 			}
-			tile = TileAdd(tile, ToTileIndexDiff(ptr));
+			tile += ToTileIndexDiff(ptr);
 		}
 	}
 
