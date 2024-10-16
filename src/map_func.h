@@ -456,6 +456,25 @@ inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
 	TileIndex TileAdd(TileIndex tile, TileIndexDiff offset);
 #endif
 
+
+/**
+ * Add a TileIndexDiffC to a TileIndex and returns the new one.
+ *
+ * Returns tile + the diff given in diff.
+ *
+ * @param tile The base tile to add the offset on
+ * @param diff The offset to add on the tile
+ * @return The resulting TileIndex
+ */
+inline TileIndex AddTileIndexDiffC(TileIndex tile, TileIndexDiffC diff)
+{
+	int x = TileX(tile) + diff.x;
+	int y = TileY(tile) + diff.y;
+	assert((uint)x < Map::SizeX() && (uint)y < Map::SizeY());
+
+	return TileXY(x, y);
+}
+
 /**
  * Adds a given offset to a tile.
  *
@@ -466,7 +485,11 @@ inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
  */
 inline TileIndex TileAddXY(TileIndex tile, int x, int y)
 {
-	return TileAdd(tile, TileDiffXY(x, y));
+	TileIndexDiffC difference;
+	
+	difference.x = x;
+	difference.y = y;
+	return AddTileIndexDiffC(tile, difference);
 }
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
