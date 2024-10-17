@@ -313,7 +313,7 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 {
 	CommandCost cost(EXPENSES_CONSTRUCTION);
 
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileOffsByDiagDir(dir);
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile + delta);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
@@ -394,7 +394,7 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 		if (ret.Failed()) return ret;
 	}
 
-	TileIndexDiff delta = TileOffsByDiagDir(GetLockDirection(tile));
+	TileIndexDiffC delta = TileOffsByDiagDir(GetLockDirection(tile));
 
 	/* make sure no vehicle is on the tile. */
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
@@ -613,7 +613,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_AUTO) return CommandCost(STR_ERROR_BUILDING_MUST_BE_DEMOLISHED);
 			if (_current_company == OWNER_WATER) return CMD_ERROR;
 			/* move to the middle tile.. */
-			return RemoveLock(tile + ToTileIndexDiff(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
+			return RemoveLock(tile + ToTileIndexDiffC(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
 		}
 
 		case WATER_TILE_DEPOT:

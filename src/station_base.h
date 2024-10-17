@@ -337,13 +337,13 @@ struct Airport : public TileArea {
 	{
 		const AirportSpec *as = this->GetSpec();
 		switch (this->rotation) {
-			case DIR_N: return this->tile + ToTileIndexDiff(tidc);
+			case DIR_N: return this->tile + ToTileIndexDiffC(tidc);
 
-			case DIR_E: return this->tile + TileDiffXY(tidc.y, as->size_x - 1 - tidc.x);
+			case DIR_E: return this->tile + TileIndexDiffC(tidc.y, as->size_x - 1 - tidc.x);
 
-			case DIR_S: return this->tile + TileDiffXY(as->size_x - 1 - tidc.x, as->size_y - 1 - tidc.y);
+			case DIR_S: return this->tile + TileIndexDiffC(as->size_x - 1 - tidc.x, as->size_y - 1 - tidc.y);
 
-			case DIR_W: return this->tile + TileDiffXY(as->size_y - 1 - tidc.y, tidc.x);
+			case DIR_W: return this->tile + TileIndexDiffC(as->size_y - 1 - tidc.y, tidc.x);
 
 			default: NOT_REACHED();
 		}

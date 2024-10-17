@@ -18,9 +18,13 @@
  * the resulting TileIndex of the start tile applied
  * with this saved difference.
  *
- * @see TileDiffXY(int, int)
+ * @see TileIndexDiffC
  */
 typedef int32_t TileIndexDiff;
+
+/* Helper functions to provide explicit +=/-= operators for TileIndex and TileIndexDiff. */
+constexpr TileIndex &operator+=(TileIndex &tile, TileIndexDiff offset) { tile = tile + TileIndex(offset); return tile; }
+constexpr TileIndex &operator-=(TileIndex &tile, TileIndexDiff offset) { tile = tile - TileIndex(offset); return tile; }
 
 /**
  * A pair-construct of a TileIndexDiff.
@@ -28,10 +32,7 @@ typedef int32_t TileIndexDiff;
  * This can be used to save the difference between to
  * tiles as a pair of x and y value.
  */
-struct TileIndexDiffC {
-	int16_t x;        ///< The x value of the coordinate
-	int16_t y;        ///< The y value of the coordinate
-};
+struct TileIndexDiffC;
 
 /** Minimal and maximal map width and height */
 static const uint MIN_MAP_SIZE_BITS = 6;                       ///< Minimal size of map is equal to 2 ^ MIN_MAP_SIZE_BITS

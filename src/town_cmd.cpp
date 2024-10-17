@@ -479,9 +479,9 @@ static void RemoveNearbyStations(Town *t, TileIndex tile, BuildingFlags flags)
 		const Station *st = *it;
 
 		bool covers_area = st->TileIsInCatchment(tile);
-		if (flags & BUILDING_2_TILES_Y)   covers_area |= st->TileIsInCatchment(tile + TileDiffXY(0, 1));
-		if (flags & BUILDING_2_TILES_X)   covers_area |= st->TileIsInCatchment(tile + TileDiffXY(1, 0));
-		if (flags & BUILDING_HAS_4_TILES) covers_area |= st->TileIsInCatchment(tile + TileDiffXY(1, 1));
+		if (flags & BUILDING_2_TILES_Y)   covers_area |= st->TileIsInCatchment(tile + TileIndexDiffC(0, 1));
+		if (flags & BUILDING_2_TILES_X)   covers_area |= st->TileIsInCatchment(tile + TileIndexDiffC(1, 0));
+		if (flags & BUILDING_HAS_4_TILES) covers_area |= st->TileIsInCatchment(tile + TileIndexDiffC(1, 1));
 
 		if (covers_area && !st->CatchmentCoversTown(t->index)) {
 			it = t->stations_near.erase(it);
@@ -1035,7 +1035,7 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 	if (!IsValidTile(tile)) return false;
 
 	/* Lookup table for the used diff values */
-	const TileIndexDiff tid_lt[3] = {
+	const TileIndexDiffC tid_lt[3] = {
 		TileOffsByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90RIGHT)),
 		TileOffsByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90LEFT)),
 		TileOffsByDiagDir(ReverseDiagDir(dir)),
@@ -1044,7 +1044,7 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 	dist_multi = (dist_multi + 1) * 4;
 	for (uint pos = 4; pos < dist_multi; pos++) {
 		/* Go (pos / 4) tiles to the left or the right */
-		TileIndexDiff cur = tid_lt[(pos & 1) ? 0 : 1] * (pos / 4);
+		TileIndexDiffC cur = tid_lt[(pos & 1) ? 0 : 1] * (pos / 4);
 
 		/* Use the current tile as origin, or go one tile backwards */
 		if (pos & 2) cur += tid_lt[2];
@@ -1263,7 +1263,7 @@ static bool GrowTownWithRoad(const Town *t, TileIndex tile, RoadBits rcmd)
  */
 static bool CanRoadContinueIntoNextTile(const Town *t, const TileIndex tile, const DiagDirection road_dir)
 {
-	const TileIndexDiff delta = TileOffsByDiagDir(road_dir); // +1 tile in the direction of the road
+	const TileIndexDiffC delta = TileOffsByDiagDir(road_dir); // +1 tile in the direction of the road
 	TileIndex next_tile = tile + delta; // The tile beyond which must be connectable to the target tile
 	RoadBits rcmd = DiagDirToRoadBits(ReverseDiagDir(road_dir));
 	RoadType rt = GetTownRoadType();
@@ -1346,7 +1346,7 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 	uint bridge_length = 0;       // This value stores the length of the possible bridge
 	TileIndex bridge_tile = tile; // Used to store the other waterside
 
-	const TileIndexDiff delta = TileOffsByDiagDir(bridge_dir);
+	const TileIndexDiffC delta = TileOffsByDiagDir(bridge_dir);
 
 	/* To prevent really small towns from building disproportionately
 	 * long bridges, make the max a function of its population. */
@@ -1421,7 +1421,7 @@ static bool GrowTownWithTunnel(const Town *t, const TileIndex tile, const DiagDi
 	/* Assure that the tunnel is connectable to the start side */
 	if (!(GetTownRoadBits(TileAddByDiagDir(tile, ReverseDiagDir(tunnel_dir))) & DiagDirToRoadBits(tunnel_dir))) return false;
 
-	const TileIndexDiff delta = TileOffsByDiagDir(tunnel_dir);
+	const TileIndexDiffC delta = TileOffsByDiagDir(tunnel_dir);
 	int max_tunnel_length = 0;
 
 	/* There are two conditions for building tunnels: Under a mountain and under an obstruction. */
@@ -1481,7 +1481,7 @@ static inline bool RoadTypesAllowHouseHere(TileIndex t)
 	bool allow = false;
 
 	for (const auto &ptr : tiles) {
-		TileIndex cur_tile = t + ToTileIndexDiff(ptr);
+		TileIndex cur_tile = t + ToTileIndexDiffC(ptr);
 		if (!IsValidTile(cur_tile)) continue;
 
 		if (!(IsTileType(cur_tile, MP_ROAD) || IsAnyRoadStopTile(cur_tile))) continue;
@@ -1914,7 +1914,7 @@ static bool GrowTown(Town *t)
 			cur_company.Restore();
 			return success;
 		}
-		tile = TileAdd(tile, ToTileIndexDiff(ptr));
+		tile = TileAdd(tile, ToTileIndexDiffC(ptr));
 	}
 
 	/* No road available, try to build a random road block by
@@ -1931,7 +1931,7 @@ static bool GrowTown(Town *t)
 					return true;
 				}
 			}
-			tile = TileAdd(tile, ToTileIndexDiff(ptr));
+			tile = TileAdd(tile, ToTileIndexDiffC(ptr));
 		}
 	}
 
@@ -2523,9 +2523,9 @@ static void MakeTownHouse(TileIndex tile, Town *t, uint8_t counter, uint8_t stag
 	BuildingFlags size = HouseSpec::Get(type)->building_flags;
 
 	ClearMakeHouseTile(tile, t, counter, stage, type, random_bits);
-	if (size & BUILDING_2_TILES_Y)   ClearMakeHouseTile(tile + TileDiffXY(0, 1), t, counter, stage, ++type, random_bits);
-	if (size & BUILDING_2_TILES_X)   ClearMakeHouseTile(tile + TileDiffXY(1, 0), t, counter, stage, ++type, random_bits);
-	if (size & BUILDING_HAS_4_TILES) ClearMakeHouseTile(tile + TileDiffXY(1, 1), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_2_TILES_Y)   ClearMakeHouseTile(tile + TileIndexDiffC(0, 1), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_2_TILES_X)   ClearMakeHouseTile(tile + TileIndexDiffC(1, 0), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_HAS_4_TILES) ClearMakeHouseTile(tile + TileIndexDiffC(1, 1), t, counter, stage, ++type, random_bits);
 
 	ForAllStationsAroundTiles(TileArea(tile, (size & BUILDING_2_TILES_X) ? 2 : 1, (size & BUILDING_2_TILES_Y) ? 2 : 1), [t](Station *st, TileIndex) {
 		t->stations_near.insert(st);
@@ -2947,24 +2947,24 @@ static void DoClearTownHouseHelper(TileIndex tile, Town *t, HouseID house)
  * @param house Is changed to the HouseID of the north tile of the same house
  * @return TileDiff from the tile of the given HouseID to the north tile
  */
-TileIndexDiff GetHouseNorthPart(HouseID &house)
+TileIndexDiffC GetHouseNorthPart(HouseID &house)
 {
 	if (house >= 3) { // house id 0,1,2 MUST be single tile houses, or this code breaks.
 		if (HouseSpec::Get(house - 1)->building_flags & TILE_SIZE_2x1) {
 			house--;
-			return TileDiffXY(-1, 0);
+			return TileIndexDiffC(-1, 0);
 		} else if (HouseSpec::Get(house - 1)->building_flags & BUILDING_2_TILES_Y) {
 			house--;
-			return TileDiffXY(0, -1);
+			return TileIndexDiffC(0, -1);
 		} else if (HouseSpec::Get(house - 2)->building_flags & BUILDING_HAS_4_TILES) {
 			house -= 2;
-			return TileDiffXY(-1, 0);
+			return TileIndexDiffC(-1, 0);
 		} else if (HouseSpec::Get(house - 3)->building_flags & BUILDING_HAS_4_TILES) {
 			house -= 3;
-			return TileDiffXY(-1, -1);
+			return TileIndexDiffC(-1, -1);
 		}
 	}
-	return TileDiffXY(0, 0);
+	return TileIndexDiffC(0, 0);
 }
 
 /**
@@ -2999,9 +2999,9 @@ void ClearTownHouse(Town *t, TileIndex tile)
 
 	/* Do the actual clearing of tiles */
 	DoClearTownHouseHelper(tile, t, house);
-	if (hs->building_flags & BUILDING_2_TILES_Y)   DoClearTownHouseHelper(tile + TileDiffXY(0, 1), t, ++house);
-	if (hs->building_flags & BUILDING_2_TILES_X)   DoClearTownHouseHelper(tile + TileDiffXY(1, 0), t, ++house);
-	if (hs->building_flags & BUILDING_HAS_4_TILES) DoClearTownHouseHelper(tile + TileDiffXY(1, 1), t, ++house);
+	if (hs->building_flags & BUILDING_2_TILES_Y)   DoClearTownHouseHelper(tile + TileIndexDiffC(0, 1), t, ++house);
+	if (hs->building_flags & BUILDING_2_TILES_X)   DoClearTownHouseHelper(tile + TileIndexDiffC(1, 0), t, ++house);
+	if (hs->building_flags & BUILDING_HAS_4_TILES) DoClearTownHouseHelper(tile + TileIndexDiffC(1, 1), t, ++house);
 
 	RemoveNearbyStations(t, tile, hs->building_flags);
 

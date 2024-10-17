@@ -3699,7 +3699,7 @@ static ChangeInfoResult IndustriesChangeInfo(uint indid, int numinfo, int prop, 
 							it.ti.y = (int8_t)GB(it.ti.y, 0, 8);
 
 							/* When there were only 256x256 maps, TileIndex was a uint16_t and
-							 * it.ti was just a TileIndexDiff that was added to it.
+							 * it.ti was just a TileIndexDiffC that was added to it.
 							 * As such negative "x" values were shifted into the "y" position.
 							 *   x = -1, y = 1 -> x = 255, y = 0
 							 * Since GRF version 8 the position is interpreted as pair of independent int8.

@@ -906,7 +906,7 @@ static CommandCost CmdRailTrackHelper(DoCommandFlag flags, TileIndex tile, TileI
 
 		if (tile == end_tile) break;
 
-		tile += ToTileIndexDiff(_trackdelta[trackdir]);
+		tile += ToTileIndexDiffC(_trackdelta[trackdir]);
 
 		/* toggle railbit for the non-diagonal tracks */
 		if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
@@ -1417,7 +1417,7 @@ static CommandCost CmdSignalTrackHelper(DoCommandFlag flags, TileIndex tile, Til
 			signal_ctr += (IsDiagonalTrackdir(trackdir) ? TILE_AXIAL_DISTANCE : TILE_CORNER_DISTANCE);
 			/* toggle railbit for the non-diagonal tracks (|, -- tracks) */
 
-			tile += ToTileIndexDiff(_trackdelta[trackdir]);
+			tile += ToTileIndexDiffC(_trackdelta[trackdir]);
 			if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
 		}
 	}

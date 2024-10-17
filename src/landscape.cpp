@@ -896,7 +896,7 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur++;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileIndexDiffC(0, 1);
 			} while (--h != 0);
 			break;
 
@@ -907,14 +907,14 @@ static void GenerateTerrain(int type, uint flag)
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur += TileDiffXY(0, 1);
+					tile_cur += TileIndexDiffC(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileIndexDiffC(1, 0);
 			} while (--w != 0);
 			break;
 
 		case DIAGDIR_SW:
-			tile += TileDiffXY(w - 1, 0);
+			tile += TileIndexDiffC(w - 1, 0);
 			do {
 				TileIndex tile_cur = tile;
 
@@ -923,21 +923,21 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur--;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileIndexDiffC(0, 1);
 			} while (--h != 0);
 			break;
 
 		case DIAGDIR_NW:
-			tile += TileDiffXY(0, h - 1);
+			tile += TileIndexDiffC(0, h - 1);
 			do {
 				TileIndex tile_cur = tile;
 
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur -= TileDiffXY(0, 1);
+					tile_cur -= TileIndexDiffC(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileIndexDiffC(1, 0);
 			} while (--w != 0);
 			break;
 	}

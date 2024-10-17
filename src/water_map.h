@@ -505,7 +505,7 @@ inline void MakeLockTile(Tile t, Owner o, LockPart part, DiagDirection dir, Wate
  */
 inline void MakeLock(Tile t, Owner o, DiagDirection d, WaterClass wc_lower, WaterClass wc_upper, WaterClass wc_middle)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(d);
+	TileIndexDiffC delta = TileOffsByDiagDir(d);
 	Tile lower_tile = TileIndex(t) - delta;
 	Tile upper_tile = TileIndex(t) + delta;
 

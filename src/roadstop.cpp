@@ -65,7 +65,7 @@ void RoadStop::MakeDriveThrough()
 
 	RoadStopType rst = GetRoadStopType(this->xy);
 	Axis axis = GetDriveThroughStopAxis(this->xy);
-	TileIndexDiff offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileOffsByAxis(axis);
 
 	/* Information about the tile north of us */
 	TileIndex north_tile = this->xy - offset;
@@ -132,7 +132,7 @@ void RoadStop::ClearDriveThrough()
 
 	RoadStopType rst = GetRoadStopType(this->xy);
 	Axis axis = GetDriveThroughStopAxis(this->xy);
-	TileIndexDiff offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileOffsByAxis(axis);
 
 	/* Information about the tile north of us */
 	TileIndex north_tile = this->xy - offset;
@@ -373,7 +373,7 @@ void RoadStop::Entry::Rebuild(const RoadStop *rs, int side)
 	rserh.dir = GetEntryDirection(side, axis);
 
 	this->length = 0;
-	TileIndexDiff offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileOffsByAxis(axis);
 	for (TileIndex tile = rs->xy; IsDriveThroughRoadStopContinuation(rs->xy, tile); tile += offset) {
 		this->length += TILE_SIZE;
 		FindVehicleOnPos(tile, &rserh, FindVehiclesInRoadStop);

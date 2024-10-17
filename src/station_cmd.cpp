@@ -1426,8 +1426,8 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 			st->cached_anim_triggers |= statspec->animation.triggers;
 		}
 
-		TileIndexDiff tile_delta = TileOffsByAxis(axis); // offset to go to the next platform tile
-		TileIndexDiff track_delta = TileOffsByAxis(OtherAxis(axis)); // offset to go to the next track
+		TileIndexDiffC tile_delta = TileOffsByAxis(axis); // offset to go to the next platform tile
+		TileIndexDiffC track_delta = TileOffsByAxis(OtherAxis(axis)); // offset to go to the next track
 		Track track = AxisToTrack(axis);
 
 		std::vector<uint8_t> layouts(numtracks * plat_len);
@@ -1517,7 +1517,7 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 			if (IsStationTileBlocked(tile)) continue;
 
 			DiagDirection dir = AxisToDiagDir(axis);
-			TileIndexDiff tile_offset = TileOffsByDiagDir(dir);
+			TileIndexDiffC tile_offset = TileOffsByDiagDir(dir);
 			TileIndex platform_begin = tile;
 			TileIndex platform_end = tile;
 
@@ -1554,17 +1554,17 @@ restart:
 	/* too small? */
 	if (ta.w != 0 && ta.h != 0) {
 		/* check the left side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(0, i));) {
+		for (uint i = 0; !func(st, ta.tile + TileIndexDiffC(0, i));) {
 			/* the left side is unused? */
 			if (++i == ta.h) {
-				ta.tile += TileDiffXY(1, 0);
+				ta.tile += TileIndexDiffC(1, 0);
 				ta.w--;
 				goto restart;
 			}
 		}
 
 		/* check the right side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(ta.w - 1, i));) {
+		for (uint i = 0; !func(st, ta.tile + TileIndexDiffC(ta.w - 1, i));) {
 			/* the right side is unused? */
 			if (++i == ta.h) {
 				ta.w--;
@@ -1573,17 +1573,17 @@ restart:
 		}
 
 		/* check the upper side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(i, 0));) {
+		for (uint i = 0; !func(st, ta.tile + TileIndexDiffC(i, 0));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
-				ta.tile += TileDiffXY(0, 1);
+				ta.tile += TileIndexDiffC(0, 1);
 				ta.h--;
 				goto restart;
 			}
 		}
 
 		/* check the lower side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(i, ta.h - 1));) {
+		for (uint i = 0; !func(st, ta.tile + TileIndexDiffC(i, ta.h - 1));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
 				ta.h--;
@@ -2834,7 +2834,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 		return CommandCost(STR_ERROR_SITE_UNSUITABLE);
 	}
 
-	TileArea dock_area = TileArea(tile + ToTileIndexDiff(_dock_tileoffs_chkaround[direction]),
+	TileArea dock_area = TileArea(tile + ToTileIndexDiffC(_dock_tileoffs_chkaround[direction]),
 			_dock_w_chk[direction], _dock_h_chk[direction]);
 
 	/* middle */
