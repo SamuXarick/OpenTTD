@@ -297,7 +297,7 @@
 	EnforcePrecondition(false, ::IsValidTile(tile));
 	EnforcePrecondition(false, width >= 1 && width <= 20);
 	EnforcePrecondition(false, height >= 1 && height <= 20);
-	TileIndex end_tile = tile + ::TileDiffXY(width - 1, height - 1);
+	TileIndex end_tile = ::TileAddXY(tile, width - 1, height - 1);
 
 	return ScriptObject::Command<CMD_PLANT_TREE>::Do(tile, end_tile, TREE_INVALID, false);
 }
