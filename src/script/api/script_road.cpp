@@ -368,11 +368,11 @@ static int32_t LookupWithBuildOnSlopes(::Slope slope, const Array<> &existing, i
 static bool NormaliseTileOffset(int32_t *tile)
 {
 		if (*tile == 1 || *tile == -1) return true;
-		if (*tile == ::TileDiffXY(0, -1)) {
+		if (*tile == ::TileOffsByDiagDir(DIAGDIR_NW)) {
 			*tile = -2;
 			return true;
 		}
-		if (*tile == ::TileDiffXY(0, 1)) {
+		if (*tile == ::TileOffsByDiagDir(DIAGDIR_SE)) {
 			*tile = 2;
 			return true;
 		}
@@ -405,8 +405,7 @@ static bool NormaliseTileOffset(int32_t *tile)
 	if (!::IsValidTile(tile) || !::IsValidTile(start) || !::IsValidTile(end)) return -1;
 	if (::DistanceManhattan(tile, start) != 1 || ::DistanceManhattan(tile, end) != 1) return -1;
 
-	/*                                           ROAD_NW              ROAD_SW             ROAD_SE             ROAD_NE */
-	const TileIndexDiff neighbours[] = {::TileDiffXY(0, -1), ::TileDiffXY(1, 0), ::TileDiffXY(0, 1), ::TileDiffXY(-1, 0)};
+	const TileIndexDiff neighbours[] = { ::TileOffsByDiagDir(DIAGDIR_NW), ::TileOffsByDiagDir(DIAGDIR_SW), ::TileOffsByDiagDir(DIAGDIR_SE), ::TileOffsByDiagDir(DIAGDIR_NE) };
 
 	::RoadBits rb = ::ROAD_NONE;
 	if (::IsNormalRoadTile(tile)) {

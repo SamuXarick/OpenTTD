@@ -261,9 +261,9 @@ void Station::MarkTilesDirty(bool cargo_change) const
 			if (this->TileBelongsToRailStation(tile)) {
 				MarkTileDirtyByTile(tile);
 			}
-			tile += TileDiffXY(1, 0);
+			tile = TileAddXY(tile, 1, 0);
 		}
-		tile += TileDiffXY(-w, 1);
+		tile = TileAddXY(tile, -w, 1);
 	}
 }
 
@@ -271,7 +271,7 @@ void Station::MarkTilesDirty(bool cargo_change) const
 {
 	assert(this->TileBelongsToRailStation(tile));
 
-	TileIndexDiff delta = (GetRailStationAxis(tile) == AXIS_X ? TileDiffXY(1, 0) : TileDiffXY(0, 1));
+	TileIndexDiff delta = TileOffsByDiagDir(AxisToDiagDir(GetRailStationAxis(tile)));
 
 	TileIndex t = tile;
 	uint len = 0;
