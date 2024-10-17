@@ -1430,8 +1430,8 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 			st->cached_anim_triggers |= statspec->animation.triggers;
 		}
 
-		TileIndexDiff tile_delta = (axis == AXIS_X ? TileDiffXY(1, 0) : TileDiffXY(0, 1)); // offset to go to the next platform tile
-		TileIndexDiff track_delta = (axis == AXIS_X ? TileDiffXY(0, 1) : TileDiffXY(1, 0)); // offset to go to the next track
+		TileIndexDiff tile_delta = TileOffsByDiagDir(AxisToDiagDir(axis));
+		TileIndexDiff track_delta = TileOffsByDiagDir(AxisToDiagDir(OtherAxis(axis)));
 		Track track = AxisToTrack(axis);
 
 		std::vector<uint8_t> layouts(numtracks * plat_len);
@@ -1558,17 +1558,17 @@ restart:
 	/* too small? */
 	if (ta.w != 0 && ta.h != 0) {
 		/* check the left side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(0, i));) {
+		for (uint i = 0; !func(st, TileAddXY(ta.tile, 0, i));) {
 			/* the left side is unused? */
 			if (++i == ta.h) {
-				ta.tile += TileDiffXY(1, 0);
+				ta.tile = TileAddXY(ta.tile, 1, 0);
 				ta.w--;
 				goto restart;
 			}
 		}
 
 		/* check the right side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(ta.w - 1, i));) {
+		for (uint i = 0; !func(st, TileAddXY(ta.tile, ta.w - 1, i));) {
 			/* the right side is unused? */
 			if (++i == ta.h) {
 				ta.w--;
@@ -1577,17 +1577,17 @@ restart:
 		}
 
 		/* check the upper side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(i, 0));) {
+		for (uint i = 0; !func(st, TileAddXY(ta.tile, i, 0));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
-				ta.tile += TileDiffXY(0, 1);
+				ta.tile = TileAddXY(ta.tile, 0, 1);
 				ta.h--;
 				goto restart;
 			}
 		}
 
 		/* check the lower side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileDiffXY(i, ta.h - 1));) {
+		for (uint i = 0; !func(st, TileAddXY(ta.tile, i, ta.h - 1));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
 				ta.h--;

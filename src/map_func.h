@@ -376,26 +376,6 @@ debug_inline static TileIndex TileXY(uint x, uint y)
 }
 
 /**
- * Calculates an offset for the given coordinate(-offset).
- *
- * This function calculate an offset value which can be added to a
- * #TileIndex. The coordinates can be negative.
- *
- * @param x The offset in x direction
- * @param y The offset in y direction
- * @return The resulting offset value of the given coordinate
- * @see ToTileIndexDiff(TileIndexDiffC)
- */
-inline TileIndexDiff TileDiffXY(int x, int y)
-{
-	/* Multiplication gives much better optimization on MSVC than shifting.
-	 * 0 << shift isn't optimized to 0 properly.
-	 * Typically x and y are constants, and then this doesn't result
-	 * in any actual multiplication in the assembly code.. */
-	return (y * Map::SizeX()) + x;
-}
-
-/**
  * Get a tile from the virtual XY-coordinate.
  * @param x The virtual x coordinate of the tile.
  * @param y The virtual y coordinate of the tile.
@@ -439,7 +419,7 @@ debug_inline static uint TileY(TileIndex tile)
  */
 inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
 {
-	return TileDiffXY(tidc.x, tidc.y);
+	return (tidc.y << Map::LogX()) + tidc.x;
 }
 
 

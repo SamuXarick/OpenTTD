@@ -44,7 +44,7 @@ void RebuildTownCaches()
 		if (IsHouseCompleted(t)) town->cache.population += HouseSpec::Get(house_id)->population;
 
 		/* Increase the number of houses for every house, but only once. */
-		if (GetHouseNorthPart(house_id) == TileDiffXY(0, 0)) town->cache.num_houses++;
+		if (GetHouseNorthPart(house_id).x == TileIndexDiffC(0, 0).x && GetHouseNorthPart(house_id).y == TileIndexDiffC(0, 0).y) town->cache.num_houses++;
 	}
 
 	/* Update the population and num_house dependent values */
@@ -80,22 +80,22 @@ void UpdateHousesAndTowns()
 		if (!IsTileType(t, MP_HOUSE)) continue;
 
 		HouseID house_type = GetCleanHouseType(t);
-		TileIndex north_tile = t + GetHouseNorthPart(house_type); // modifies 'house_type'!
+		TileIndex north_tile = AddTileIndexDiffC(t, GetHouseNorthPart(house_type)); // modifies 'house_type'!
 		if (t == north_tile) {
 			const HouseSpec *hs = HouseSpec::Get(house_type);
 			bool valid_house = true;
 			if (hs->building_flags & TILE_SIZE_2x1) {
-				TileIndex tile = t + TileDiffXY(1, 0);
+				TileIndex tile = TileAddXY(t, 1, 0);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags & TILE_SIZE_1x2) {
-				TileIndex tile = t + TileDiffXY(0, 1);
+				TileIndex tile = TileAddXY(t, 0, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags & TILE_SIZE_2x2) {
-				TileIndex tile = t + TileDiffXY(0, 1);
+				TileIndex tile = TileAddXY(t, 0, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
-				tile = t + TileDiffXY(1, 0);
+				tile = TileAddXY(t, 1, 0);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 2) valid_house = false;
-				tile = t + TileDiffXY(1, 1);
+				tile = TileAddXY(t, 1, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 3) valid_house = false;
 			}
 			/* If not all tiles of this house are present remove the house.
