@@ -276,7 +276,7 @@ static bool SearchNearbyHouseID(TileIndex tile, void *user_data)
 		if (hs->grf_prop.HasGrfFile()) { // must be one from a grf file
 			SearchNearbyHouseData *nbhd = (SearchNearbyHouseData *)user_data;
 
-			TileIndex north_tile = tile + GetHouseNorthPart(house); // modifies 'house'!
+			TileIndex north_tile = AddTileIndexDiffC(tile, GetHouseNorthPart(house)); // modifies 'house'!
 			if (north_tile == nbhd->north_tile) return false; // Always ignore origin house
 
 			return hs->grf_prop.local_id == nbhd->hs->grf_prop.local_id &&  // same local id as the one requested
@@ -300,7 +300,7 @@ static bool SearchNearbyHouseClass(TileIndex tile, void *user_data)
 		if (hs->grf_prop.HasGrfFile()) { // must be one from a grf file
 			SearchNearbyHouseData *nbhd = (SearchNearbyHouseData *)user_data;
 
-			TileIndex north_tile = tile + GetHouseNorthPart(house); // modifies 'house'!
+			TileIndex north_tile = AddTileIndexDiffC(tile, GetHouseNorthPart(house)); // modifies 'house'!
 			if (north_tile == nbhd->north_tile) return false; // Always ignore origin house
 
 			return hs->class_id == nbhd->hs->class_id &&  // same classid as the one requested
@@ -324,7 +324,7 @@ static bool SearchNearbyHouseGRFID(TileIndex tile, void *user_data)
 		if (hs->grf_prop.HasGrfFile()) { // must be one from a grf file
 			SearchNearbyHouseData *nbhd = (SearchNearbyHouseData *)user_data;
 
-			TileIndex north_tile = tile + GetHouseNorthPart(house); // modifies 'house'!
+			TileIndex north_tile = AddTileIndexDiffC(tile, GetHouseNorthPart(house)); // modifies 'house'!
 			if (north_tile == nbhd->north_tile) return false; // Always ignore origin house
 
 			return hs->grf_prop.grfid == nbhd->hs->grf_prop.grfid;  // from the same grf
@@ -358,7 +358,7 @@ static uint32_t GetDistanceFromNearbyHouse(uint8_t parameter, TileIndex tile, Ho
 
 	SearchNearbyHouseData nbhd;
 	nbhd.hs = HouseSpec::Get(house);
-	nbhd.north_tile = tile + GetHouseNorthPart(house); // modifies 'house'!
+	nbhd.north_tile = AddTileIndexDiffC(tile, GetHouseNorthPart(house)); // modifies 'house'!
 
 	/* Use a pointer for the tile to start the search. Will be required for calculating the distance*/
 	if (CircularTileSearch(&found_tile, 2 * searchradius + 1, search_procs[searchtype], &nbhd)) {
@@ -452,7 +452,7 @@ static uint32_t GetDistanceFromNearbyHouse(uint8_t parameter, TileIndex tile, Ho
 			/* Extract tile offset. */
 			int8_t x_offs = GB(GetRegister(0x100), 0, 8);
 			int8_t y_offs = GB(GetRegister(0x100), 8, 8);
-			TileIndex testtile = Map::WrapToMap(this->tile + TileDiffXY(x_offs, y_offs));
+			TileIndex testtile = Map::WrapToMap(TileAddXY(this->tile, x_offs, y_offs));
 
 			StationFinder stations(TileArea(testtile, 1, 1));
 
@@ -765,7 +765,7 @@ void WatchedCargoCallback(TileIndex tile, CargoTypes trigger_cargoes)
 	uint16_t r = Random();
 
 	/* Do the callback, start at northern tile. */
-	TileIndex north = tile + GetHouseNorthPart(id);
+	TileIndex north = AddTileIndexDiffC(tile, GetHouseNorthPart(id));
 	hs = HouseSpec::Get(id);
 
 	DoWatchedCargoCallback(north, tile, trigger_cargoes, r);

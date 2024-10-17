@@ -3146,7 +3146,7 @@ bool AfterLoadGame()
 		for (Station *st : Station::Iterate()) {
 			if (IsTileType(st->xy, MP_STATION) && IsOilRig(st->xy)) {
 				/* Industry tile is always adjacent during construction by TileDiffXY(0, 1) */
-				st->industry = Industry::GetByTile(st->xy + TileDiffXY(0, 1));
+				st->industry = Industry::GetByTile(TileAddXY(st->xy, 0, 1));
 				st->industry->neutral_station = st;
 			}
 		}

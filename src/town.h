@@ -202,7 +202,7 @@ enum TownFlags {
 CommandCost CheckforTownRating(DoCommandFlag flags, Town *t, TownRatingCheckType type);
 
 
-TileIndexDiff GetHouseNorthPart(HouseID &house);
+TileIndexDiffC GetHouseNorthPart(HouseID &house);
 
 Town *CalcClosestTownFromTile(TileIndex tile, uint threshold = UINT_MAX);
 

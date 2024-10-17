@@ -479,9 +479,9 @@ static void RemoveNearbyStations(Town *t, TileIndex tile, BuildingFlags flags)
 		const Station *st = *it;
 
 		bool covers_area = st->TileIsInCatchment(tile);
-		if (flags & BUILDING_2_TILES_Y)   covers_area |= st->TileIsInCatchment(tile + TileDiffXY(0, 1));
-		if (flags & BUILDING_2_TILES_X)   covers_area |= st->TileIsInCatchment(tile + TileDiffXY(1, 0));
-		if (flags & BUILDING_HAS_4_TILES) covers_area |= st->TileIsInCatchment(tile + TileDiffXY(1, 1));
+		if (flags & BUILDING_2_TILES_Y)   covers_area |= st->TileIsInCatchment(TileAddXY(tile, 0, 1));
+		if (flags & BUILDING_2_TILES_X)   covers_area |= st->TileIsInCatchment(TileAddXY(tile, 1, 0));
+		if (flags & BUILDING_HAS_4_TILES) covers_area |= st->TileIsInCatchment(TileAddXY(tile, 1, 1));
 
 		if (covers_area && !st->CatchmentCoversTown(t->index)) {
 			it = t->stations_near.erase(it);
@@ -2523,9 +2523,9 @@ static void MakeTownHouse(TileIndex tile, Town *t, uint8_t counter, uint8_t stag
 	BuildingFlags size = HouseSpec::Get(type)->building_flags;
 
 	ClearMakeHouseTile(tile, t, counter, stage, type, random_bits);
-	if (size & BUILDING_2_TILES_Y)   ClearMakeHouseTile(tile + TileDiffXY(0, 1), t, counter, stage, ++type, random_bits);
-	if (size & BUILDING_2_TILES_X)   ClearMakeHouseTile(tile + TileDiffXY(1, 0), t, counter, stage, ++type, random_bits);
-	if (size & BUILDING_HAS_4_TILES) ClearMakeHouseTile(tile + TileDiffXY(1, 1), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_2_TILES_Y)   ClearMakeHouseTile(TileAddXY(tile, 0, 1), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_2_TILES_X)   ClearMakeHouseTile(TileAddXY(tile, 1, 0), t, counter, stage, ++type, random_bits);
+	if (size & BUILDING_HAS_4_TILES) ClearMakeHouseTile(TileAddXY(tile, 1, 1), t, counter, stage, ++type, random_bits);
 
 	ForAllStationsAroundTiles(TileArea(tile, (size & BUILDING_2_TILES_X) ? 2 : 1, (size & BUILDING_2_TILES_Y) ? 2 : 1), [t](Station *st, TileIndex) {
 		t->stations_near.insert(st);
@@ -2945,26 +2945,26 @@ static void DoClearTownHouseHelper(TileIndex tile, Town *t, HouseID house)
  * The given ID is set to the ID of the north tile and the TileDiff to the north tile is returned.
  *
  * @param house Is changed to the HouseID of the north tile of the same house
- * @return TileDiff from the tile of the given HouseID to the north tile
+ * @return TileDiffC from the tile of the given HouseID to the north tile
  */
-TileIndexDiff GetHouseNorthPart(HouseID &house)
+TileIndexDiffC GetHouseNorthPart(HouseID &house)
 {
 	if (house >= 3) { // house id 0,1,2 MUST be single tile houses, or this code breaks.
 		if (HouseSpec::Get(house - 1)->building_flags & TILE_SIZE_2x1) {
 			house--;
-			return TileDiffXY(-1, 0);
+			return TileIndexDiffCByDir(DIR_NE);
 		} else if (HouseSpec::Get(house - 1)->building_flags & BUILDING_2_TILES_Y) {
 			house--;
-			return TileDiffXY(0, -1);
+			return TileIndexDiffCByDir(DIR_NW);
 		} else if (HouseSpec::Get(house - 2)->building_flags & BUILDING_HAS_4_TILES) {
 			house -= 2;
-			return TileDiffXY(-1, 0);
+			return TileIndexDiffCByDir(DIR_NE);
 		} else if (HouseSpec::Get(house - 3)->building_flags & BUILDING_HAS_4_TILES) {
 			house -= 3;
-			return TileDiffXY(-1, -1);
+			return TileIndexDiffCByDir(DIR_N);
 		}
 	}
-	return TileDiffXY(0, 0);
+	return TileIndexDiffC(0, 0);
 }
 
 /**
@@ -2979,7 +2979,7 @@ void ClearTownHouse(Town *t, TileIndex tile)
 	HouseID house = GetHouseType(tile);
 
 	/* The northernmost tile of the house is the main house. */
-	tile += GetHouseNorthPart(house);
+	tile = AddTileIndexDiffC(tile, GetHouseNorthPart(house));
 
 	const HouseSpec *hs = HouseSpec::Get(house);
 
@@ -2999,9 +2999,9 @@ void ClearTownHouse(Town *t, TileIndex tile)
 
 	/* Do the actual clearing of tiles */
 	DoClearTownHouseHelper(tile, t, house);
-	if (hs->building_flags & BUILDING_2_TILES_Y)   DoClearTownHouseHelper(tile + TileDiffXY(0, 1), t, ++house);
-	if (hs->building_flags & BUILDING_2_TILES_X)   DoClearTownHouseHelper(tile + TileDiffXY(1, 0), t, ++house);
-	if (hs->building_flags & BUILDING_HAS_4_TILES) DoClearTownHouseHelper(tile + TileDiffXY(1, 1), t, ++house);
+	if (hs->building_flags & BUILDING_2_TILES_Y)   DoClearTownHouseHelper(TileAddXY(tile, 0, 1), t, ++house);
+	if (hs->building_flags & BUILDING_2_TILES_X)   DoClearTownHouseHelper(TileAddXY(tile, 1, 0), t, ++house);
+	if (hs->building_flags & BUILDING_HAS_4_TILES) DoClearTownHouseHelper(TileAddXY(tile, 1, 1), t, ++house);
 
 	RemoveNearbyStations(t, tile, hs->building_flags);
 

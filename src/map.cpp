@@ -69,7 +69,7 @@
  * addx = +3 and addy = -4. This function will now return
  * INVALID_TILE, because the y is wrapped. This is needed in
  * for example, farmland. When the tile is not wrapped,
- * the result will be tile + TileDiffXY(addx, addy)
+ * the result will be TileAddXY(tile, addx, addy)
  *
  * @param tile the 'starting' point of the adding
  * @param addx the amount of tiles in the X direction to add
