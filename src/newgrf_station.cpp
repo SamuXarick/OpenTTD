@@ -70,10 +70,10 @@ struct ETileArea : TileArea {
 			case TA_PLATFORM: {
 				TileIndex start, end;
 				Axis axis = GetRailStationAxis(tile);
-				TileIndexDiff delta = TileOffsByDiagDir(AxisToDiagDir(axis));
+				TileIndexDiffC delta = TileIndexDiffCByDiagDir(AxisToDiagDir(axis));
 
-				for (end = tile; IsRailStationTile(end + delta) && IsCompatibleTrainStationTile(end + delta, tile); end += delta) { /* Nothing */ }
-				for (start = tile; IsRailStationTile(start - delta) && IsCompatibleTrainStationTile(start - delta, tile); start -= delta) { /* Nothing */ }
+				for (end = tile; IsRailStationTile(AddTileIndexDiffC(end, delta)) && IsCompatibleTrainStationTile(AddTileIndexDiffC(end, delta), tile); end = AddTileIndexDiffC(end, delta)) { /* Nothing */ }
+				for (start = tile; IsRailStationTile(AddTileIndexDiffC(start, -delta)) && IsCompatibleTrainStationTile(AddTileIndexDiffC(start, -delta), tile); start = AddTileIndexDiffC(start, -delta)) { /* Nothing */ }
 
 				this->tile = start;
 				this->w = TileX(end) - TileX(start) + 1;
@@ -139,7 +139,7 @@ uint32_t GetPlatformInfo(Axis axis, uint8_t tile, int platforms, int length, int
  * @param check_axis Stop when the station direction changes.
  * @return Found end of the railway station.
  */
-static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiff delta, bool check_type, bool check_axis)
+static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiffC delta, bool check_type, bool check_axis)
 {
 	uint8_t orig_type = 0;
 	Axis orig_axis = AXIS_X;
@@ -149,7 +149,7 @@ static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiff delta, bool ch
 	if (check_axis) orig_axis = GetRailStationAxis(tile);
 
 	for (;;) {
-		TileIndex new_tile = tile + delta;
+		TileIndex new_tile = AddTileIndexDiffC(tile, delta);
 
 		if (!IsTileType(new_tile, MP_STATION) || GetStationIndex(new_tile) != sid) break;
 		if (!HasStationRail(new_tile)) break;
@@ -166,10 +166,10 @@ static uint32_t GetPlatformInfoHelper(TileIndex tile, bool check_type, bool chec
 {
 	int tx = TileX(tile);
 	int ty = TileY(tile);
-	int sx = TileX(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_NE), check_type, check_axis));
-	int sy = TileY(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_NW), check_type, check_axis));
-	int ex = TileX(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_SW), check_type, check_axis)) + 1;
-	int ey = TileY(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_SE), check_type, check_axis)) + 1;
+	int sx = TileX(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_NE), check_type, check_axis));
+	int sy = TileY(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_NW), check_type, check_axis));
+	int ex = TileX(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_SW), check_type, check_axis)) + 1;
+	int ey = TileY(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_SE), check_type, check_axis)) + 1;
 
 	tx -= sx; ex -= sx;
 	ty -= sy; ey -= sy;

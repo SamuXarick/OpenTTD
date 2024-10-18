@@ -101,7 +101,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 CommandCost CmdBuildShipDepot(DoCommandFlag flags, TileIndex tile, Axis axis)
 {
 	if (!IsValidAxis(axis)) return CMD_ERROR;
-	TileIndex tile2 = tile + TileOffsByDiagDir(AxisToDiagDir(axis));
+	TileIndex tile2 = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(AxisToDiagDir(axis)));
 
 	if (!HasTileWaterGround(tile) || !HasTileWaterGround(tile2)) {
 		return_cmd_error(STR_ERROR_MUST_BE_BUILT_ON_WATER);
@@ -599,7 +599,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_AUTO) return_cmd_error(STR_ERROR_BUILDING_MUST_BE_DEMOLISHED);
 			if (_current_company == OWNER_WATER) return CMD_ERROR;
 			/* move to the middle tile.. */
-			return RemoveLock(tile + ToTileIndexDiff(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
+			return RemoveLock(AddTileIndexDiffC(tile, _lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
 		}
 
 		case WATER_TILE_DEPOT:
