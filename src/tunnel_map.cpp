@@ -22,12 +22,12 @@
 TileIndex GetOtherTunnelEnd(TileIndex tile)
 {
 	DiagDirection dir = GetTunnelBridgeDirection(tile);
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
 	int z = GetTileZ(tile);
 
 	dir = ReverseDiagDir(dir);
 	do {
-		tile += delta;
+		tile = AddTileIndexDiffC(tile, delta);
 	} while (
 		!IsTunnelTile(tile) ||
 		GetTunnelBridgeDirection(tile) != dir ||
@@ -47,11 +47,11 @@ TileIndex GetOtherTunnelEnd(TileIndex tile)
  */
 bool IsTunnelInWayDir(TileIndex tile, int z, DiagDirection dir)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
 	int height;
 
 	do {
-		tile -= delta;
+		tile = AddTileIndexDiffC(tile, -delta);
 		if (!IsValidTile(tile)) return false;
 		height = GetTileZ(tile);
 	} while (z < height);

@@ -949,7 +949,7 @@ do_clear:;
  */
 static bool CanConnectToRoad(TileIndex tile, RoadType rt, DiagDirection dir)
 {
-	tile += TileOffsByDiagDir(dir);
+	tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(dir));
 	if (!IsValidTile(tile) || !MayHaveRoad(tile)) return false;
 
 	RoadTramType rtt = GetRoadTramType(rt);
@@ -1055,7 +1055,7 @@ CommandCost CmdBuildLongRoad(DoCommandFlag flags, TileIndex end_tile, TileIndex 
 
 		if (tile == end_tile) break;
 
-		tile += TileOffsByDiagDir(dir);
+		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 	}
 
 	return had_success ? cost : last_error;

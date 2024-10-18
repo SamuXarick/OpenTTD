@@ -139,7 +139,7 @@ uint32_t GetPlatformInfo(Axis axis, uint8_t tile, int platforms, int length, int
  * @param check_axis Stop when the station direction changes.
  * @return Found end of the railway station.
  */
-static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiff delta, bool check_type, bool check_axis)
+static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiffC delta, bool check_type, bool check_axis)
 {
 	uint8_t orig_type = 0;
 	Axis orig_axis = AXIS_X;
@@ -149,7 +149,7 @@ static TileIndex FindRailStationEnd(TileIndex tile, TileIndexDiff delta, bool ch
 	if (check_axis) orig_axis = GetRailStationAxis(tile);
 
 	for (;;) {
-		TileIndex new_tile = tile + delta;
+		TileIndex new_tile = AddTileIndexDiffC(tile, delta);
 
 		if (!IsTileType(new_tile, MP_STATION) || GetStationIndex(new_tile) != sid) break;
 		if (!HasStationRail(new_tile)) break;
@@ -166,10 +166,10 @@ static uint32_t GetPlatformInfoHelper(TileIndex tile, bool check_type, bool chec
 {
 	int tx = TileX(tile);
 	int ty = TileY(tile);
-	int sx = TileX(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_NE), check_type, check_axis));
-	int sy = TileY(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_NW), check_type, check_axis));
-	int ex = TileX(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_SW), check_type, check_axis)) + 1;
-	int ey = TileY(FindRailStationEnd(tile, TileOffsByDiagDir(DIAGDIR_SE), check_type, check_axis)) + 1;
+	int sx = TileX(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_NE), check_type, check_axis));
+	int sy = TileY(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_NW), check_type, check_axis));
+	int ex = TileX(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_SW), check_type, check_axis)) + 1;
+	int ey = TileY(FindRailStationEnd(tile, TileIndexDiffCByDiagDir(DIAGDIR_SE), check_type, check_axis)) + 1;
 
 	tx -= sx; ex -= sx;
 	ty -= sy; ey -= sy;
@@ -198,7 +198,7 @@ static uint32_t GetRailContinuationInfo(TileIndex tile)
 	uint i;
 
 	for (i = 0; i < lengthof(x_dir); i++, dir++, diagdir++) {
-		TileIndex neighbour_tile = tile + TileOffsByDir(*dir);
+		TileIndex neighbour_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(*dir));
 		TrackBits trackbits = TrackStatusToTrackBits(GetTileTrackStatus(neighbour_tile, TRANSPORT_RAIL, 0));
 		if (trackbits != TRACK_BIT_NONE) {
 			/* If there is any track on the tile, set the bit in the second byte */

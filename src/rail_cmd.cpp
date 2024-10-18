@@ -906,7 +906,7 @@ static CommandCost CmdRailTrackHelper(DoCommandFlag flags, TileIndex tile, TileI
 
 		if (tile == end_tile) break;
 
-		tile += ToTileIndexDiff(_trackdelta[trackdir]);
+		tile = AddTileIndexDiffC(tile, _trackdelta[trackdir]);
 
 		/* toggle railbit for the non-diagonal tracks */
 		if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
@@ -1417,7 +1417,7 @@ static CommandCost CmdSignalTrackHelper(DoCommandFlag flags, TileIndex tile, Til
 			signal_ctr += (IsDiagonalTrackdir(trackdir) ? TILE_AXIAL_DISTANCE : TILE_CORNER_DISTANCE);
 			/* toggle railbit for the non-diagonal tracks (|, -- tracks) */
 
-			tile += ToTileIndexDiff(_trackdelta[trackdir]);
+			tile = AddTileIndexDiffC(tile, _trackdelta[trackdir]);
 			if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
 		}
 	}
@@ -2675,7 +2675,7 @@ static void TileLoop_Track(TileIndex tile)
 			/* Track bit on this edge => no fence. */
 			if ((rail & dir_to_trackbits[d]) != TRACK_BIT_NONE) continue;
 
-			TileIndex tile2 = tile + TileOffsByDiagDir(d);
+			TileIndex tile2 = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(d));
 
 			/* Show fences if it's a house, industry, object, road, tunnelbridge or not owned by us. */
 			if (!IsValidTile(tile2) || IsTileType(tile2, MP_HOUSE) || IsTileType(tile2, MP_INDUSTRY) ||

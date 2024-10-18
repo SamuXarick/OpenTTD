@@ -35,10 +35,10 @@
 	DiagDirection direction = ::GetInclinedSlopeDirection(start_tileh);
 	if (direction == INVALID_DIAGDIR) return INVALID_TILE;
 
-	TileIndexDiff delta = ::TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = ::TileIndexDiffCByDiagDir(direction);
 	int end_z;
 	do {
-		tile += delta;
+		tile = ::AddTileIndexDiffC(tile, delta);
 		if (!::IsValidTile(tile)) return INVALID_TILE;
 
 		std::tie(std::ignore, end_z) = ::GetTileSlopeZ(tile);
@@ -108,7 +108,7 @@ static void _DoCommandReturnBuildTunnel1(class ScriptInstance *instance)
 	DiagDirection dir_1 = ::DiagdirBetweenTiles(end, start);
 	DiagDirection dir_2 = ::ReverseDiagDir(dir_1);
 
-	return ScriptObject::Command<CMD_BUILD_ROAD>::Do(&::_DoCommandReturnBuildTunnel2, start + ::TileOffsByDiagDir(dir_1), ::DiagDirToRoadBits(dir_2), ScriptRoad::GetRoadType(), DRD_NONE, 0);
+	return ScriptObject::Command<CMD_BUILD_ROAD>::Do(&::_DoCommandReturnBuildTunnel2, ::AddTileIndexDiffC(start, ::TileIndexDiffCByDiagDir(dir_1)), ::DiagDirToRoadBits(dir_2), ScriptRoad::GetRoadType(), DRD_NONE, 0);
 }
 
 /* static */ bool ScriptTunnel::_BuildTunnelRoad2()
@@ -122,7 +122,7 @@ static void _DoCommandReturnBuildTunnel1(class ScriptInstance *instance)
 	DiagDirection dir_1 = ::DiagdirBetweenTiles(end, start);
 	DiagDirection dir_2 = ::ReverseDiagDir(dir_1);
 
-	return ScriptObject::Command<CMD_BUILD_ROAD>::Do(end + ::TileOffsByDiagDir(dir_2), ::DiagDirToRoadBits(dir_1), ScriptRoad::GetRoadType(), DRD_NONE, 0);
+	return ScriptObject::Command<CMD_BUILD_ROAD>::Do(::AddTileIndexDiffC(end, ::TileIndexDiffCByDiagDir(dir_2)), ::DiagDirToRoadBits(dir_1), ScriptRoad::GetRoadType(), DRD_NONE, 0);
 }
 
 /* static */ bool ScriptTunnel::RemoveTunnel(TileIndex tile)
