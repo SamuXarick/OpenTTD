@@ -398,9 +398,9 @@ static bool CheckShipLeaveDepot(Ship *v)
 	Axis axis = GetShipDepotAxis(tile);
 
 	DiagDirection north_dir = ReverseDiagDir(AxisToDiagDir(axis));
-	TileIndex north_neighbour = tile + TileOffsByDiagDir(north_dir);
+	TileIndex north_neighbour = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(north_dir));
 	DiagDirection south_dir = AxisToDiagDir(axis);
-	TileIndex south_neighbour = tile + 2 * TileOffsByDiagDir(south_dir);
+	TileIndex south_neighbour = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(south_dir) * 2);
 
 	TrackBits north_tracks = DiagdirReachesTracks(north_dir) & GetTileShipTrackStatus(north_neighbour);
 	TrackBits south_tracks = DiagdirReachesTracks(south_dir) & GetTileShipTrackStatus(south_neighbour);
@@ -649,7 +649,7 @@ bool IsShipDestinationTile(TileIndex tile, StationID station)
 	assert(IsDockingTile(tile));
 	/* Check each tile adjacent to docking tile. */
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex t = tile + TileOffsByDiagDir(d);
+		TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(d));
 		if (!IsValidTile(t)) continue;
 		if (IsDockTile(t) && GetStationIndex(t) == station && IsDockWaterPart(t)) return true;
 		if (IsTileType(t, MP_INDUSTRY)) {

@@ -145,7 +145,7 @@ static std::tuple<CommandCost, TileIndex> TerraformTileHeight(TerraformerState *
 		};
 
 		for (const auto &ttm : _terraform_tilepos) {
-			tile += ToTileIndexDiff(ttm);
+			tile = AddTileIndexDiffCWrap(tile, ttm);
 
 			if (tile >= Map::Size()) continue;
 			/* Make sure we don't wrap around the map */

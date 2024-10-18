@@ -582,7 +582,7 @@ inline TileIndexDiff TileOffsByDir(Direction dir)
  */
 inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
 {
-	return tile + TileOffsByDir(dir);
+	return AddTileIndexDiffC(tile, TileIndexDiffCByDir(dir));
 }
 
 /**
@@ -594,7 +594,7 @@ inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
  */
 inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
 {
-	return tile + TileOffsByDiagDir(dir);
+	return AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 }
 
 /**

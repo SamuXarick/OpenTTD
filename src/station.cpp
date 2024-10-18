@@ -271,18 +271,18 @@ void Station::MarkTilesDirty(bool cargo_change) const
 {
 	assert(this->TileBelongsToRailStation(tile));
 
-	TileIndexDiff delta = TileOffsByDiagDir(AxisToDiagDir(GetRailStationAxis(tile)));
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(AxisToDiagDir(GetRailStationAxis(tile)));
 
 	TileIndex t = tile;
 	uint len = 0;
 	do {
-		t -= delta;
+		t = AddTileIndexDiffC(t, -delta);
 		len++;
 	} while (IsCompatibleTrainStationTile(t, tile));
 
 	t = tile;
 	do {
-		t += delta;
+		t = AddTileIndexDiffC(t, delta);
 		len++;
 	} while (IsCompatibleTrainStationTile(t, tile));
 
@@ -298,7 +298,7 @@ void Station::MarkTilesDirty(bool cargo_change) const
 
 	do {
 		length++;
-		tile += TileOffsByDiagDir(dir);
+		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 	} while (IsCompatibleTrainStationTile(tile, start_tile));
 
 	return length;

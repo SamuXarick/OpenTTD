@@ -280,7 +280,7 @@ inline DiagDirection GetShipDepotDirection(Tile t)
  */
 inline TileIndex GetOtherShipDepotTile(Tile t)
 {
-	return TileIndex(t) + (GetShipDepotPart(t) != DEPOT_PART_NORTH ? -1 : 1) * TileOffsByDiagDir(AxisToDiagDir(GetShipDepotAxis(t)));
+	return AddTileIndexDiffC(TileIndex(t), TileIndexDiffCByDiagDir(AxisToDiagDir(GetShipDepotAxis(t))) * (GetShipDepotPart(t) != DEPOT_PART_NORTH ? -1 : 1));
 }
 
 /**
@@ -504,9 +504,9 @@ inline void MakeLockTile(Tile t, Owner o, LockPart part, DiagDirection dir, Wate
  */
 inline void MakeLock(Tile t, Owner o, DiagDirection d, WaterClass wc_lower, WaterClass wc_upper, WaterClass wc_middle)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(d);
-	Tile lower_tile = TileIndex(t) - delta;
-	Tile upper_tile = TileIndex(t) + delta;
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(d);
+	Tile lower_tile = AddTileIndexDiffC(TileIndex(t), -delta);
+	Tile upper_tile = AddTileIndexDiffC(TileIndex(t), delta);
 
 	/* Keep the current waterclass and owner for the tiles.
 	 * It allows to restore them after the lock is deleted */
