@@ -148,8 +148,8 @@ public:
 	/** Check for a reserved station platform. */
 	inline bool IsAnyStationTileReserved(TileIndex tile, Trackdir trackdir, int skipped)
 	{
-		TileIndexDiff diff = TileOffsByDiagDir(TrackdirToExitdir(ReverseTrackdir(trackdir)));
-		for (; skipped >= 0; skipped--, tile += diff) {
+		TileIndexDiffC diff = TileIndexDiffCByDiagDir(TrackdirToExitdir(ReverseTrackdir(trackdir)));
+		for (; skipped >= 0; skipped--, tile = AddTileIndexDiffC(tile, diff)) {
 			if (HasStationReservation(tile)) return true;
 		}
 		return false;

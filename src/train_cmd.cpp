@@ -1720,12 +1720,12 @@ static bool TrainApproachingCrossing(TileIndex tile)
 	assert(IsLevelCrossingTile(tile));
 
 	DiagDirection dir = AxisToDiagDir(GetCrossingRailAxis(tile));
-	TileIndex tile_from = tile + TileOffsByDiagDir(dir);
+	TileIndex tile_from = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 
 	if (HasVehicleOnPos(tile_from, &tile, &TrainApproachingCrossingEnum)) return true;
 
 	dir = ReverseDiagDir(dir);
-	tile_from = tile + TileOffsByDiagDir(dir);
+	tile_from = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 
 	return HasVehicleOnPos(tile_from, &tile, &TrainApproachingCrossingEnum);
 }
@@ -1824,20 +1824,20 @@ void UpdateAdjacentLevelCrossingTilesOnLevelCrossingRemoval(TileIndex tile, Axis
 	const DiagDirection dir1 = AxisToDiagDir(road_axis);
 	const DiagDirection dir2 = ReverseDiagDir(dir1);
 	for (DiagDirection dir : { dir1, dir2 }) {
-		const TileIndexDiff diff = TileOffsByDiagDir(dir);
+		const TileIndexDiffC diff = TileIndexDiffCByDiagDir(dir);
 		bool occupied = false;
-		for (TileIndex t = tile + diff; t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis; t += diff) {
+		for (TileIndex t = AddTileIndexDiffC(tile, diff); t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis; t = AddTileIndexDiffC(t, diff)) {
 			occupied |= CheckLevelCrossing(t);
 		}
 		if (occupied) {
 			/* Mark the immediately adjacent tile dirty */
-			const TileIndex t = tile + diff;
+			const TileIndex t = AddTileIndexDiffC(tile, diff);
 			if (t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis) {
 				MarkTileDirtyByTile(t);
 			}
 		} else {
 			/* Unbar the crossing tiles in this direction as necessary */
-			for (TileIndex t = tile + diff; t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis; t += diff) {
+			for (TileIndex t = AddTileIndexDiffC(tile, diff); t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis; t = AddTileIndexDiffC(t, diff)) {
 				if (IsCrossingBarred(t)) {
 					/* The crossing tile is barred, unbar it and continue to check the next tile */
 					SetCrossingBarred(t, false);
@@ -2511,7 +2511,7 @@ static PBSTileInfo ExtendTrainReservation(const Train *v, TrackBits *new_tracks,
 
 			/* If we did skip some tiles, backtrack to the first skipped tile so the pathfinder
 			 * actually starts its search at the first unreserved tile. */
-			if (ft.tiles_skipped != 0) ft.new_tile -= TileOffsByDiagDir(ft.exitdir) * ft.tiles_skipped;
+			if (ft.tiles_skipped != 0) ft.new_tile = AddTileIndexDiffC(ft.new_tile, -TileIndexDiffCByDiagDir(ft.exitdir) * ft.tiles_skipped);
 
 			/* Choice found, path valid but not okay. Save info about the choice tile as well. */
 			if (new_tracks != nullptr) *new_tracks = TrackdirBitsToTrackBits(ft.new_td_bits);
@@ -3867,7 +3867,7 @@ static TileIndex TrainApproachingCrossingTile(const Train *v)
 	if (!TrainCanLeaveTile(v)) return INVALID_TILE;
 
 	DiagDirection dir = VehicleExitDir(v->direction, v->track);
-	TileIndex tile = v->tile + TileOffsByDiagDir(dir);
+	TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(dir));
 
 	/* not a crossing || wrong axis || unusable rail (wrong type or owner) */
 	if (!IsLevelCrossingTile(tile) || DiagDirToAxis(dir) == GetCrossingRoadAxis(tile) ||
@@ -3905,7 +3905,7 @@ static bool TrainCheckIfLineEnds(Train *v, bool reverse)
 	/* Determine the non-diagonal direction in which we will exit this tile */
 	DiagDirection dir = VehicleExitDir(v->direction, v->track);
 	/* Calculate next tile */
-	TileIndex tile = v->tile + TileOffsByDiagDir(dir);
+	TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(dir));
 
 	/* Determine the track status on the next tile */
 	TrackStatus ts = GetTileTrackStatus(tile, TRANSPORT_RAIL, 0, ReverseDiagDir(dir));

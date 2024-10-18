@@ -497,14 +497,14 @@ static bool NeighbourHasReachableRoad(::RoadType rt, TileIndex start_tile, DiagD
 {
 	if (!IsRoadDepotTile(depot)) return INVALID_TILE;
 
-	return depot + ::TileOffsByDiagDir(::GetRoadDepotDirection(depot));
+	return ::AddTileIndexDiffC(depot, ::TileIndexDiffCByDiagDir(::GetRoadDepotDirection(depot)));
 }
 
 /* static */ TileIndex ScriptRoad::GetRoadStationFrontTile(TileIndex station)
 {
 	if (!IsRoadStationTile(station)) return INVALID_TILE;
 
-	if (::IsBayRoadStopTile(station)) return station + ::TileOffsByDiagDir(::GetBayRoadStopDir(station));
+	if (::IsBayRoadStopTile(station)) return ::AddTileIndexDiffC(station, ::TileIndexDiffCByDiagDir(::GetBayRoadStopDir(station)));
 
 	return station - ::TileOffsByAxis(::GetDriveThroughStopAxis(station));
 }

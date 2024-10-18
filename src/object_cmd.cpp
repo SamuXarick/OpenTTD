@@ -789,7 +789,7 @@ static bool TryBuildLightHouse()
 			assert(tile < Map::Size());
 			return true;
 		}
-		tile += TileOffsByDiagDir(dir);
+		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 		if (!IsValidTile(tile)) return false;
 	}
 	return false;

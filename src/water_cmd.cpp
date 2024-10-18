@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(tile + TileOffsByDir(dir));
+		MarkTileDirtyIfCanalOrRiver(AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir)));
 	}
 }
 
@@ -97,7 +97,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = tile + TileOffsByDir(dir);
+		TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
@@ -195,7 +195,7 @@ bool IsPossibleDockingTile(Tile t)
 void CheckForDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = t + TileOffsByDiagDir(d);
+		TileIndex tile = AddTileIndexDiffCWrap(t, TileIndexDiffCByDiagDir(d));
 		if (!IsValidTile(tile)) continue;
 
 		if (IsDockTile(tile) && IsDockWaterPart(tile)) {
@@ -313,10 +313,13 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 {
 	CommandCost cost(EXPENSES_CONSTRUCTION);
 
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
+	TileIndex tile_lower = AddTileIndexDiffC(tile, -delta);
+	TileIndex tile_upper = AddTileIndexDiffC(tile, delta);
+
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
-	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile + delta);
-	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
+	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile_upper);
+	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile_lower);
 	if (ret.Failed()) return ret;
 
 	/* middle tile */
@@ -326,30 +329,30 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 	cost.AddCost(ret);
 
 	/* lower tile */
-	if (!IsWaterTile(tile - delta)) {
-		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile - delta);
+	if (!IsWaterTile(tile_lower)) {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile_lower);
 		if (ret.Failed()) return ret;
 		cost.AddCost(ret);
 		cost.AddCost(_price[PR_BUILD_CANAL]);
 	}
-	if (!IsTileFlat(tile - delta)) {
+	if (!IsTileFlat(tile_lower)) {
 		return CommandCost(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	}
-	WaterClass wc_lower = IsWaterTile(tile - delta) ? GetWaterClass(tile - delta) : WATER_CLASS_CANAL;
+	WaterClass wc_lower = IsWaterTile(tile_lower) ? GetWaterClass(tile_lower) : WATER_CLASS_CANAL;
 
 	/* upper tile */
-	if (!IsWaterTile(tile + delta)) {
-		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile + delta);
+	if (!IsWaterTile(tile_upper)) {
+		ret = Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile_upper);
 		if (ret.Failed()) return ret;
 		cost.AddCost(ret);
 		cost.AddCost(_price[PR_BUILD_CANAL]);
 	}
-	if (!IsTileFlat(tile + delta)) {
+	if (!IsTileFlat(tile_upper)) {
 		return CommandCost(STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 	}
-	WaterClass wc_upper = IsWaterTile(tile + delta) ? GetWaterClass(tile + delta) : WATER_CLASS_CANAL;
+	WaterClass wc_upper = IsWaterTile(tile_upper) ? GetWaterClass(tile_upper) : WATER_CLASS_CANAL;
 
-	if (IsBridgeAbove(tile) || IsBridgeAbove(tile - delta) || IsBridgeAbove(tile + delta)) {
+	if (IsBridgeAbove(tile) || IsBridgeAbove(tile_lower) || IsBridgeAbove(tile_upper)) {
 		return CommandCost(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 	}
 
@@ -358,23 +361,23 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 		Company *c = Company::GetIfValid(_current_company);
 		if (c != nullptr) {
 			/* Counts for the water. */
-			if (!IsWaterTile(tile - delta)) c->infrastructure.water++;
-			if (!IsWaterTile(tile + delta)) c->infrastructure.water++;
+			if (!IsWaterTile(tile_lower)) c->infrastructure.water++;
+			if (!IsWaterTile(tile_upper)) c->infrastructure.water++;
 			/* Count for the lock itself. */
 			c->infrastructure.water += 3 * LOCK_DEPOT_TILE_FACTOR; // Lock is three tiles.
 			DirtyCompanyInfrastructureWindows(_current_company);
 		}
 
 		MakeLock(tile, _current_company, dir, wc_lower, wc_upper, wc_middle);
-		CheckForDockingTile(tile - delta);
-		CheckForDockingTile(tile + delta);
+		CheckForDockingTile(tile_lower);
+		CheckForDockingTile(tile_upper);
 		MarkTileDirtyByTile(tile);
-		MarkTileDirtyByTile(tile - delta);
-		MarkTileDirtyByTile(tile + delta);
-		MarkCanalsAndRiversAroundDirty(tile - delta);
-		MarkCanalsAndRiversAroundDirty(tile + delta);
-		InvalidateWaterRegion(tile - delta);
-		InvalidateWaterRegion(tile + delta);
+		MarkTileDirtyByTile(tile_lower);
+		MarkTileDirtyByTile(tile_upper);
+		MarkCanalsAndRiversAroundDirty(tile_lower);
+		MarkCanalsAndRiversAroundDirty(tile_upper);
+		InvalidateWaterRegion(tile_lower);
+		InvalidateWaterRegion(tile_upper);
 	}
 	cost.AddCost(_price[PR_BUILD_LOCK]);
 
@@ -394,12 +397,14 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 		if (ret.Failed()) return ret;
 	}
 
-	TileIndexDiff delta = TileOffsByDiagDir(GetLockDirection(tile));
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(GetLockDirection(tile));
+	TileIndex tile_lower = AddTileIndexDiffC(tile, -delta);
+	TileIndex tile_upper = AddTileIndexDiffC(tile, delta);
 
 	/* make sure no vehicle is on the tile. */
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
-	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile + delta);
-	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
+	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile_upper);
+	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile_lower);
 	if (ret.Failed()) return ret;
 
 	if (flags & DC_EXEC) {
@@ -416,11 +421,11 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 			DoClearSquare(tile);
 			ClearNeighbourNonFloodingStates(tile);
 		}
-		MakeWaterKeepingClass(tile + delta, GetTileOwner(tile + delta));
-		MakeWaterKeepingClass(tile - delta, GetTileOwner(tile - delta));
+		MakeWaterKeepingClass(tile_upper, GetTileOwner(tile_upper));
+		MakeWaterKeepingClass(tile_lower, GetTileOwner(tile_lower));
 		MarkCanalsAndRiversAroundDirty(tile);
-		MarkCanalsAndRiversAroundDirty(tile - delta);
-		MarkCanalsAndRiversAroundDirty(tile + delta);
+		MarkCanalsAndRiversAroundDirty(tile_lower);
+		MarkCanalsAndRiversAroundDirty(tile_upper);
 	}
 
 	return CommandCost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_LOCK]);
@@ -613,7 +618,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_AUTO) return CommandCost(STR_ERROR_BUILDING_MUST_BE_DEMOLISHED);
 			if (_current_company == OWNER_WATER) return CMD_ERROR;
 			/* move to the middle tile.. */
-			return RemoveLock(tile + ToTileIndexDiff(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
+			return RemoveLock(AddTileIndexDiffC(tile, _lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
 		}
 
 		case WATER_TILE_DEPOT:
@@ -669,7 +674,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 			if (IsOilRig(tile)) {
 				/* Do not draw waterborders inside of industries.
 				 * Note: There is no easy way to detect the industry of an oilrig tile. */
-				TileIndex src_tile = tile + TileOffsByDir(from);
+				TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
 				if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 				    (IsTileType(src_tile, MP_INDUSTRY))) return true;
 
@@ -680,7 +685,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 		case MP_INDUSTRY: {
 			/* Do not draw waterborders inside of industries.
 			 * Note: There is no easy way to detect the industry of an oilrig tile. */
-			TileIndex src_tile = tile + TileOffsByDir(from);
+			TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
 			if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 			    (IsTileType(src_tile, MP_INDUSTRY) && GetIndustryIndex(src_tile) == GetIndustryIndex(tile))) return true;
 

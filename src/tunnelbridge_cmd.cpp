@@ -66,8 +66,8 @@ static const int BRIDGE_Z_START = 3;
  */
 void MarkBridgeDirty(TileIndex begin, TileIndex end, DiagDirection direction, uint bridge_height)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
-	for (TileIndex t = begin; t != end; t += delta) {
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
+	for (TileIndex t = begin; t != end; t = AddTileIndexDiffC(t, delta)) {
 		MarkTileDirtyByTile(t, bridge_height - TileHeight(t));
 	}
 	MarkTileDirtyByTile(end);
@@ -668,7 +668,7 @@ CommandCost CmdBuildTunnel(DoCommandFlag flags, TileIndex start_tile, TransportT
 	 * cost before the loop will yield different costs depending on start-
 	 * position, because of increased-cost-by-length: 'cost += cost >> 3' */
 
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
 	DiagDirection tunnel_in_way_dir;
 	if (DiagDirToAxis(direction) == AXIS_Y) {
 		tunnel_in_way_dir = (TileX(start_tile) < (Map::MaxX() / 2)) ? DIAGDIR_SW : DIAGDIR_NE;
@@ -689,7 +689,7 @@ CommandCost CmdBuildTunnel(DoCommandFlag flags, TileIndex start_tile, TransportT
 	Slope end_tileh;
 	int end_z;
 	for (;;) {
-		end_tile += delta;
+		end_tile = AddTileIndexDiffC(end_tile, delta);
 		if (!IsValidTile(end_tile)) return CommandCost(STR_ERROR_TUNNEL_THROUGH_MAP_BORDER);
 		std::tie(end_tileh, end_z) = GetTileSlopeZ(end_tile);
 
@@ -934,7 +934,7 @@ static CommandCost DoClearBridge(TileIndex tile, DoCommandFlag flags)
 	if (ret.Failed()) return ret;
 
 	DiagDirection direction = GetTunnelBridgeDirection(tile);
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
 
 	Town *t = nullptr;
 	if (IsTileOwner(tile, OWNER_TOWN) && _game_mode != GM_EDITOR) {
@@ -982,7 +982,7 @@ static CommandCost DoClearBridge(TileIndex tile, DoCommandFlag flags)
 		DoClearSquare(tile);
 		DoClearSquare(endtile);
 
-		for (TileIndex c = tile + delta; c != endtile; c += delta) {
+		for (TileIndex c = AddTileIndexDiffC(tile, delta); c != endtile; c = AddTileIndexDiffC(c, delta)) {
 			/* do not let trees appear from 'nowhere' after removing bridge */
 			if (IsNormalRoadTile(c) && GetRoadside(c) == ROADSIDE_TREES) {
 				int minz = GetTileMaxZ(c) + 3;
@@ -1422,7 +1422,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 		}
 
 		if (!ice) {
-			TileIndex next = ti->tile + TileOffsByDiagDir(tunnelbridge_direction);
+			TileIndex next = AddTileIndexDiffC(ti->tile, TileIndexDiffCByDiagDir(tunnelbridge_direction));
 			if (ti->tileh != SLOPE_FLAT && ti->z == 0 && HasTileWaterClass(next) && GetWaterClass(next) == WATER_CLASS_SEA) {
 				DrawShoreTile(ti->tileh);
 			} else {

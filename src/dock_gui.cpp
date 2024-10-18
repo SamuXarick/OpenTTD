@@ -77,13 +77,13 @@ static TileIndex GetOtherAqueductEnd(TileIndex tile_from, TileIndex *tile_to = n
 	if (!IsValidDiagDirection(dir)) return TileAddXY(tile_from, TileX(tile_from) > 2 ? -1 : 1, 0);
 
 	/* Direction the aqueduct is built to. */
-	TileIndexDiff offset = TileOffsByDiagDir(ReverseDiagDir(dir));
+	TileIndexDiffC offset = TileIndexDiffCByDiagDir(ReverseDiagDir(dir));
 	/* The maximum length of the aqueduct. */
 	int max_length = std::min<int>(_settings_game.construction.max_bridge_length, DistanceFromEdgeDir(tile_from, ReverseDiagDir(dir)) - 1);
 
 	TileIndex endtile = tile_from;
 	for (int length = 0; IsValidTile(endtile) && TileX(endtile) != 0 && TileY(endtile) != 0; length++) {
-		endtile += offset;
+		endtile = AddTileIndexDiffC(endtile, offset);
 
 		if (length > max_length) break;
 

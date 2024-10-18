@@ -2943,8 +2943,8 @@ static int CalcHeightdiff(HighLightStyle style, uint distance, TileIndex start_t
 			/* Lambda to help calculating the height at one side of the line. */
 			auto get_height = [](auto &tile, auto &heightdiffs) {
 				return std::max(
-					TileHeight(tile + ToTileIndexDiff(heightdiffs.first)),
-					TileHeight(tile + ToTileIndexDiff(heightdiffs.second)));
+					TileHeight(AddTileIndexDiffC(tile, heightdiffs.first)),
+					TileHeight(AddTileIndexDiffC(tile, heightdiffs.second)));
 			};
 
 			/* Use lookup table for start-tile based on HighLightStyle direction */

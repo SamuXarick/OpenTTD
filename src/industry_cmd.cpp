@@ -1015,14 +1015,14 @@ static bool IsSuitableForFarmField(TileIndex tile, bool allow_fields)
  */
 static void SetupFarmFieldFence(TileIndex tile, int size, uint8_t type, DiagDirection side)
 {
-	TileIndexDiff diff = TileOffsByAxis(OtherAxis(DiagDirToAxis(side)));
-	TileIndexDiff neighbour_diff = TileOffsByDiagDir(side);
+	TileIndexDiff diff = TileOffsByDiagDir(AxisToDiagDir(OtherAxis(DiagDirToAxis(side))));
+	TileIndexDiffC neighbour_diff = TileIndexDiffCByDiagDir(side);
 
 	do {
 		tile = Map::WrapToMap(tile);
 
 		if (IsTileType(tile, MP_CLEAR) && IsClearGround(tile, CLEAR_FIELDS)) {
-			TileIndex neighbour = tile + neighbour_diff;
+			TileIndex neighbour = AddTileIndexDiffC(tile, neighbour_diff);
 			if (!IsTileType(neighbour, MP_CLEAR) || !IsClearGround(neighbour, CLEAR_FIELDS) || GetFence(neighbour, ReverseDiagDir(side)) == 0) {
 				/* Add fence as long as neighbouring tile does not already have a fence in the same position. */
 				uint8_t or_ = type;
@@ -1933,7 +1933,7 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 	/* Plant the tiles */
 
 	for (const IndustryTileLayoutTile &it : layout) {
-		TileIndex cur_tile = tile + ToTileIndexDiff(it.ti);
+		TileIndex cur_tile = AddTileIndexDiffC(tile, it.ti);
 
 		if (it.gfx != GFX_WATERTILE_SPECIALCHECK) {
 			i->location.Add(cur_tile);

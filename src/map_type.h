@@ -31,6 +31,23 @@ typedef int32_t TileIndexDiff;
 struct TileIndexDiffC {
 	int16_t x;        ///< The x value of the coordinate
 	int16_t y;        ///< The y value of the coordinate
+
+	/* Apply the unary minus operator to the values of x and y coordinates.
+	 * @return Unary minus values of x and y coordinates.
+	 */
+	inline constexpr TileIndexDiffC operator-() const { return *this * -1; };
+
+	/* Apply multiplication operator to the values of x and y coordinates.
+	 * @param val Multiplier.
+	 * @return Multiplied values of x and y coordinates.
+	 */
+	inline constexpr TileIndexDiffC operator*(const int16_t &val) const { return TileIndexDiffC{ static_cast<int16_t>(this->x * val), static_cast<int16_t>(this->y * val) }; }
+
+	/* Checks whether the values of x and y coordinates are equal on both constructs.
+	 * @param other The TileIndexDiffC construct to compare 'this' against.
+	 * @return true if both constructs have the same values of x and y coordinates.
+	 */
+	inline constexpr bool operator==(const TileIndexDiffC &other) const = default;
 };
 
 /** Minimal and maximal map width and height */

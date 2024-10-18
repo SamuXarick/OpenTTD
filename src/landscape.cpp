@@ -1033,7 +1033,7 @@ static bool MakeLake(TileIndex tile, void *user_data)
 	if (_settings_game.game_creation.landscape == LT_TROPIC && GetTropicZone(tile) == TROPICZONE_DESERT) return false;
 
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
+		TileIndex t2 = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(d));
 		if (IsWaterTile(t2)) {
 			MakeRiverAndModifyDesertZoneAround(tile);
 			return false;
@@ -1241,7 +1241,7 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 
 	aystar->neighbours.clear();
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
+		TileIndex t2 = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(d));
 		if (IsValidTile(t2) && FlowsDown(tile, t2)) {
 			auto &neighbour = aystar->neighbours.emplace_back();
 			neighbour.tile = t2;
@@ -1351,7 +1351,7 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 		}
 
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex t2 = end + TileOffsByDiagDir(d);
+			TileIndex t2 = AddTileIndexDiffC(end, TileIndexDiffCByDiagDir(d));
 			if (IsValidTile(t2) && !IS_MARKED(t2) && FlowsDown(end, t2)) {
 				SET_MARK(t2);
 				count++;
