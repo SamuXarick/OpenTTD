@@ -144,13 +144,13 @@ void CcRailDepot(Commands, const CommandCost &result, TileIndex tile, RailType, 
 	if (_settings_client.sound.confirm) SndPlayTileFx(SND_20_CONSTRUCTION_RAIL, tile);
 	if (!_settings_client.gui.persistent_buildingtools) ResetObjectToPlace();
 
-	tile += TileOffsByDiagDir(dir);
+	tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 
 	if (IsTileType(tile, MP_RAILWAY)) {
 		PlaceExtraDepotRail(tile, _place_depot_extra_dir[dir], _place_depot_extra_track[dir]);
 
 		/* Don't place the rail straight out of the depot of there is another depot across from it. */
-		Tile double_depot_tile = tile + TileOffsByDiagDir(dir);
+		Tile double_depot_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
 		bool is_double_depot = IsValidTile(double_depot_tile) && IsRailDepotTile(double_depot_tile);
 		if (!is_double_depot) PlaceExtraDepotRail(tile, _place_depot_extra_dir[dir + 4], _place_depot_extra_track[dir + 4]);
 

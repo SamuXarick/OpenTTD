@@ -21,11 +21,11 @@
  */
 static TileIndex GetBridgeEnd(TileIndex tile, DiagDirection dir)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
 
 	dir = ReverseDiagDir(dir);
 	do {
-		tile += delta;
+		tile = AddTileIndexDiffC(tile, delta);
 	} while (!IsBridgeTile(tile) || GetTunnelBridgeDirection(tile) != dir);
 
 	return tile;
