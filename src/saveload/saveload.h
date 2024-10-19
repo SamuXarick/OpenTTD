@@ -389,6 +389,7 @@ enum SaveLoadVersion : uint16_t {
 	SLV_COMPANY_ALLOW_LIST_V2,              ///< 341  PR#12908 Fixed savegame format for saving of list of client keys that are allowed to join this company.
 	SLV_WATER_TILE_TYPE,                    ///< 342  PR#13030 Simplify water tile type.
 	SLV_PRODUCTION_HISTORY,                 ///< 343  PR#10541 Industry production history.
+	SLV_NONFLOODING_WATER_TILES,            ///< 344  PR#13013 Store water tile non-flooding state.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
