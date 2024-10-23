@@ -752,7 +752,7 @@ static void TileLoop_Trees(TileIndex tile)
 
 						TreeType treetype = GetTreeType(tile);
 
-						tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(static_cast<Direction>(Random() % DIR_END)));
+						tile = TileAddByDir(tile, static_cast<Direction>(Random() % DIR_END));
 
 						/* Cacti don't spread */
 						if (!CanPlantTreesOnTile(tile, false)) return;

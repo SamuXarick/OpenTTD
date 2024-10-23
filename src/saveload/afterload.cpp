@@ -442,7 +442,7 @@ static void FixOwnerOfRailTrack(Tile t)
 
 	/* try to find any connected rail */
 	for (DiagDirection dd = DIAGDIR_BEGIN; dd < DIAGDIR_END; dd++) {
-		TileIndex tt = AddTileIndexDiffC(t, TileIndexDiffCByDiagDir(dd));
+		TileIndex tt = TileAddByDiagDir(t, dd);
 		if (GetTileTrackStatus(t, TRANSPORT_RAIL, 0, dd) != 0 &&
 				GetTileTrackStatus(tt, TRANSPORT_RAIL, 0, ReverseDiagDir(dd)) != 0 &&
 				Company::IsValidID(GetTileOwner(tt))) {

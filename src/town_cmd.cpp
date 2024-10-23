@@ -95,12 +95,12 @@ static bool TestTownOwnsBridge(TileIndex tile, const Town *t)
 {
 	if (!IsTileOwner(tile, OWNER_TOWN)) return false;
 
-	TileIndex adjacent = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(ReverseDiagDir(GetTunnelBridgeDirection(tile))));
+	TileIndex adjacent = TileAddByDiagDir(tile, ReverseDiagDir(GetTunnelBridgeDirection(tile)));
 	bool town_owned = IsTileType(adjacent, MP_ROAD) && IsTileOwner(adjacent, OWNER_TOWN) && GetTownIndex(adjacent) == t->index;
 
 	if (!town_owned) {
 		/* Or other adjacent road */
-		adjacent = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(ReverseDiagDir(GetTunnelBridgeDirection(GetOtherTunnelBridgeEnd(tile)))));
+		adjacent = TileAddByDiagDir(tile, ReverseDiagDir(GetTunnelBridgeDirection(GetOtherTunnelBridgeEnd(tile))));
 		town_owned = IsTileType(adjacent, MP_ROAD) && IsTileOwner(adjacent, OWNER_TOWN) && GetTownIndex(adjacent) == t->index;
 	}
 
@@ -1022,7 +1022,7 @@ bool CheckTownRoadTypes()
 
 /**
  * Check for parallel road inside a given distance.
- *   Assuming a road from AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir)) to tile,
+ *   Assuming a road from TileAddByDiagDir(tile, dir) to tile,
  *   is there a parallel road left or right of it within distance dist_multi?
  *
  * @param tile The current tile.
@@ -1751,7 +1751,7 @@ static void GrowTownInTile(TileIndex *tile_ptr, RoadBits cur_rb, DiagDirection t
  */
 static bool CanFollowRoad(TileIndex tile, DiagDirection dir)
 {
-	TileIndex target_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
+	TileIndex target_tile = TileAddByDiagDir(tile, dir);
 	if (!IsValidTile(target_tile)) return false;
 	if (HasTileWaterGround(target_tile)) return false;
 
@@ -2593,7 +2593,7 @@ static bool CheckFree2x2Area(TileIndex tile, int z, bool noslope)
 	if (!CheckBuildHouseSameZ(tile, z, noslope)) return false;
 
 	for (DiagDirection d = DIAGDIR_SE; d < DIAGDIR_END; d++) {
-		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(d));
+		tile = TileAddByDiagDir(tile, d);
 		if (!CheckBuildHouseSameZ(tile, z, noslope)) return false;
 	}
 
@@ -2680,10 +2680,10 @@ static bool CheckTownBuild2House(TileIndex *tile, Town *t, int maxz, bool noslop
 {
 	/* 'tile' is already checked in BuildTownHouse() - CanBuildHouseHere() and slope test */
 
-	TileIndex tile2 = AddTileIndexDiffC(*tile, TileIndexDiffCByDiagDir(second));
+	TileIndex tile2 = TileAddByDiagDir(*tile, second);
 	if (TownLayoutAllowsHouseHere(t, tile2) && CheckBuildHouseSameZ(tile2, maxz, noslope)) return true;
 
-	tile2 = AddTileIndexDiffC(*tile, TileIndexDiffCByDiagDir(ReverseDiagDir(second)));
+	tile2 = TileAddByDiagDir(*tile, ReverseDiagDir(second));
 	if (TownLayoutAllowsHouseHere(t, tile2) && CheckBuildHouseSameZ(tile2, maxz, noslope)) {
 		*tile = tile2;
 		return true;
@@ -2711,7 +2711,7 @@ static bool CheckTownBuild2x2House(TileIndex *tile, Town *t, int maxz, bool nosl
 			return true;
 		}
 		if (d == DIAGDIR_END) break;
-		tile2 = AddTileIndexDiffC(tile2, TileIndexDiffCByDiagDir(ReverseDiagDir(d))); // go clockwise
+		tile2 = TileAddByDiagDir(tile2, ReverseDiagDir(d)); // go clockwise
 	}
 
 	return false;

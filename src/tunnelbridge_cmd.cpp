@@ -1422,7 +1422,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 		}
 
 		if (!ice) {
-			TileIndex next = AddTileIndexDiffC(ti->tile, TileIndexDiffCByDiagDir(tunnelbridge_direction));
+			TileIndex next = TileAddByDiagDir(ti->tile, tunnelbridge_direction);
 			if (ti->tileh != SLOPE_FLAT && ti->z == 0 && HasTileWaterClass(next) && GetWaterClass(next) == WATER_CLASS_SEA) {
 				DrawShoreTile(ti->tileh);
 			} else {

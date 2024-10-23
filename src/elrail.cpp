@@ -324,7 +324,7 @@ static void DrawRailCatenaryRailway(const TileInfo *ti)
 			1 << CORNER_N | 1 << CORNER_W, // DIAGDIR_NW
 		};
 		SpriteID pylon_base = (halftile_corner != CORNER_INVALID && HasBit(edge_corners[i], halftile_corner)) ? pylon_halftile : pylon_normal;
-		TileIndex neighbour = AddTileIndexDiffC(ti->tile, TileIndexDiffCByDiagDir(i));
+		TileIndex neighbour = TileAddByDiagDir(ti->tile, i);
 		int elevation = GetPCPElevation(ti->tile, i);
 
 		/* Here's one of the main headaches. GetTileSlope does not correct for possibly

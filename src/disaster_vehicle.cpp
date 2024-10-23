@@ -681,7 +681,7 @@ static bool DisasterTick_Submarine(DisasterVehicle *v)
 
 	if (!HasBit(v->tick_counter, 0)) return true;
 
-	TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(DirToDiagDir(v->direction)));
+	TileIndex tile = TileAddByDiagDir(v->tile, DirToDiagDir(v->direction));
 	if (IsValidTile(tile)) {
 		TrackBits trackbits = TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_WATER, 0));
 		if (trackbits == TRACK_BIT_ALL && !Chance16(1, 90)) {

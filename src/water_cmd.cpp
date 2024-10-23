@@ -674,7 +674,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 			if (IsOilRig(tile)) {
 				/* Do not draw waterborders inside of industries.
 				 * Note: There is no easy way to detect the industry of an oilrig tile. */
-				TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
+				TileIndex src_tile = TileAddByDir(tile, from);
 				if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 				    (IsTileType(src_tile, MP_INDUSTRY))) return true;
 
@@ -685,7 +685,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 		case MP_INDUSTRY: {
 			/* Do not draw waterborders inside of industries.
 			 * Note: There is no easy way to detect the industry of an oilrig tile. */
-			TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
+			TileIndex src_tile = TileAddByDir(tile, from);
 			if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 			    (IsTileType(src_tile, MP_INDUSTRY) && GetIndustryIndex(src_tile) == GetIndustryIndex(tile))) return true;
 

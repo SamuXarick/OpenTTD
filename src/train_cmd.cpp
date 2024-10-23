@@ -1720,12 +1720,12 @@ static bool TrainApproachingCrossing(TileIndex tile)
 	assert(IsLevelCrossingTile(tile));
 
 	DiagDirection dir = AxisToDiagDir(GetCrossingRailAxis(tile));
-	TileIndex tile_from = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
+	TileIndex tile_from = TileAddByDiagDir(tile, dir);
 
 	if (HasVehicleOnPos(tile_from, &tile, &TrainApproachingCrossingEnum)) return true;
 
 	dir = ReverseDiagDir(dir);
-	tile_from = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
+	tile_from = TileAddByDiagDir(tile, dir);
 
 	return HasVehicleOnPos(tile_from, &tile, &TrainApproachingCrossingEnum);
 }
@@ -3867,7 +3867,7 @@ static TileIndex TrainApproachingCrossingTile(const Train *v)
 	if (!TrainCanLeaveTile(v)) return INVALID_TILE;
 
 	DiagDirection dir = VehicleExitDir(v->direction, v->track);
-	TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(dir));
+	TileIndex tile = TileAddByDiagDir(v->tile, dir);
 
 	/* not a crossing || wrong axis || unusable rail (wrong type or owner) */
 	if (!IsLevelCrossingTile(tile) || DiagDirToAxis(dir) == GetCrossingRoadAxis(tile) ||
@@ -3905,7 +3905,7 @@ static bool TrainCheckIfLineEnds(Train *v, bool reverse)
 	/* Determine the non-diagonal direction in which we will exit this tile */
 	DiagDirection dir = VehicleExitDir(v->direction, v->track);
 	/* Calculate next tile */
-	TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(dir));
+	TileIndex tile = TileAddByDiagDir(v->tile, dir);
 
 	/* Determine the track status on the next tile */
 	TrackStatus ts = GetTileTrackStatus(tile, TRANSPORT_RAIL, 0, ReverseDiagDir(dir));

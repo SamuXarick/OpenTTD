@@ -291,7 +291,7 @@ void Station::MarkTilesDirty(bool cargo_change) const
 
 	do {
 		length++;
-		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
+		tile = TileAddByDiagDir(tile, dir);
 	} while (IsCompatibleTrainStationTile(tile, start_tile));
 
 	return length;

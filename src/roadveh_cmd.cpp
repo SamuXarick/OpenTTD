@@ -839,7 +839,7 @@ static void RoadVehCheckOvertake(RoadVehicle *v, RoadVehicle *u)
 	od.tile = v->tile;
 	if (CheckRoadBlockedForOvertaking(&od)) return;
 
-	od.tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir(DirToDiagDir(v->direction)));
+	od.tile = TileAddByDiagDir(v->tile, DirToDiagDir(v->direction));
 	if (CheckRoadBlockedForOvertaking(&od)) return;
 
 	/* When the vehicle in front of us is stopped we may only take
@@ -1189,7 +1189,7 @@ bool IndividualRoadVehicleController(RoadVehicle *v, const RoadVehicle *prev)
 		(_settings_game.vehicle.road_side << RVS_DRIVE_SIDE)) ^ v->overtaking][v->frame + 1];
 
 	if (rd.x & RDE_NEXT_TILE) {
-		TileIndex tile = AddTileIndexDiffC(v->tile, TileIndexDiffCByDiagDir((DiagDirection)(rd.x & 3)));
+		TileIndex tile = TileAddByDiagDir(v->tile, (DiagDirection)(rd.x & 3));
 		Trackdir dir;
 
 		if (v->IsFrontEngine()) {
