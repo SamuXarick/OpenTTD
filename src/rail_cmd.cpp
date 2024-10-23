@@ -2675,7 +2675,7 @@ static void TileLoop_Track(TileIndex tile)
 			/* Track bit on this edge => no fence. */
 			if ((rail & dir_to_trackbits[d]) != TRACK_BIT_NONE) continue;
 
-			TileIndex tile2 = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(d));
+			TileIndex tile2 = TileAddByDiagDir(tile, d);
 
 			/* Show fences if it's a house, industry, object, road, tunnelbridge or not owned by us. */
 			if (!IsValidTile(tile2) || IsTileType(tile2, MP_HOUSE) || IsTileType(tile2, MP_INDUSTRY) ||

@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(AddTileIndexDiffC(tile, TileIndexDiffCByDir(dir)));
+		MarkTileDirtyIfCanalOrRiver(TileAddByDir(tile, dir));
 	}
 }
 
@@ -184,7 +184,7 @@ bool IsPossibleDockingTile(Tile t)
 void CheckForDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = AddTileIndexDiffC(t, TileIndexDiffCByDiagDir(d));
+		TileIndex tile = TileAddByDiagDir(t, d);
 		if (!IsValidTile(tile)) continue;
 
 		if (IsDockTile(tile) && IsDockWaterPart(tile)) {
@@ -660,7 +660,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 			if (IsOilRig(tile)) {
 				/* Do not draw waterborders inside of industries.
 				 * Note: There is no easy way to detect the industry of an oilrig tile. */
-				TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
+				TileIndex src_tile = TileAddByDir(tile, from);
 				if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 				    (IsTileType(src_tile, MP_INDUSTRY))) return true;
 
@@ -671,7 +671,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 		case MP_INDUSTRY: {
 			/* Do not draw waterborders inside of industries.
 			 * Note: There is no easy way to detect the industry of an oilrig tile. */
-			TileIndex src_tile = AddTileIndexDiffC(tile, TileIndexDiffCByDir(from));
+			TileIndex src_tile = TileAddByDir(tile, from);
 			if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 			    (IsTileType(src_tile, MP_INDUSTRY) && GetIndustryIndex(src_tile) == GetIndustryIndex(tile))) return true;
 

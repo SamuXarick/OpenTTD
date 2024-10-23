@@ -1055,7 +1055,7 @@ CommandCost CmdBuildLongRoad(DoCommandFlag flags, TileIndex end_tile, TileIndex 
 
 		if (tile == end_tile) break;
 
-		tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(dir));
+		tile = TileAddByDiagDir(tile, dir);
 	}
 
 	return had_success ? cost : last_error;

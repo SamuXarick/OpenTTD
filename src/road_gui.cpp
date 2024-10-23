@@ -161,7 +161,7 @@ void CcBuildRoadTunnel(Commands, const CommandCost &result, TileIndex start_tile
  */
 void ConnectRoadToStructure(TileIndex tile, DiagDirection direction)
 {
-	tile = AddTileIndexDiffC(tile, TileIndexDiffCByDiagDir(direction));
+	tile = TileAddByDiagDir(tile, direction);
 	/* if there is a roadpiece just outside of the station entrance, build a connecting route */
 	if (IsNormalRoadTile(tile)) {
 		if (GetRoadBits(tile, GetRoadTramType(_cur_roadtype)) != ROAD_NONE) {
