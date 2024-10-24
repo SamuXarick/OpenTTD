@@ -1426,8 +1426,8 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 			st->cached_anim_triggers |= statspec->animation.triggers;
 		}
 
-		TileIndexDiff tile_delta = TileOffsByAxis(axis); // offset to go to the next platform tile
-		TileIndexDiff track_delta = TileOffsByAxis(OtherAxis(axis)); // offset to go to the next track
+		TileIndexDiffC tile_delta = TileIndexDiffCByAxis(axis); // offset to go to the next platform tile
+		TileIndexDiffC track_delta = TileIndexDiffCByAxis(OtherAxis(axis)); // offset to go to the next track
 		Track track = AxisToTrack(axis);
 
 		std::vector<uint8_t> layouts(numtracks * plat_len);
@@ -1492,11 +1492,11 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 				if (!IsStationTileBlocked(tile)) c->infrastructure.rail[rt]++;
 				c->infrastructure.station++;
 
-				tile += tile_delta;
+				tile = AddTileIndexDiffC(tile, tile_delta);
 			} while (--w);
 			AddTrackToSignalBuffer(tile_track, track, _current_company);
 			YapfNotifyTrackLayoutChange(tile_track, track);
-			tile_track += track_delta;
+			tile_track = AddTileIndexDiffC(tile_track, track_delta);
 		} while (--numtracks);
 
 		for (uint i = 0; i < affected_vehicles.size(); ++i) {

@@ -3615,12 +3615,12 @@ static Vehicle *CollectTrackbitsFromCrashedVehiclesEnum(Vehicle *v, void *data)
 
 static bool IsRailStationPlatformOccupied(TileIndex tile)
 {
-	TileIndexDiff delta = TileOffsByAxis(GetRailStationAxis(tile));
+	TileIndexDiffC delta = TileIndexDiffCByAxis(GetRailStationAxis(tile));
 
-	for (TileIndex t = tile; IsCompatibleTrainStationTile(t, tile); t -= delta) {
+	for (TileIndex t = tile; IsCompatibleTrainStationTile(t, tile); t = AddTileIndexDiffC(t, -delta)) {
 		if (HasVehicleOnPos(t, nullptr, &TrainOnTileEnum)) return true;
 	}
-	for (TileIndex t = tile + delta; IsCompatibleTrainStationTile(t, tile); t += delta) {
+	for (TileIndex t = AddTileIndexDiffC(tile, delta); IsCompatibleTrainStationTile(t, tile); t = AddTileIndexDiffC(t, delta)) {
 		if (HasVehicleOnPos(t, nullptr, &TrainOnTileEnum)) return true;
 	}
 

@@ -440,8 +440,8 @@ CommandCost CmdBuildBridge(DoCommandFlag flags, TileIndex tile_end, TileIndex ti
 			}
 		}
 
-		TileIndexDiff delta = TileOffsByAxis(direction);
-		for (TileIndex tile = tile_start + delta; tile != tile_end; tile += delta) {
+		TileIndexDiffC delta = TileIndexDiffCByAxis(direction);
+		for (TileIndex tile = AddTileIndexDiffC(tile_start, delta); tile != tile_end; tile = AddTileIndexDiffC(tile, delta)) {
 			if (GetTileMaxZ(tile) > z_start) return CommandCost(STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN);
 
 			if (z_start >= (GetTileZ(tile) + _settings_game.construction.max_bridge_height)) {

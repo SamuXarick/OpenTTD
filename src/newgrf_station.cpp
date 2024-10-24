@@ -70,10 +70,10 @@ struct ETileArea : TileArea {
 			case TA_PLATFORM: {
 				TileIndex start, end;
 				Axis axis = GetRailStationAxis(tile);
-				TileIndexDiff delta = TileOffsByAxis(axis);
+				TileIndexDiffC delta = TileIndexDiffCByAxis(axis);
 
-				for (end = tile; IsRailStationTile(end + delta) && IsCompatibleTrainStationTile(end + delta, tile); end += delta) { /* Nothing */ }
-				for (start = tile; IsRailStationTile(start - delta) && IsCompatibleTrainStationTile(start - delta, tile); start -= delta) { /* Nothing */ }
+				for (end = tile; IsRailStationTile(AddTileIndexDiffC(end, delta)) && IsCompatibleTrainStationTile(AddTileIndexDiffC(end, delta), tile); end = AddTileIndexDiffC(end, delta)) { /* Nothing */ }
+				for (start = tile; IsRailStationTile(AddTileIndexDiffC(start, -delta)) && IsCompatibleTrainStationTile(AddTileIndexDiffC(start, -delta), tile); start = AddTileIndexDiffC(end, -delta)) { /* Nothing */ }
 
 				this->tile = start;
 				this->w = TileX(end) - TileX(start) + 1;
