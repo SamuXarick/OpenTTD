@@ -461,6 +461,20 @@ inline TileIndex TileAddXY(TileIndex tile, int x, int y)
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
 /**
+ * Returns the TileIndexDiffC offset from an Axis.
+ *
+ * @param axis The Axis
+ * @return The resulting TileIndexDiffC in southern direction (either SW or SE).
+ */
+inline TileIndexDiffC TileIndexDiffCByAxis(Axis axis)
+{
+	extern const TileIndexDiffC _tileoffs_by_axis[AXIS_END];
+
+	assert(IsValidAxis(axis));
+	return _tileoffs_by_axis[axis];
+}
+
+/**
  * Returns the TileIndexDiffC offset from a DiagDirection.
  *
  * @param dir The given direction
@@ -533,20 +547,6 @@ uint DistanceFromEdge(TileIndex); ///< shortest distance from any edge of the ma
 uint DistanceFromEdgeDir(TileIndex, DiagDirection); ///< distance from the map edge in given direction
 
 /**
- * Convert an Axis to a TileIndexDiff
- *
- * @param axis The Axis
- * @return The resulting TileIndexDiff in southern direction (either SW or SE).
- */
-inline TileIndexDiff TileOffsByAxis(Axis axis)
-{
-	extern const TileIndexDiffC _tileoffs_by_axis[];
-
-	assert(IsValidAxis(axis));
-	return ToTileIndexDiff(_tileoffs_by_axis[axis]);
-}
-
-/**
  * Convert a DiagDirection to a TileIndexDiff
  *
  * @param dir The DiagDirection
@@ -562,17 +562,15 @@ inline TileIndexDiff TileOffsByDiagDir(DiagDirection dir)
 }
 
 /**
- * Convert a Direction to a TileIndexDiff.
+ * Adds an Axis to a tile.
  *
- * @param dir The direction to convert from
- * @return The resulting TileIndexDiff
+ * @param tile The current tile
+ * @param axis The axis in which we want to step
+ * @return the moved tile, in southern direction (either SW or SE)
  */
-inline TileIndexDiff TileOffsByDir(Direction dir)
+inline TileIndex TileAddByAxis(TileIndex tile, Axis axis)
 {
-	extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
-
-	assert(IsValidDirection(dir));
-	return ToTileIndexDiff(_tileoffs_by_dir[dir]);
+	return AddTileIndexDiffC(tile, TileIndexDiffCByAxis(axis));
 }
 
 /**
