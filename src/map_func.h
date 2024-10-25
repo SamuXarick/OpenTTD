@@ -408,22 +408,6 @@ debug_inline static uint TileY(TileIndex tile)
 }
 
 /**
- * Return the offset between two tiles from a TileIndexDiffC struct.
- *
- * This function works like #TileDiffXY(int, int) and returns the
- * difference between two tiles.
- *
- * @param tidc The coordinate of the offset as TileIndexDiffC
- * @return The difference between two tiles.
- * @see TileDiffXY(int, int)
- */
-inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
-{
-	return (tidc.y << Map::LogX()) + tidc.x;
-}
-
-
-/**
  * Add a TileIndexDiffC to a TileIndex and returns the new one.
  *
  * Returns tile + the diff given in diff.
@@ -546,20 +530,6 @@ uint DistanceMaxPlusManhattan(TileIndex, TileIndex); ///< Max + Manhattan
 uint DistanceFromEdge(TileIndex); ///< shortest distance from any edge of the map
 uint DistanceFromEdgeDir(TileIndex, DiagDirection); ///< distance from the map edge in given direction
 
-/**
- * Convert a DiagDirection to a TileIndexDiff
- *
- * @param dir The DiagDirection
- * @return The resulting TileIndexDiff
- * @see TileIndexDiffCByDiagDir
- */
-inline TileIndexDiff TileOffsByDiagDir(DiagDirection dir)
-{
-	extern const TileIndexDiffC _tileoffs_by_diagdir[DIAGDIR_END];
-
-	assert(IsValidDiagDirection(dir));
-	return ToTileIndexDiff(_tileoffs_by_diagdir[dir]);
-}
 
 /**
  * Adds an Axis to a tile.
