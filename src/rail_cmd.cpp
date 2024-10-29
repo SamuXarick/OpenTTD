@@ -782,6 +782,7 @@ bool FloodHalftile(TileIndex t)
 			if (rail_bits == 0) {
 				MakeShore(t);
 				MarkTileDirtyByTile(t);
+				ClearNeighbourNonFloodingStates(t);
 				return flooded;
 			}
 		}
@@ -790,6 +791,7 @@ bool FloodHalftile(TileIndex t)
 			flooded = true;
 			SetRailGroundType(t, RAIL_GROUND_WATER);
 			MarkTileDirtyByTile(t);
+			ClearNeighbourNonFloodingStates(t);
 		}
 	} else {
 		/* Make shore on steep slopes and 'three-corners-raised'-slopes. */

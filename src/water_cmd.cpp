@@ -96,8 +96,9 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
  */
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
+	if (GetFloodingBehaviour(tile) == FLOOD_NONE) return;
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = tile + TileOffsByDir(dir);
+		TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
@@ -414,7 +415,6 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 			MakeRiver(tile, Random());
 		} else {
 			DoClearSquare(tile);
-			ClearNeighbourNonFloodingStates(tile);
 		}
 		MakeWaterKeepingClass(tile + delta, GetTileOwner(tile + delta));
 		MakeWaterKeepingClass(tile - delta, GetTileOwner(tile - delta));
@@ -577,7 +577,6 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 				}
 				DoClearSquare(tile);
 				MarkCanalsAndRiversAroundDirty(tile);
-				ClearNeighbourNonFloodingStates(tile);
 			}
 
 			return CommandCost(EXPENSES_CONSTRUCTION, base_cost);
@@ -593,7 +592,6 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_EXEC) {
 				DoClearSquare(tile);
 				MarkCanalsAndRiversAroundDirty(tile);
-				ClearNeighbourNonFloodingStates(tile);
 			}
 			if (IsSlopeWithOneCornerRaised(slope)) {
 				return CommandCost(EXPENSES_CONSTRUCTION, _price[PR_CLEAR_WATER]);
@@ -1256,24 +1254,18 @@ void TileLoop_Water(TileIndex tile)
 				TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
 				/* Contrary to drying up, flooding does not consider MP_VOID tiles. */
 				if (!IsValidTile(dest)) continue;
-				/* do not try to flood water tiles - increases performance a lot */
-				if (IsTileType(dest, MP_WATER)) continue;
-
-				/* Buoys and docks cannot be flooded, and when removed turn into flooding water. */
-				if (IsTileType(dest, MP_STATION) && (IsBuoy(dest) || IsDock(dest))) continue;
+				/* Do not try to flood tiles with a flooding behaviour. */
+				if (GetFloodingBehaviour(dest) != FLOOD_NONE) continue;
 
 				/* This neighbour tile might be floodable later if the tile is cleared, so allow flooding to continue. */
 				continue_flooding = true;
-
-				/* TREE_GROUND_SHORE is the sign of a previous flood. */
-				if (IsTileType(dest, MP_TREES) && GetTreeGround(dest) == TREE_GROUND_SHORE) continue;
 
 				auto [slope_dest, z_dest] = GetFoundationSlope(dest);
 				if (z_dest > 0) continue;
 
 				if (!HasBit(_flood_from_dirs[slope_dest & ~SLOPE_HALFTILE_MASK & ~SLOPE_STEEP], ReverseDir(dir))) continue;
 
-				DoFloodTile(dest);
+				if (!IsTileType(dest, MP_WATER)) DoFloodTile(dest);
 			}
 			if (!continue_flooding && IsTileType(tile, MP_WATER)) SetNonFloodingWaterTile(tile, true);
 			break;

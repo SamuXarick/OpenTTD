@@ -532,6 +532,8 @@ void DoClearSquare(TileIndex tile)
 	/* If the tile can have animation and we clear it, delete it from the animated tile list. */
 	if (_tile_type_procs[GetTileType(tile)]->animate_tile_proc != nullptr) DeleteAnimatedTile(tile);
 
+	ClearNeighbourNonFloodingStates(tile);
+
 	bool remove = IsDockingTile(tile);
 	MakeClear(tile, CLEAR_GRASS, _generating_world ? 3 : 0);
 	MarkTileDirtyByTile(tile);
@@ -694,7 +696,6 @@ CommandCost CmdLandscapeClear(DoCommandFlag flags, TileIndex tile)
 				}
 			}
 			DoClearSquare(tile);
-			ClearNeighbourNonFloodingStates(tile);
 		}
 	}
 	return cost;
