@@ -470,7 +470,7 @@ static bool DisasterTick_Aircraft(DisasterVehicle *v, uint16_t image_override, b
 			if (_settings_client.sound.disaster) SndPlayTileFx(SND_12_EXPLOSION, i->location.tile);
 		}
 	} else if (v->state == 0) {
-		int x = v->x_pos + ((leave_at_top ? -15 : 15) * TILE_SIZE);
+		int x = v->x_pos + ((leave_at_top ? -TILE_UNIT_MASK : TILE_UNIT_MASK) * TILE_SIZE);
 		int y = v->y_pos;
 
 		if ((uint)x > Map::MaxX() * TILE_SIZE - 1) return true;
@@ -649,8 +649,8 @@ static bool DisasterTick_Big_Ufo_Destroyer(DisasterVehicle *v)
 		for (int i = 0; i != 80; i++) {
 			uint32_t r = Random();
 			CreateEffectVehicleAbove(
-				GB(r, 0, 6) + v->x_pos - 32,
-				GB(r, 5, 6) + v->y_pos - 32,
+				GB(r, 0, 6) + v->x_pos - 2 * TILE_SIZE,
+				GB(r, 5, 6) + v->y_pos - 2 * TILE_SIZE,
 				0,
 				EV_EXPLOSION_SMALL);
 		}
@@ -809,7 +809,7 @@ static void Disaster_Helicopter_Init()
 
 	if (found == nullptr) return;
 
-	int x = -16 * (int)TILE_SIZE;
+	int x = -TILE_SIZE * (int)TILE_SIZE;
 	int y = TileY(found->location.tile) * TILE_SIZE + 37;
 
 	DisasterVehicle *v = new DisasterVehicle(x, y, DIR_SW, ST_HELICOPTER);

@@ -1940,7 +1940,7 @@ static int GetSlopePixelZ_Road(TileIndex tile, uint x, uint y, bool)
 
 		Foundation f = GetRoadFoundation(tileh, GetAllRoadBits(tile));
 		z += ApplyPixelFoundationToSlope(f, tileh);
-		return z + GetPartialPixelZ(x & 0xF, y & 0xF, tileh);
+		return z + GetPartialPixelZ(x & TILE_UNIT_MASK, y & TILE_UNIT_MASK, tileh);
 	} else {
 		return GetTileMaxPixelZ(tile);
 	}

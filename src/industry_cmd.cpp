@@ -1088,8 +1088,8 @@ static void PlantFarmField(TileIndex tile, IndustryID industry)
 
 void PlantRandomFarmField(const Industry *i)
 {
-	int x = i->location.w / 2 + Random() % 31 - 16;
-	int y = i->location.h / 2 + Random() % 31 - 16;
+	int x = i->location.w / 2 + Random() % 31 - TILE_SIZE;
+	int y = i->location.h / 2 + Random() % 31 - TILE_SIZE;
 
 	TileIndex tile = TileAddWrap(i->location.tile, x, y);
 

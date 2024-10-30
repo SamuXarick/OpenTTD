@@ -55,7 +55,7 @@ uint32_t GetRelativePosition(TileIndex tile, TileIndex ind_tile)
 	uint8_t x = TileX(tile) - TileX(ind_tile);
 	uint8_t y = TileY(tile) - TileY(ind_tile);
 
-	return ((y & 0xF) << 20) | ((x & 0xF) << 16) | (y << 8) | x;
+	return ((y & TILE_UNIT_MASK) << 20) | ((x & TILE_UNIT_MASK) << 16) | (y << 8) | x;
 }
 
 /* virtual */ uint32_t IndustryTileScopeResolver::GetVariable(uint8_t variable, [[maybe_unused]] uint32_t parameter, bool &available) const

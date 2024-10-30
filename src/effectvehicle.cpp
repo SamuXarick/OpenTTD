@@ -81,7 +81,7 @@ static bool SteamSmokeTick(EffectVehicle *v)
 		moved = true;
 	}
 
-	if ((v->progress & 0xF) == 4) {
+	if ((v->progress & TILE_UNIT_MASK) == 4) {
 		if (!IncrementSprite(v, SPR_STEAM_SMOKE_4)) {
 			delete v;
 			return false;
@@ -158,7 +158,7 @@ static bool SmokeTick(EffectVehicle *v)
 		moved = true;
 	}
 
-	if ((v->progress & 0xF) == 4) {
+	if ((v->progress & TILE_UNIT_MASK) == 4) {
 		if (!IncrementSprite(v, SPR_SMOKE_4)) {
 			delete v;
 			return false;

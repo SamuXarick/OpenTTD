@@ -1278,10 +1278,10 @@ bool AfterLoadGame()
 				if (dir != DirToDiagDir(v->direction)) continue;
 				switch (dir) {
 					default: SlErrorCorrupt("Invalid vehicle direction");
-					case DIAGDIR_NE: if ((v->x_pos & 0xF) !=  0)            continue; break;
-					case DIAGDIR_SE: if ((v->y_pos & 0xF) != TILE_SIZE - 1) continue; break;
-					case DIAGDIR_SW: if ((v->x_pos & 0xF) != TILE_SIZE - 1) continue; break;
-					case DIAGDIR_NW: if ((v->y_pos & 0xF) !=  0)            continue; break;
+					case DIAGDIR_NE: if ((v->x_pos & TILE_UNIT_MASK) !=  0)            continue; break;
+					case DIAGDIR_SE: if ((v->y_pos & TILE_UNIT_MASK) != TILE_SIZE - 1) continue; break;
+					case DIAGDIR_SW: if ((v->x_pos & TILE_UNIT_MASK) != TILE_SIZE - 1) continue; break;
+					case DIAGDIR_NW: if ((v->y_pos & TILE_UNIT_MASK) !=  0)            continue; break;
 				}
 			} else if (v->z_pos > GetTileMaxPixelZ(TileVirtXY(v->x_pos, v->y_pos))) {
 				v->tile = GetNorthernBridgeEnd(v->tile);
@@ -3068,8 +3068,8 @@ bool AfterLoadGame()
 			if (!IsTileType(s->tile, MP_WATER) || !IsLock(s->tile) || GetLockPart(s->tile) != LOCK_PART_MIDDLE) continue;
 
 			/* We don't need to adjust position when at the tile centre */
-			int x = s->x_pos & 0xF;
-			int y = s->y_pos & 0xF;
+			int x = s->x_pos & TILE_UNIT_MASK;
+			int y = s->y_pos & TILE_UNIT_MASK;
 			if (x == 8 && y == 8) continue;
 
 			/* Test if ship is on the second half of the tile */

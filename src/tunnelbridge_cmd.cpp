@@ -1665,8 +1665,8 @@ static int GetSlopePixelZ_TunnelBridge(TileIndex tile, uint x, uint y, bool grou
 {
 	auto [tileh, z] = GetTilePixelSlope(tile);
 
-	x &= 0xF;
-	y &= 0xF;
+	x &= TILE_UNIT_MASK;
+	y &= TILE_UNIT_MASK;
 
 	if (IsTunnel(tile)) {
 		/* In the tunnel entrance? */

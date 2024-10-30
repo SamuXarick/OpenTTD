@@ -952,7 +952,7 @@ static int GetSlopePixelZ_Water(TileIndex tile, uint x, uint y, bool)
 {
 	auto [tileh, z] = GetTilePixelSlope(tile);
 
-	return z + GetPartialPixelZ(x & 0xF, y & 0xF, tileh);
+	return z + GetPartialPixelZ(x & TILE_UNIT_MASK, y & TILE_UNIT_MASK, tileh);
 }
 
 static Foundation GetFoundation_Water(TileIndex, Slope)

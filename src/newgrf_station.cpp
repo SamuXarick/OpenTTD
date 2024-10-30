@@ -115,8 +115,8 @@ uint32_t GetPlatformInfo(Axis axis, uint8_t tile, int platforms, int length, int
 		y -= length / 2;
 		x = Clamp(x, -8, 7);
 		y = Clamp(y, -8, 7);
-		SB(retval,  0, 4, y & 0xF);
-		SB(retval,  4, 4, x & 0xF);
+		SB(retval,  0, 4, y & TILE_UNIT_MASK);
+		SB(retval,  4, 4, x & TILE_UNIT_MASK);
 	} else {
 		SB(retval,  0, 4, std::min(15, y));
 		SB(retval,  4, 4, std::min(15, length - y - 1));

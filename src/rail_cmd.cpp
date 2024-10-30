@@ -1859,10 +1859,10 @@ static CommandCost ClearTile_Track(TileIndex tile, DoCommandFlag flags)
 static uint GetSaveSlopeZ(uint x, uint y, Track track)
 {
 	switch (track) {
-		case TRACK_UPPER: x &= ~0xF; y &= ~0xF; break;
-		case TRACK_LOWER: x |=  0xF; y |=  0xF; break;
-		case TRACK_LEFT:  x |=  0xF; y &= ~0xF; break;
-		case TRACK_RIGHT: x &= ~0xF; y |=  0xF; break;
+		case TRACK_UPPER: x &= ~TILE_UNIT_MASK; y &= ~TILE_UNIT_MASK; break;
+		case TRACK_LOWER: x |=  TILE_UNIT_MASK; y |=  TILE_UNIT_MASK; break;
+		case TRACK_LEFT:  x |=  TILE_UNIT_MASK; y &= ~TILE_UNIT_MASK; break;
+		case TRACK_RIGHT: x &= ~TILE_UNIT_MASK; y |=  TILE_UNIT_MASK; break;
 		default: break;
 	}
 	return GetSlopePixelZ(x, y);
@@ -2574,7 +2574,7 @@ static int GetSlopePixelZ_Track(TileIndex tile, uint x, uint y, bool)
 		if (tileh == SLOPE_FLAT) return z;
 
 		z += ApplyPixelFoundationToSlope(GetRailFoundation(tileh, GetTrackBits(tile)), tileh);
-		return z + GetPartialPixelZ(x & 0xF, y & 0xF, tileh);
+		return z + GetPartialPixelZ(x & TILE_UNIT_MASK, y & TILE_UNIT_MASK, tileh);
 	} else {
 		return GetTileMaxPixelZ(tile);
 	}
@@ -2919,10 +2919,10 @@ int TicksToLeaveDepot(const Train *v)
 	int length = v->CalcNextVehicleOffset();
 
 	switch (dir) {
-		case DIAGDIR_NE: return  ((int)(v->x_pos & 0x0F) - ((_fractcoords_enter[dir] & 0x0F) - (length + 1)));
-		case DIAGDIR_SE: return -((int)(v->y_pos & 0x0F) - ((_fractcoords_enter[dir] >> 4)   + (length + 1)));
-		case DIAGDIR_SW: return -((int)(v->x_pos & 0x0F) - ((_fractcoords_enter[dir] & 0x0F) + (length + 1)));
-		case DIAGDIR_NW: return  ((int)(v->y_pos & 0x0F) - ((_fractcoords_enter[dir] >> 4)   - (length + 1)));
+		case DIAGDIR_NE: return  ((int)(v->x_pos & TILE_UNIT_MASK) - ((_fractcoords_enter[dir] & TILE_UNIT_MASK) - (length + 1)));
+		case DIAGDIR_SE: return -((int)(v->y_pos & TILE_UNIT_MASK) - ((_fractcoords_enter[dir] >> 4)   + (length + 1)));
+		case DIAGDIR_SW: return -((int)(v->x_pos & TILE_UNIT_MASK) - ((_fractcoords_enter[dir] & TILE_UNIT_MASK) + (length + 1)));
+		case DIAGDIR_NW: return  ((int)(v->y_pos & TILE_UNIT_MASK) - ((_fractcoords_enter[dir] >> 4)   - (length + 1)));
 		default: NOT_REACHED();
 	}
 }
@@ -2939,7 +2939,7 @@ static VehicleEnterTileStatus VehicleEnter_Track(Vehicle *u, TileIndex tile, int
 	/* Depot direction. */
 	DiagDirection dir = GetRailDepotDirection(tile);
 
-	uint8_t fract_coord = (x & 0xF) + ((y & 0xF) << 4);
+	uint8_t fract_coord = (x & TILE_UNIT_MASK) + ((y & TILE_UNIT_MASK) << 4);
 
 	/* Make sure a train is not entering the tile from behind. */
 	if (_fractcoords_behind[dir] == fract_coord) return VETSB_CANNOT_ENTER;
@@ -2952,7 +2952,7 @@ static VehicleEnterTileStatus VehicleEnter_Track(Vehicle *u, TileIndex tile, int
 		int length = v->CalcNextVehicleOffset();
 
 		uint8_t fract_coord_leave =
-			((_fractcoords_enter[dir] & 0x0F) + // x
+			((_fractcoords_enter[dir] & TILE_UNIT_MASK) + // x
 				(length + 1) * _deltacoord_leaveoffset[dir]) +
 			(((_fractcoords_enter[dir] >> 4) +  // y
 				((length + 1) * _deltacoord_leaveoffset[dir + 4])) << 4);

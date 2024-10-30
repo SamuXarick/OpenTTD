@@ -31,7 +31,7 @@ static int GetSlopePixelZ_Void(TileIndex, uint x, uint y, bool)
 	 * that 'tile' is a valid tile index. See GetSlopePixelZOutsideMap. */
 	auto [tileh, z] = GetTilePixelSlopeOutsideMap(x >> 4, y >> 4);
 
-	return z + GetPartialPixelZ(x & 0xF, y & 0xF, tileh);
+	return z + GetPartialPixelZ(x & TILE_UNIT_MASK, y & TILE_UNIT_MASK, tileh);
 }
 
 static Foundation GetFoundation_Void(TileIndex, Slope)

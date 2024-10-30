@@ -3448,8 +3448,8 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 
 				/* Update XY to reflect the entrance to the new tile, and select the direction to use */
 				const uint8_t *b = _initial_tile_subcoord[FindFirstBit(chosen_track)][enterdir];
-				gp.x = (gp.x & ~0xF) | b[0];
-				gp.y = (gp.y & ~0xF) | b[1];
+				gp.x = (gp.x & ~TILE_UNIT_MASK) | b[0];
+				gp.y = (gp.y & ~TILE_UNIT_MASK) | b[1];
 				Direction chosen_dir = (Direction)b[2];
 
 				/* Call the landscape function and tell it that the vehicle entered the tile */
@@ -3792,8 +3792,8 @@ static const uint16_t _breakdown_speeds[16] = {
 static bool TrainApproachingLineEnd(Train *v, bool signal, bool reverse)
 {
 	/* Calc position within the current tile */
-	uint x = v->x_pos & 0xF;
-	uint y = v->y_pos & 0xF;
+	uint x = v->x_pos & TILE_UNIT_MASK;
+	uint y = v->y_pos & TILE_UNIT_MASK;
 
 	/* for diagonal directions, 'x' will be 0..15 -
 	 * for other directions, it will be 1, 3, 5, ..., 15 */
@@ -3822,7 +3822,7 @@ static bool TrainApproachingLineEnd(Train *v, bool signal, bool reverse)
 
 	/* slow down */
 	v->vehstatus |= VS_TRAIN_SLOWING;
-	uint16_t break_speed = _breakdown_speeds[x & 0xF];
+	uint16_t break_speed = _breakdown_speeds[x & TILE_UNIT_MASK];
 	if (break_speed < v->cur_speed) v->cur_speed = break_speed;
 
 	return true;

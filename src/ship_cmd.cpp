@@ -599,7 +599,7 @@ static int ShipTestUpDownOnLock(const Ship *v)
 	if (!IsTileType(v->tile, MP_WATER) || !IsLock(v->tile) || GetLockPart(v->tile) != LOCK_PART_MIDDLE) return 0;
 
 	/* Must be at the centre of the lock */
-	if ((v->x_pos & 0xF) != 8 || (v->y_pos & 0xF) != 8) return 0;
+	if ((v->x_pos & TILE_UNIT_MASK) != 8 || (v->y_pos & TILE_UNIT_MASK) != 8) return 0;
 
 	DiagDirection diagdir = GetInclinedSlopeDirection(GetTileSlope(v->tile));
 	assert(IsValidDiagDirection(diagdir));
@@ -767,7 +767,7 @@ static void ShipController(Ship *v)
 						} else if (v->current_order.IsType(OT_GOTO_DEPOT) &&
 							v->dest_tile == gp.new_tile) {
 							/* Depot orders really need to reach the tile */
-							if ((gp.x & 0xF) == 8 && (gp.y & 0xF) == 8) {
+							if ((gp.x & TILE_UNIT_MASK) == 8 && (gp.y & TILE_UNIT_MASK) == 8) {
 								VehicleEnterDepot(v);
 								return;
 							}
@@ -807,8 +807,8 @@ static void ShipController(Ship *v)
 
 				const ShipSubcoordData &b = _ship_subcoord[diagdir][track];
 
-				gp.x = (gp.x & ~0xF) | b.x_subcoord;
-				gp.y = (gp.y & ~0xF) | b.y_subcoord;
+				gp.x = (gp.x & ~TILE_UNIT_MASK) | b.x_subcoord;
+				gp.y = (gp.y & ~TILE_UNIT_MASK) | b.y_subcoord;
 
 				/* Call the landscape function and tell it that the vehicle entered the tile */
 				const VehicleEnterTileStatus r = VehicleEnterTile(v, gp.new_tile, gp.x, gp.y);

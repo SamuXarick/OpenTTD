@@ -412,8 +412,8 @@ TileIndex GetNearbyTile(uint8_t parameter, TileIndex tile, bool signed_offsets, 
 	int8_t x = GB(parameter, 0, 4);
 	int8_t y = GB(parameter, 4, 4);
 
-	if (signed_offsets && x >= 8) x -= 16;
-	if (signed_offsets && y >= 8) y -= 16;
+	if (signed_offsets && x >= 8) x -= TILE_SIZE;
+	if (signed_offsets && y >= 8) y -= TILE_SIZE;
 
 	/* Swap width and height depending on axis for railway stations */
 	if (axis == INVALID_AXIS && HasStationTileRail(tile)) axis = GetRailStationAxis(tile);

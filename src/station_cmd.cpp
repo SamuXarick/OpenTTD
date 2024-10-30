@@ -3730,8 +3730,8 @@ static VehicleEnterTileStatus VehicleEnter_Station(Vehicle *v, TileIndex tile, i
 
 		DiagDirection dir = DirToDiagDir(v->direction);
 
-		x &= 0xF;
-		y &= 0xF;
+		x &= TILE_UNIT_MASK;
+		y &= TILE_UNIT_MASK;
 
 		if (DiagDirToAxis(dir) != AXIS_X) Swap(x, y);
 		if (y == TILE_SIZE / 2) {

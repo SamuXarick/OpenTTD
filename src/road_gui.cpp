@@ -709,8 +709,8 @@ struct BuildRoadToolbarWindow : Window {
 				/* For autoroad we need to update the
 				 * direction of the road */
 				if (_thd.size.x > _thd.size.y || (_thd.size.x == _thd.size.y &&
-						( (_tile_fract_coords.x < _tile_fract_coords.y && (_tile_fract_coords.x + _tile_fract_coords.y) < 16) ||
-						(_tile_fract_coords.x > _tile_fract_coords.y && (_tile_fract_coords.x + _tile_fract_coords.y) > 16) ))) {
+						( (_tile_fract_coords.x < _tile_fract_coords.y && (_tile_fract_coords.x + _tile_fract_coords.y) < TILE_SIZE) ||
+						(_tile_fract_coords.x > _tile_fract_coords.y && (_tile_fract_coords.x + _tile_fract_coords.y) > TILE_SIZE) ))) {
 					/* Set dir = X */
 					_place_road_dir = AXIS_X;
 					_place_road_end_half = pt.x & 8;

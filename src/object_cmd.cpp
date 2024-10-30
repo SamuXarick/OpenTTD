@@ -494,7 +494,7 @@ static int GetSlopePixelZ_Object(TileIndex tile, uint x, uint y, bool)
 	if (IsObjectType(tile, OBJECT_OWNED_LAND)) {
 		auto [tileh, z] = GetTilePixelSlope(tile);
 
-		return z + GetPartialPixelZ(x & 0xF, y & 0xF, tileh);
+		return z + GetPartialPixelZ(x & TILE_UNIT_MASK, y & TILE_UNIT_MASK, tileh);
 	} else {
 		return GetTileMaxPixelZ(tile);
 	}

@@ -153,7 +153,7 @@ static uint32_t GetCountAndDistanceOfClosestInstance(uint8_t param_setID, uint8_
 		}
 	}
 
-	return count << 16 | GB(closest_dist, 0, 16);
+	return count << 16 | GB(closest_dist, 0, TILE_SIZE);
 }
 
 /* virtual */ uint32_t IndustriesScopeResolver::GetVariable(uint8_t variable, [[maybe_unused]] uint32_t parameter, bool &available) const

@@ -852,7 +852,7 @@ static void GenerateTerrain(int type, uint flag)
 		 * creating regions with different elevations/topography. */
 		uint xw = x * Map::SizeY();
 		uint yw = y * Map::SizeX();
-		uint bias = (Map::SizeX() + Map::SizeY()) * 16;
+		uint bias = (Map::SizeX() + Map::SizeY()) * TILE_SIZE;
 
 		switch (flag & 3) {
 			default: NOT_REACHED();

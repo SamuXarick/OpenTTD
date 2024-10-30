@@ -1013,8 +1013,8 @@ bool RoadVehLeaveDepot(RoadVehicle *v, bool first)
 	Trackdir tdir = DiagDirToDiagTrackdir(dir);
 	const RoadDriveEntry *rdp = _road_drive_data[GetRoadTramType(v->roadtype)][(_settings_game.vehicle.road_side << RVS_DRIVE_SIDE) + tdir];
 
-	int x = TileX(v->tile) * TILE_SIZE + (rdp[RVC_DEPOT_START_FRAME].x & 0xF);
-	int y = TileY(v->tile) * TILE_SIZE + (rdp[RVC_DEPOT_START_FRAME].y & 0xF);
+	int x = TileX(v->tile) * TILE_SIZE + (rdp[RVC_DEPOT_START_FRAME].x & TILE_UNIT_MASK);
+	int y = TileY(v->tile) * TILE_SIZE + (rdp[RVC_DEPOT_START_FRAME].y & TILE_UNIT_MASK);
 
 	if (first) {
 		/* We are leaving a depot, but have to go to the exact same one; re-enter */
@@ -1434,8 +1434,8 @@ again:
 	}
 
 	/* Calculate new position for the vehicle */
-	int x = (v->x_pos & ~15) + (rd.x & 15);
-	int y = (v->y_pos & ~15) + (rd.y & 15);
+	int x = (v->x_pos & ~TILE_UNIT_MASK) + (rd.x & TILE_UNIT_MASK);
+	int y = (v->y_pos & ~TILE_UNIT_MASK) + (rd.y & TILE_UNIT_MASK);
 
 	Direction new_dir = RoadVehGetSlidingDirection(v, x, y);
 
