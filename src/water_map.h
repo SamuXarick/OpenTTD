@@ -12,6 +12,7 @@
 
 #include "depot_type.h"
 #include "tile_map.h"
+#include "viewport_func.h"
 
 /**
  * Bit field layout of m5 for water tiles.
@@ -525,6 +526,7 @@ inline void SetNonFloodingWaterTile(Tile t, bool b)
 {
 	assert(IsTileType(t, MP_WATER));
 	AssignBit(t.m3(), 0, b);
+	MarkTileDirtyByTile(t);
 }
 /**
  * Checks whether the tile is marked as a non-flooding water tile.

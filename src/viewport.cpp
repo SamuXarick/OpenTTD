@@ -958,6 +958,7 @@ static const HighLightStyle _autorail_type[6][2] = {
 };
 
 #include "table/autorail.h"
+#include "water.h"
 
 /**
  * Draws autorail highlights.
@@ -1013,6 +1014,10 @@ const Town *_viewport_highlight_town; ///< Currently selected town for coverage 
  */
 static TileHighlightType GetTileHighlightType(TileIndex t)
 {
+	if (IsTileType(t, MP_WATER)) {
+		if (GetFloodingBehaviour(t) == FLOOD_ACTIVE) return IsNonFloodingWaterTile(t) ? THT_BLUE : THT_RED;
+		if (GetFloodingBehaviour(t) == FLOOD_DRYUP) return IsNonFloodingWaterTile(t) ? THT_NONE : THT_WHITE;
+	}
 	if (_viewport_highlight_station != nullptr) {
 		if (IsTileType(t, MP_STATION) && GetStationIndex(t) == _viewport_highlight_station->index) return THT_WHITE;
 		if (_viewport_highlight_station->TileIsInCatchment(t)) return THT_BLUE;
