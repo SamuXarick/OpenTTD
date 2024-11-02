@@ -1075,7 +1075,7 @@ static void FloodVehicles(TileIndex tile)
  *
  * @return Behaviour of the tile
  */
-FloodingBehaviour GetFloodingBehaviour(TileIndex tile)
+static FloodingBehaviour GetFloodingBehaviour(TileIndex tile)
 {
 	/* FLOOD_ACTIVE:  'single-corner-raised'-coast, sea, sea-shipdepots, sea-buoys, sea-docks (water part), rail with flooded halftile, sea-water-industries, sea-oilrigs
 	 * FLOOD_DRYUP:   coast with more than one corner raised, coast with rail-track, coast with trees
@@ -1109,6 +1109,20 @@ FloodingBehaviour GetFloodingBehaviour(TileIndex tile)
 		default:
 			return FLOOD_NONE;
 	}
+}
+
+/**
+ * Checks whether a tile has a flooding behaviour.
+ * 
+ * This is a stripped version of GetFloodingBehaviour.
+ * @param tile The tile to check.
+ * @return True if there is a flood behaviour on the tile.
+ */
+inline bool HasFloodingBehaviour(TileIndex tile)
+{
+	bool res = (HasTileWaterClass(tile) && GetWaterClass(tile) == WATER_CLASS_SEA) || (IsTileType(tile, MP_RAILWAY) && GetRailGroundType(tile) == RAIL_GROUND_WATER) || IsTileType(tile, MP_VOID);
+	assert(res == (GetFloodingBehaviour(tile) != FLOOD_NONE));
+	return res;
 }
 
 /**
@@ -1238,18 +1252,15 @@ void TileLoop_Water(TileIndex tile)
 				TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
 				/* Contrary to drying up, flooding does not consider MP_VOID tiles. */
 				if (!IsValidTile(dest)) continue;
-				/* do not try to flood water tiles - increases performance a lot */
-				if (IsTileType(dest, MP_WATER)) continue;
-
-				/* TREE_GROUND_SHORE is the sign of a previous flood. */
-				if (IsTileType(dest, MP_TREES) && GetTreeGround(dest) == TREE_GROUND_SHORE) continue;
+				/* Do not try to flood tiles with a flooding behaviour. */
+				if (HasFloodingBehaviour(dest)) continue;
 
 				auto [slope_dest, z_dest] = GetFoundationSlope(dest);
 				if (z_dest > 0) continue;
 
 				if (!HasBit(_flood_from_dirs[slope_dest & ~SLOPE_HALFTILE_MASK & ~SLOPE_STEEP], ReverseDir(dir))) continue;
 
-				DoFloodTile(dest);
+				if (!IsTileType(dest, MP_WATER)) DoFloodTile(dest);
 			}
 			break;
 

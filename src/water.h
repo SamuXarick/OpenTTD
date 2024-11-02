@@ -23,7 +23,7 @@ enum FloodingBehaviour {
 	FLOOD_DRYUP,   ///< The tile drys up if it is not constantly flooded from neighboured tiles.
 };
 
-FloodingBehaviour GetFloodingBehaviour(TileIndex tile);
+inline bool HasFloodingBehaviour(TileIndex tile);
 
 void TileLoop_Water(TileIndex tile);
 bool FloodHalftile(TileIndex t);
