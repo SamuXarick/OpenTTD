@@ -1260,8 +1260,7 @@ void TileLoop_Water(TileIndex tile)
 				/* Contrary to flooding, drying up does consider MP_VOID tiles. */
 				if (dest == INVALID_TILE) continue;
 
-				FloodingBehaviour dest_behaviour = GetFloodingBehaviour(dest);
-				if ((dest_behaviour == FLOOD_ACTIVE) || (dest_behaviour == FLOOD_PASSIVE)) return;
+				if (GetFloodingBehaviour(dest) == FLOOD_ACTIVE) return;
 			}
 			DoDryUp(tile);
 			break;
