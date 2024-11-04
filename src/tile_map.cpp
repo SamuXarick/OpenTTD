@@ -9,6 +9,7 @@
 
 #include "stdafx.h"
 #include "tile_map.h"
+#include "slope_func.h"
 
 #include "safeguards.h"
 
@@ -27,20 +28,15 @@ static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int
 	 *
 	 * Also, there is at most 1 corner with height difference of 2.
 	 */
-	int hminnw = std::min(hnorth, hwest);
-	int hmines = std::min(heast, hsouth);
-	int hmin = std::min(hminnw, hmines);
-
-	int hmaxnw = std::max(hnorth, hwest);
-	int hmaxes = std::max(heast, hsouth);
-	int hmax = std::max(hmaxnw, hmaxes);
+	int heights[] = { hwest, hsouth, heast, hnorth };
+	int hmin = *std::min_element(std::begin(heights), std::end(heights));
+	int hmax = *std::max_element(std::begin(heights), std::end(heights));
 
 	Slope r = SLOPE_FLAT;
 
-	if (hnorth != hmin) r |= SLOPE_N;
-	if (hwest  != hmin) r |= SLOPE_W;
-	if (heast  != hmin) r |= SLOPE_E;
-	if (hsouth != hmin) r |= SLOPE_S;
+	for (Corner c = CORNER_BEGIN; c != CORNER_END; c++) {
+		if (heights[c] != hmin) r |= SlopeWithOneCornerRaised(c);
+	}
 
 	if (hmax - hmin == 2) r |= SLOPE_STEEP;
 

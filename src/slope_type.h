@@ -19,7 +19,8 @@
 /**
  * Enumeration of tile corners
  */
-enum Corner {
+enum Corner : uint8_t {
+	CORNER_BEGIN = 0,
 	CORNER_W = 0,
 	CORNER_S = 1,
 	CORNER_E = 2,
@@ -27,7 +28,8 @@ enum Corner {
 	CORNER_END,
 	CORNER_INVALID = 0xFF
 };
-
+DECLARE_POSTFIX_INCREMENT(Corner)
+DECLARE_ENUM_AS_ADDABLE(Corner)
 
 /**
  * Enumeration for the slope-type.
