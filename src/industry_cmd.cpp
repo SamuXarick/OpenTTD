@@ -10,6 +10,7 @@
 #include "stdafx.h"
 #include "clear_map.h"
 #include "industry.h"
+#include "industry_kdtree.h"
 #include "station_base.h"
 #include "landscape.h"
 #include "viewport_func.h"
@@ -63,7 +64,7 @@ void BuildOilRig(TileIndex tile);
 static uint8_t _industry_sound_ctr;
 static TileIndex _industry_sound_tile;
 
-std::array<std::vector<IndustryID>, NUM_INDUSTRYTYPES> Industry::industries;
+std::array<Industry::IndustryTypeCountCaches, NUM_INDUSTRYTYPES> Industry::counts;
 
 IndustrySpec _industry_specs[NUM_INDUSTRYTYPES];
 IndustryTileSpec _industry_tile_specs[NUM_INDUSTRYTILES];
@@ -189,9 +190,7 @@ Industry::~Industry()
 	/* Clear the persistent storage. */
 	delete this->psa;
 
-	auto &industries = Industry::industries[type];
-	auto it = std::ranges::lower_bound(industries, this->index);
-	industries.erase(it);
+	this->DecIndustryTypeCount();
 
 	DeleteIndustryNews(this->index);
 	CloseWindowById(WC_INDUSTRY_VIEW, this->index);
@@ -1436,11 +1435,9 @@ static CommandCost FindTownForIndustry(TileIndex tile, IndustryType type, Town *
 
 	if (_settings_game.economy.multiple_industry_per_town) return CommandCost();
 
-	for (const IndustryID &industry : Industry::industries[type]) {
-		if (Industry::Get(industry)->town == *t) {
-			*t = nullptr;
-			return CommandCost(STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN);
-		}
+	if (Industry::HasTownIndustryOfType(type, *t)) {
+		*t = nullptr;
+		return CommandCost(STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN);
 	}
 
 	return CommandCost();
@@ -1695,13 +1692,20 @@ static CommandCost CheckIfFarEnoughFromConflictingIndustry(TileIndex tile, Indus
 {
 	const IndustrySpec *indspec = GetIndustrySpec(type);
 
+	/* On a large map with many industries, it may be faster to check an area. */
+	static const int dmax = 14;
 	for (IndustryType conflicting_type : indspec->conflicting) {
-		if (conflicting_type == IT_INVALID) continue;
+		if (conflicting_type >= NUM_INDUSTRYTYPES) continue;
 
-		for (const IndustryID &industry : Industry::industries[conflicting_type]) {
+		std::vector<IndustryID> nearby_industries = Industry::FindContained(tile, conflicting_type, dmax);
+
+		auto is_conflicting = [&tile](IndustryID iid) {
 			/* Within 14 tiles from another industry is considered close */
-			if (DistanceMax(tile, Industry::Get(industry)->location.tile) > 14) continue;
+			return DistanceMax(tile, Industry::Get(iid)->location.tile) <= dmax;
+		};
 
+		/* check if there are any conflicting industry types around */
+		if (std::ranges::any_of(nearby_industries, is_conflicting)) {
 			return CommandCost(STR_ERROR_INDUSTRY_TOO_CLOSE);
 		}
 	}
@@ -1768,10 +1772,6 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 	i->location = TileArea(tile, 1, 1);
 	i->type = type;
 
-	auto &industries = Industry::industries[type];
-	auto it = std::ranges::lower_bound(industries, i->index);
-	it = industries.emplace(it, i->index);
-
 	for (size_t index = 0; index < std::size(indspec->produced_cargo); ++index) {
 		if (!IsValidCargoID(indspec->produced_cargo[index])) break;
 
@@ -1795,6 +1795,7 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 	}
 
 	i->town = t;
+	i->IncIndustryTypeCount();
 	i->owner = OWNER_NONE;
 
 	uint16_t r = Random();
@@ -2397,8 +2398,8 @@ static void PlaceInitialIndustry(IndustryType type, bool try_hard)
 static uint GetCurrentTotalNumberOfIndustries()
 {
 	uint total = 0;
-	for (const auto &industries : Industry::industries) {
-		total += static_cast<uint16_t>(std::size(industries));
+	for (IndustryType it = 0; it < NUM_INDUSTRYTYPES; it++) {
+		total += Industry::GetIndustryTypeCount(it);
 	}
 	return total;
 }
@@ -2487,6 +2488,9 @@ void GenerateIndustries()
 		PlaceInitialIndustry(it, false);
 	}
 	_industry_builder.Reset();
+
+	/* Build the industry k-d tree again to make sure it's well balanced */
+	Industry::RebuildIndustryKdtree();
 }
 
 /**
@@ -3075,7 +3079,7 @@ static IntervalTimer<TimerGameEconomy> _economy_industries_monthly({TimerGameEco
 
 void InitializeIndustries()
 {
-	Industry::industries = {};
+	Industry::ResetIndustryCounts();
 	_industry_sound_tile = 0;
 
 	_industry_builder.Reset();

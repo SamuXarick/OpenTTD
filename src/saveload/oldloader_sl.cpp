@@ -874,7 +874,7 @@ static bool LoadOldIndustry(LoadgameState *ls, int num)
 			i->random_colour = RemapTTOColour(i->random_colour);
 		}
 
-		Industry::industries[i->type].push_back(i->index); // Assume savegame indices are sorted.
+		i->IncIndustryTypeCount();
 	} else {
 		delete i;
 	}
