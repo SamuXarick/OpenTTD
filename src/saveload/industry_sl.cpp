@@ -251,6 +251,7 @@ struct INDYChunkHandler : ChunkHandler {
 
 		SlIndustryAccepted::ResetOldStructure();
 		SlIndustryProduced::ResetOldStructure();
+		Industry::ResetIndustryCounts();
 
 		while ((index = SlIterateArray()) != -1) {
 			Industry *i = new (IndustryID(index)) Industry();
@@ -285,8 +286,6 @@ struct INDYChunkHandler : ChunkHandler {
 				/* Set mask bits up to and including the oldest valid record. */
 				i->valid_history = (std::numeric_limits<uint64_t>::max() >> (std::numeric_limits<uint64_t>::digits - (oldest_valid + 1 - LAST_MONTH))) << LAST_MONTH;
 			}
-
-			Industry::industries[i->type].insert(i->index);
 		}
 	}
 
@@ -294,6 +293,7 @@ struct INDYChunkHandler : ChunkHandler {
 	{
 		for (Industry *i : Industry::Iterate()) {
 			SlObject(i, _industry_desc);
+			i->IncIndustryTypeCount();
 		}
 	}
 };

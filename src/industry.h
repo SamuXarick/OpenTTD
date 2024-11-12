@@ -20,6 +20,8 @@
 #include "station_base.h"
 #include "timer/timer_game_calendar.h"
 #include "timer/timer_game_economy.h"
+#include "industry_kdtree.h"
+#include "town.h"
 
 
 typedef Pool<Industry, IndustryID, 64> IndustryPool;
@@ -257,14 +259,289 @@ struct Industry : IndustryPool::PoolItem<&_industry_pool> {
 	static void PostDestructor(size_t index);
 
 	/**
-	 * Get the count of industries for this type.
-	 * @param type IndustryType to query
+	 * Struct representing the cache of industries for a specific town.
+	 */
+	struct IndustryTownCache {
+		TownID town_id;                       ///< The ID of the town.
+		std::vector<IndustryID> industry_ids; ///< A vector of IDs of the industries associated with the town.
+	};
+
+	/**
+	 * Struct representing the cache of industry counts for a specific industry type.
+	 */
+	struct IndustryTypeCountCaches {
+		IndustryKdtree kdtree;                ///< A k-d tree for spatial indexing of industries.
+		std::vector<IndustryTownCache> towns; ///< A vector of IndustryTownCache entries, each representing a town and its associated industries.
+	};
+
+	/**
+	 * Increment the count of industries of the specified type in a town.
+	 *
+	 * This function updates the k-d tree by inserting the industry's index and adjusts the
+	 * industry counts for the specific industry type in the corresponding town. If the industry
+	 * is not already in the town's list, it is added in the correct sorted position.
+	 */
+	inline void IncIndustryTypeCount()
+	{
+		auto &kdtree = this->counts[this->type].kdtree;
+		kdtree.Insert(this->index);
+
+		/* Find the correct position to insert or update the town entry using lower_bound. */
+		auto &type_vector = this->counts[this->type].towns;
+		auto pair_it = std::ranges::lower_bound(type_vector, this->town->index, {}, &IndustryTownCache::town_id);
+
+		if (pair_it != std::end(type_vector) && pair_it->town_id == this->town->index) {
+			/* Create a reference to the town's industry list. */
+			auto &iid_vector = pair_it->industry_ids;
+
+			/* Ensure the town's industry list is not empty. */
+			assert(!std::empty(iid_vector));
+
+			/* Ensure the industry is not already in the town's industry list. */
+			assert(std::ranges::all_of(iid_vector, [&](auto &iid) {
+				return iid != this->index;
+			}));
+
+			/* Find the correct position to insert the industry ID in sorted order. */
+			auto iid_it = std::ranges::lower_bound(iid_vector, this->index);
+
+			/* Add the industry ID to the town's industry list in the correct position. */
+			iid_vector.insert(iid_it, this->index);
+		} else {
+			/* Create a new vector for the industry IDs and add the industry ID. */
+			std::vector<IndustryID> iid_vector;
+			iid_vector.emplace_back(this->index);
+
+			/* Insert the new entry (town index and vector of industry IDs) into the correct position. */
+			type_vector.emplace(pair_it, IndustryTownCache{ this->town->index, std::move(iid_vector) });
+		}
+	}
+
+	/**
+	 * Decrement the count of industries of the specified type in a town.
+	 *
+	 * This function updates the k-d tree by removing the industry's index and adjusts the
+	 * industry counts for the specific industry type in the corresponding town. If the town's
+	 * industry list becomes empty after removal, the town entry is removed from the list.
+	 */
+	inline void DecIndustryTypeCount()
+	{
+		auto &kdtree = this->counts[this->type].kdtree;
+		kdtree.Remove(this->index);
+
+		/* Find the correct position of the town entry using lower_bound. */
+		auto &type_vector = this->counts[this->type].towns;
+		auto pair_it = std::ranges::lower_bound(type_vector, this->town->index, {}, &IndustryTownCache::town_id);
+
+		/* Ensure the pair was found in the array. */
+		assert(pair_it != std::end(type_vector) && pair_it->town_id == this->town->index);
+
+		/* Create a reference to the town's industry list. */
+		auto &iid_vector = pair_it->industry_ids;
+
+		/* Ensure the town's industry list is not empty. */
+		assert(!std::empty(iid_vector));
+
+		/* Find the industry ID within the town's industry list. */
+		auto iid_it = std::ranges::lower_bound(iid_vector, this->index);
+
+		/* Ensure the industry ID was found in the list. */
+		assert(iid_it != std::end(iid_vector) && *iid_it == this->index);
+
+		/* Erase the industry ID from the town's industry list. */
+		iid_vector.erase(iid_it);
+
+		/* If the town's industry list is now empty, erase the town from the counts array. */
+		if (std::empty(iid_vector)) {
+			type_vector.erase(pair_it);
+		}
+	}
+
+private:
+	/**
+	 * Applies the function to each industry and counts those that satisfy the function.
+	 * Also verifies that all industries belong to the specified town.
+	 *
+	 * @param industries Vector of IndustryIDs to be processed.
+	 * @param town Pointer to the Town for validation.
+	 * @param return_early Return as soon as the count is different than zero.
+	 * @param func Function to apply to each industry.
+	 * @return The count of industries that satisfy the function.
+	 */
+	template<typename Func>
+	static inline uint16_t ProcessIndustries(const std::vector<IndustryID> &industries, [[maybe_unused]] const Town *town, bool return_early, Func func)
+	{
+		uint16_t count = 0;
+
+		for (const auto &iid : industries) {
+			const Industry *ind = Industry::Get(iid);
+
+			/* Verify the industry belongs to the specified town. */
+			assert(ind->town == town);
+
+			if (func(ind)) count++;
+			if (return_early && count != 0) break;
+		}
+
+		return count;
+	}
+
+public:
+	/**
+	 * Get the count of industries for a specified type in a town or in all towns.
+	 *
+	 * @param type IndustryType to query.
+	 * @param town Town to query, or nullptr to query all towns.
+	 * @param return_early Return as soon as the count is different than zero.
+	 * @param func Function to apply to each industry.
+	 * @return The count of industries for the specified type.
 	 * @pre type < NUM_INDUSTRYTYPES
 	 */
-	static inline uint16_t GetIndustryTypeCount(IndustryType type)
+	template<typename Func>
+	static inline uint16_t CountTownIndustriesOfTypeMatchingCondition(IndustryType type, const Town *town, bool return_early, Func func)
 	{
 		assert(type < NUM_INDUSTRYTYPES);
-		return static_cast<uint16_t>(std::size(industries[type]));
+
+		uint16_t count = 0;
+		if (town != nullptr) {
+			/* Find the correct position of the town entry using lower_bound. */
+			auto &type_vector = counts[type].towns;
+			auto pair_it = std::ranges::lower_bound(type_vector, town->index, {}, &IndustryTownCache::town_id);
+
+			if (pair_it != std::end(type_vector) && pair_it->town_id == town->index) {
+				/* Create a reference to the town's industry list. */
+				auto &iid_vector = pair_it->industry_ids;
+
+				/* Ensure the town's industry list is not empty. */
+				assert(!std::empty(iid_vector));
+				count = ProcessIndustries(iid_vector, town, return_early, func);
+			}
+		} else {
+			/* Count industries in all towns. */
+			for (auto &pair : counts[type].towns) {
+				/* Create a reference to the town's industry list. */
+				auto &iid_vector = pair.industry_ids;
+
+				/* Ensure the town's industry list is not empty. */
+				assert(!std::empty(iid_vector));
+				count += ProcessIndustries(iid_vector, Town::Get(pair.town_id), return_early, func);
+				if (return_early && count != 0) break;
+			}
+		}
+
+		return count;
+	}
+
+	/**
+	 * Get the count of industries for a specified type.
+	 *
+	 * @param type The type of industry to count.
+	 * @return uint16_t The count of industries of the specified type.
+	 */
+	static uint16_t GetIndustryTypeCount(IndustryType type)
+	{
+		uint16_t count = static_cast<uint16_t>(counts[type].kdtree.Count());
+
+		/* Sanity check. Both the Kdtree and the count of industries in all towns should match. */
+		assert(count == CountTownIndustriesOfTypeMatchingCondition(type, nullptr, false, [](const Industry *) { return true; }));
+		return count;
+	}
+
+	/**
+	 * Check if a town has an industry of the specified type.
+	 *
+	 * @param type The type of industry to check for.
+	 * @param town Pointer to the town to check.
+	 * @return bool True if the town has an industry of the specified type, false otherwise.
+	 */
+	static inline bool HasTownIndustryOfType(IndustryType type, const Town *town)
+	{
+		assert(town != nullptr);
+
+		return CountTownIndustriesOfTypeMatchingCondition(type, town, true, [](const Industry *) { return true; }) != 0;
+	}
+
+	/**
+	 * Resets the industry counts for all industry types.
+	 *
+	 * Clears the vector of IndustryTownCache entries for each industry type,
+	 * effectively resetting the count of industries per type in all towns.
+	 */
+	static inline void ResetIndustryCounts()
+	{
+		/* Clear the vector for each industry type in the counts array. */
+		std::ranges::for_each(counts, [](auto &type) { type.towns.clear(); });
+	}
+
+	/**
+	 * Rebuilds the k-d tree for each industry type.
+	 *
+	 * Iterates over all industries, categorizes them by type, and rebuilds the
+	 * k-d tree for each industry type using the collected industry IDs.
+	 */
+	static inline void RebuildIndustryKdtree()
+	{
+		std::array<std::vector<IndustryID>, NUM_INDUSTRYTYPES> industryids;
+		for (const Industry *industry : Industry::Iterate()) {
+			industryids[industry->type].push_back(industry->index);
+		}
+
+		for (IndustryType type = 0; type < NUM_INDUSTRYTYPES; type++) {
+			counts[type].kdtree.Build(industryids[type].begin(), industryids[type].end());
+		}
+	}
+
+	/**
+	 * Find all industries within a specified radius of a given tile.
+	 *
+	 * This function calculates the rectangular area around the given tile, constrained by the map boundaries,
+	 * and finds all industries contained within this area using the k-d tree.
+	 *
+	 * @param tile The central tile index.
+	 * @param type The industry type to search for.
+	 * @param radius The search radius around the tile.
+	 * @return std::vector<IndustryID> A vector of industry IDs found within the specified area.
+	 */
+	static inline std::vector<IndustryID> FindContained(TileIndex tile, IndustryType type, int radius)
+	{
+		static uint16_t x1, x2, y1, y2;
+		x1 = (uint16_t)std::max<int>(0, TileX(tile) - radius);
+		x2 = (uint16_t)std::min<int>(TileX(tile) + radius + 1, Map::SizeX());
+		y1 = (uint16_t)std::max<int>(0, TileY(tile) - radius);
+		y2 = (uint16_t)std::min<int>(TileY(tile) + radius + 1, Map::SizeY());
+
+		return counts[type].kdtree.FindContained(x1, y1, x2, y2);
+	}
+
+	/**
+	 * Find the industry nearest to a given tile.
+	 *
+	 * This function uses the k-d tree to find the industry of the specified type
+	 * that is closest to the given tile based on its coordinates.
+	 *
+	 * @param tile The tile index to search from.
+	 * @param type The industry type to search for.
+	 * @return IndustryID The ID of the nearest industry.
+	 */
+	static inline IndustryID FindNearest(TileIndex tile, IndustryType type)
+	{
+		return counts[type].kdtree.FindNearest(TileX(tile), TileY(tile));
+	}
+
+	/**
+	 * Find the industry nearest to a given tile, excluding a specified industry.
+	 *
+	 * This function uses the k-d tree to find the industry of the specified type
+	 * that is closest to the given tile, excluding the industry with the given ID.
+	 *
+	 * @param tile The tile index to search from.
+	 * @param type The industry type to search for.
+	 * @param iid The ID of the industry to exclude from the search.
+	 * @return IndustryID The ID of the nearest industry, excluding the specified one.
+	 */
+	static inline IndustryID FindNearestExcept(TileIndex tile, IndustryType type, IndustryID iid)
+	{
+		return counts[type].kdtree.FindNearestExcept(TileX(tile), TileY(tile), iid);
 	}
 
 	inline const std::string &GetCachedName() const
@@ -273,10 +550,19 @@ struct Industry : IndustryPool::PoolItem<&_industry_pool> {
 		return this->cached_name;
 	}
 
-	static std::array<FlatSet<IndustryID>, NUM_INDUSTRYTYPES> industries; ///< List of industries of each type.
-
 private:
 	void FillCachedName() const;
+
+protected:
+	/**
+	 * Array containing data for each industry type.
+	 * Each element corresponds to a specific IndustryType and contains:
+	 * - An IndustryKdtree for spatial indexing.
+	 * - A vector of IndustryTownCache entries, where each entry holds:
+	 *   - A TownID representing a town.
+	 *   - A vector of IndustryIDs associated with that town.
+	 */
+	static std::array<IndustryTypeCountCaches, NUM_INDUSTRYTYPES> counts;
 };
 
 void ClearAllIndustryCachedNames();

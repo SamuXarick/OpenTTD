@@ -575,6 +575,7 @@ bool AfterLoadGame()
 	/* This needs to be done even before conversion, because some conversions will destroy objects
 	 * that otherwise won't exist in the tree. */
 	RebuildViewportKdtree();
+	Industry::RebuildIndustryKdtree();
 
 	/* Group hierarchy may be evaluated during conversion, so ensure its correct early on. */
 	UpdateGroupChildren();

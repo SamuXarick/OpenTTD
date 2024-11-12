@@ -94,13 +94,19 @@ static uint32_t GetClosestIndustry(TileIndex tile, IndustryType type, const Indu
 {
 	uint32_t best_dist = UINT32_MAX;
 
-	for (const IndustryID &industry : Industry::industries[type]) {
-		if (industry == current->index) continue;
+	const size_t count = Industry::GetIndustryTypeCount(type);
+	if (count == 0) return best_dist;
 
-		best_dist = std::min(best_dist, DistanceManhattan(tile, Industry::Get(industry)->location.tile));
+	IndustryID iid;
+	if (current->index == IndustryID::Invalid() || type != current->type) {
+		iid = Industry::FindNearest(tile, type);
+	} else {
+		if (count == 1) return best_dist;
+		iid = Industry::FindNearestExcept(tile, type, current->index);
+		assert(iid != current->index);
 	}
 
-	return best_dist;
+	return DistanceManhattan(tile, Industry::Get(iid)->location.tile);
 }
 
 /**
@@ -148,15 +154,13 @@ static uint32_t GetCountAndDistanceOfClosestInstance(const ResolverObject &objec
 	} else {
 		/* Count only those who match the same industry type and layout filter
 		 * Unfortunately, we have to do it manually */
-		for (const IndustryID &industry : Industry::industries[industry_type]) {
-			if (industry == current->index) continue;
-
-			const Industry *i = Industry::Get(industry);
-			if ((layout_filter == 0 || i->selected_layout == layout_filter) && (!town_filter || i->town == current->town)) {
+		count = Industry::CountTownIndustriesOfTypeMatchingCondition(industry_type, town_filter ? current->town : nullptr, false, [&](const Industry *i) {
+			if (i != current && (layout_filter == 0 || i->selected_layout == layout_filter)) {
 				closest_dist = std::min(closest_dist, DistanceManhattan(current->location.tile, i->location.tile));
-				count++;
+				return true;
 			}
-		}
+			return false;
+		});
 	}
 
 	return count << 16 | GB(closest_dist, 0, 16);
