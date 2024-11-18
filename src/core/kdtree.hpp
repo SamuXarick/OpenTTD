@@ -39,7 +39,7 @@ class Kdtree {
 		size_t left;     ///< Index of node to the left, INVALID_NODE if none
 		size_t right;    ///< Index of node to the right, INVALID_NODE if none
 
-		node(T element) : element(element), left(INVALID_NODE), right(INVALID_NODE) { }
+		node(T element) : element(std::move(element)), left(INVALID_NODE), right(INVALID_NODE) { }
 	};
 
 	static const size_t INVALID_NODE = SIZE_MAX;     ///< Index value indicating no-such-node
@@ -69,8 +69,10 @@ class Kdtree {
 	CoordT SelectSplitCoord(It begin, It end, int level)
 	{
 		It mid = begin + (end - begin) / 2;
-		std::nth_element(begin, mid, end, [&](T a, T b) { return TxyFunc()(a, level % 2) < TxyFunc()(b, level % 2); });
-		return TxyFunc()(*mid, level % 2);
+		/* Dimension index of current level */
+		int dim = level % 2;
+		std::nth_element(begin, mid, end, [&](const T &a, const T &b) { return TxyFunc()(a, dim) < TxyFunc()(b, dim); });
+		return TxyFunc()(*mid, dim);
 	}
 
 	/** Construct a subtree from elements between begin and end iterators, return index of root */
@@ -84,11 +86,12 @@ class Kdtree {
 		} else if (count == 1) {
 			return this->AddNode(*begin);
 		} else if (count > 1) {
-			CoordT split_coord = SelectSplitCoord(begin, end, level);
-			It split = std::partition(begin, end, [&](T v) { return TxyFunc()(v, level % 2) < split_coord; });
+			CoordT split_coord = this->SelectSplitCoord(begin, end, level);
+			It split = std::partition(begin, end, [&](const T &element) { return TxyFunc()(element, level % 2) < split_coord; });
 			size_t newidx = this->AddNode(*split);
-			this->nodes[newidx].left = this->BuildSubtree(begin, split, level + 1);
-			this->nodes[newidx].right = this->BuildSubtree(split + 1, end, level + 1);
+			int descent_level = level + 1;
+			this->nodes[newidx].left = this->BuildSubtree(begin, split, descent_level);
+			this->nodes[newidx].right = this->BuildSubtree(split + 1, end, descent_level);
 			return newidx;
 		} else {
 			NOT_REACHED();
@@ -101,16 +104,16 @@ class Kdtree {
 		size_t initial_count = this->Count();
 		if (initial_count < MIN_REBALANCE_THRESHOLD) return false;
 
-		T root_element = this->nodes[this->root].element;
+		T root_element = std::move(this->nodes[this->root].element);
 		std::vector<T> elements = this->FreeSubtree(this->root);
-		elements.push_back(root_element);
+		elements.push_back(std::move(root_element));
 
 		if (include_element != nullptr) {
 			elements.push_back(*include_element);
 			initial_count++;
 		}
 		if (exclude_element != nullptr) {
-			typename std::vector<T>::iterator removed = std::remove(elements.begin(), elements.end(), *exclude_element);
+			auto removed = std::remove(elements.begin(), elements.end(), *exclude_element);
 			elements.erase(removed, elements.end());
 			initial_count--;
 		}
@@ -132,15 +135,22 @@ class Kdtree {
 		CoordT nc = TxyFunc()(n.element, dim);
 		/* Coordinate of the new element */
 		CoordT ec = TxyFunc()(element, dim);
+
+		bool side = ec < nc;
+
 		/* Which side to insert on */
-		size_t &next = (ec < nc) ? n.left : n.right;
+		size_t next = side ? n.left : n.right;
 
 		if (next == INVALID_NODE) {
 			/* New leaf */
 			size_t newidx = this->AddNode(element);
 			/* Vector may have been reallocated at this point, n and next are invalid */
 			node &nn = this->nodes[node_idx];
-			if (ec < nc) nn.left = newidx; else nn.right = newidx;
+			if (side) {
+				nn.left = newidx;
+			} else {
+				nn.right = newidx;
+			}
 		} else {
 			this->InsertRecursive(element, next, level + 1);
 		}
@@ -165,7 +175,7 @@ class Kdtree {
 		/* Recursively free the nodes being collected */
 		for (size_t i = first_free; i < this->free_list.size(); i++) {
 			node &fn = this->nodes[this->free_list[i]];
-			subtree_elements.push_back(fn.element);
+			subtree_elements.push_back(std::move(fn.element));
 			if (fn.left != INVALID_NODE) this->free_list.push_back(fn.left);
 			if (fn.right != INVALID_NODE) this->free_list.push_back(fn.right);
 			fn.left = fn.right = INVALID_NODE;
@@ -195,7 +205,7 @@ class Kdtree {
 			} else {
 				/* Complex case, rebuild the sub-tree */
 				std::vector<T> subtree_elements = this->FreeSubtree(node_idx);
-				return this->BuildSubtree(subtree_elements.begin(), subtree_elements.end(), level);;
+				return this->BuildSubtree(subtree_elements.begin(), subtree_elements.end(), level);
 			}
 		} else {
 			/* Search in a sub-tree */
@@ -205,24 +215,31 @@ class Kdtree {
 			CoordT nc = TxyFunc()(n.element, dim);
 			/* Coordinate of the element being removed */
 			CoordT ec = TxyFunc()(element, dim);
+
+			bool side = ec < nc;
+
 			/* Which side to remove from */
-			size_t next = (ec < nc) ? n.left : n.right;
+			size_t next = side ? n.left : n.right;
 			assert(next != INVALID_NODE); // node must exist somewhere and must be found before a leaf is reached
 			/* Descend */
 			size_t new_branch = this->RemoveRecursive(element, next, level + 1);
 			if (new_branch != next) {
 				/* Vector may have been reallocated at this point, n and next are invalid */
 				node &nn = this->nodes[node_idx];
-				if (ec < nc) nn.left = new_branch; else nn.right = new_branch;
+				if (side) {
+					nn.left = new_branch;
+				} else {
+					nn.right = new_branch;
+				}
 			}
 			return node_idx;
 		}
 	}
 
-
 	DistT ManhattanDistance(const T &element, CoordT x, CoordT y) const
 	{
-		return abs((DistT)TxyFunc()(element, 0) - (DistT)x) + abs((DistT)TxyFunc()(element, 1) - (DistT)y);
+		return std::abs(static_cast<DistT>(TxyFunc()(element, 0)) - static_cast<DistT>(x)) +
+			std::abs(static_cast<DistT>(TxyFunc()(element, 1)) - static_cast<DistT>(y));
 	}
 
 	/** A data element and its distance to a searched-for point */
@@ -236,6 +253,7 @@ class Kdtree {
 		if (b.first < a.first) return b;
 		NOT_REACHED(); // a.first == b.first: same element must not be inserted twice
 	}
+
 	/** Search a sub-tree for the element nearest to a given point */
 	node_distance FindNearestRecursive(CoordT xy[2], size_t node_idx, int level, DistT limit = std::numeric_limits<DistT>::max()) const
 	{
@@ -247,24 +265,28 @@ class Kdtree {
 		/* Coordinate of element splitting at this node */
 		CoordT c = TxyFunc()(n.element, dim);
 		/* This node's distance to target */
-		DistT thisdist = ManhattanDistance(n.element, xy[0], xy[1]);
+		DistT thisdist = this->ManhattanDistance(n.element, xy[0], xy[1]);
 		/* Assume this node is the best choice for now */
 		node_distance best = std::make_pair(n.element, thisdist);
 
+		bool side = xy[dim] < c;
+		int descent_level = level + 1;
+
 		/* Next node to visit */
-		size_t next = (xy[dim] < c) ? n.left : n.right;
+		size_t next = side ? n.left : n.right;
 		if (next != INVALID_NODE) {
 			/* Check if there is a better node down the tree */
-			best = SelectNearestNodeDistance(best, this->FindNearestRecursive(xy, next, level + 1));
+			node_distance candidate = this->FindNearestRecursive(xy, next, descent_level);
+			best = SelectNearestNodeDistance(best, candidate);
 		}
 
 		limit = std::min(best.second, limit);
 
 		/* Check if the distance from current best is worse than distance from target to splitting line,
 		 * if it is we also need to check the other side of the split. */
-		size_t opposite = (xy[dim] >= c) ? n.left : n.right; // reverse of above
-		if (opposite != INVALID_NODE && limit >= abs((int)xy[dim] - (int)c)) {
-			node_distance other_candidate = this->FindNearestRecursive(xy, opposite, level + 1, limit);
+		size_t opposite = !side ? n.left : n.right; // reverse of above
+		if (opposite != INVALID_NODE && limit >= std::abs(static_cast<int>(xy[dim]) - static_cast<int>(c))) {
+			node_distance other_candidate = this->FindNearestRecursive(xy, opposite, descent_level, limit);
 			best = SelectNearestNodeDistance(best, other_candidate);
 		}
 
@@ -276,22 +298,32 @@ class Kdtree {
 	{
 		/* Dimension index of current level */
 		int dim = level % 2;
+		/* The other dimension index of current level */
+		int other_dim = 1 - dim;
 		/* Node reference */
 		const node &n = this->nodes[node_idx];
 
 		/* Coordinate of element splitting at this node */
 		CoordT ec = TxyFunc()(n.element, dim);
 		/* Opposite coordinate of element */
-		CoordT oc = TxyFunc()(n.element, 1 - dim);
+		CoordT oc = TxyFunc()(n.element, other_dim);
 
 		/* Test if this element is within rectangle */
-		if (ec >= p1[dim] && ec < p2[dim] && oc >= p1[1 - dim] && oc < p2[1 - dim]) outputter(n.element);
+		if (ec >= p1[dim] && ec < p2[dim] && oc >= p1[other_dim] && oc < p2[other_dim]) {
+			outputter(n.element);
+		}
+
+		int descent_level = level + 1;
 
 		/* Recurse left if part of rectangle is left of split */
-		if (p1[dim] < ec && n.left != INVALID_NODE) this->FindContainedRecursive(p1, p2, n.left, level + 1, outputter);
+		if (p1[dim] < ec && n.left != INVALID_NODE) {
+			this->FindContainedRecursive(p1, p2, n.left, descent_level, outputter);
+		}
 
 		/* Recurse right if part of rectangle is right of split */
-		if (p2[dim] > ec && n.right != INVALID_NODE) this->FindContainedRecursive(p1, p2, n.right, level + 1, outputter);
+		if (p2[dim] > ec && n.right != INVALID_NODE) {
+			this->FindContainedRecursive(p1, p2, n.right, descent_level, outputter);
+		}
 	}
 
 	/** Debugging function, counts number of occurrences of an element regardless of its correct position in the tree */
@@ -299,7 +331,7 @@ class Kdtree {
 	{
 		if (node_idx == INVALID_NODE) return 0;
 		const node &n = this->nodes[node_idx];
-		return CountValue(element, n.left) + CountValue(element, n.right) + ((n.element == element) ? 1 : 0);
+		return this->CountValue(element, n.left) + this->CountValue(element, n.right) + ((n.element == element) ? 1 : 0);
 	}
 
 	void IncrementUnbalanced(size_t amount = 1)
@@ -329,14 +361,16 @@ class Kdtree {
 		assert(cy >= min_y);
 		assert(cy < max_y);
 
+		int descent_level = level + 1;
+
 		if (level % 2 == 0) {
-			// split in dimension 0 = x
-			CheckInvariant(n.left,  level + 1, min_x, cx, min_y, max_y);
-			CheckInvariant(n.right, level + 1, cx, max_x, min_y, max_y);
+			/* split in dimension 0 = x */
+			this->CheckInvariant(n.left,  descent_level, min_x, cx, min_y, max_y);
+			this->CheckInvariant(n.right, descent_level, cx, max_x, min_y, max_y);
 		} else {
-			// split in dimension 1 = y
-			CheckInvariant(n.left,  level + 1, min_x, max_x, min_y, cy);
-			CheckInvariant(n.right, level + 1, min_x, max_x, cy, max_y);
+			/* split in dimension 1 = y */
+			this->CheckInvariant(n.left,  descent_level, min_x, max_x, min_y, cy);
+			this->CheckInvariant(n.right, descent_level, min_x, max_x, cy, max_y);
 		}
 	}
 
@@ -344,7 +378,7 @@ class Kdtree {
 	void CheckInvariant() const
 	{
 #ifdef KDTREE_DEBUG
-		CheckInvariant(this->root, 0, std::numeric_limits<CoordT>::min(), std::numeric_limits<CoordT>::max(), std::numeric_limits<CoordT>::min(), std::numeric_limits<CoordT>::max());
+		this->CheckInvariant(this->root, 0, std::numeric_limits<CoordT>::min(), std::numeric_limits<CoordT>::max(), std::numeric_limits<CoordT>::min(), std::numeric_limits<CoordT>::max());
 #endif
 	}
 
@@ -368,7 +402,7 @@ public:
 		this->nodes.reserve(end - begin);
 
 		this->root = this->BuildSubtree(begin, end, 0);
-		CheckInvariant();
+		this->CheckInvariant();
 	}
 
 	/**
@@ -379,7 +413,6 @@ public:
 		this->nodes.clear();
 		this->free_list.clear();
 		this->unbalanced = 0;
-		return;
 	}
 
 	/**
@@ -404,7 +437,7 @@ public:
 				this->InsertRecursive(element, this->root, 0);
 				this->IncrementUnbalanced();
 			}
-			CheckInvariant();
+			this->CheckInvariant();
 		}
 	}
 
@@ -423,7 +456,7 @@ public:
 			this->root = this->RemoveRecursive(element, this->root, 0);
 			this->IncrementUnbalanced();
 		}
-		CheckInvariant();
+		this->CheckInvariant();
 	}
 
 	/** Get number of elements stored in tree */
@@ -475,7 +508,7 @@ public:
 	std::vector<T> FindContained(CoordT x1, CoordT y1, CoordT x2, CoordT y2) const
 	{
 		std::vector<T> result;
-		this->FindContained(x1, y1, x2, y2, [&result](T e) {result.push_back(e); });
+		this->FindContained(x1, y1, x2, y2, [&result](const T &element) { result.push_back(element); });
 		return result;
 	}
 };
