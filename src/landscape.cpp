@@ -1224,6 +1224,16 @@ static int32_t RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *curr
 	return AYSTAR_DONE;
 }
 
+static int32_t RiverTest_CalculateG(AyStar *, AyStarNode *, PathNode *)
+{
+	return 1;
+}
+
+static int32_t RiverTest_CalculateH(AyStar *aystar, AyStarNode *current, PathNode *)
+{
+	return DistanceManhattan(*(TileIndex*)aystar->user_target, current->tile);
+}
+
 static void RiverTest_GetNeighbours(AyStar *aystar, PathNode *current)
 {
 	TileIndex tile = current->GetTile();
@@ -1278,11 +1288,11 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 	}
 }
 
-static bool TestRiverConnection(TileIndex begin, TileIndex end)
+[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
 {
 	AyStar finder = {};
-	finder.CalculateG = River_CalculateG;
-	finder.CalculateH = River_CalculateH;
+	finder.CalculateG = RiverTest_CalculateG;
+	finder.CalculateH = RiverTest_CalculateH;
 	finder.GetNeighbours = RiverTest_GetNeighbours;
 	finder.EndNodeCheck = RiverTest_EndNodeCheck;
 	finder.FoundEndNode = RiverTest_FoundEndNode;
@@ -1336,12 +1346,12 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 		}
 
 		/* Make sure the river is still intact. */
-		TileIndex begin = current->GetTile();
-		TileIndex end;
+		[[maybe_unused]] TileIndex end = current->GetTile();
+		TileIndex begin;
 		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-			end = path->GetTile();
+			begin = path->GetTile();
 		}
-		assert(TestRiverConnection(begin, end));
+		assert(TestRiverConnection(end, begin));
 	}
 }
 
@@ -1366,6 +1376,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	finder.FoundEndNode = River_FoundEndNode;
 	finder.user_target = &end;
 	finder.user_data = &user_data;
+	finder.max_search_nodes = 0;
 
 	AyStarNode start;
 	start.tile = begin;
@@ -1457,7 +1468,12 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 	}
 
 	marks.clear();
-	if (found) found = BuildRiver(begin, end, spring, main_river, begin_end_points);
+	if (found) {
+		found = BuildRiver(begin, end, spring, main_river, begin_end_points);
+		if (!found) {
+			bool yes = true;
+		}
+	}
 	return { found, main_river };
 }
 
@@ -1485,6 +1501,8 @@ static bool CreateRiver(TileIndex spring, uint min_river_length)
  */
 static void CreateRivers()
 {
+	static TicToc::State CreateRivers("CreateRivers", 1);
+	TicToc CreateRivers1(CreateRivers);
 	int amount = _settings_game.game_creation.amount_of_rivers;
 	if (amount == 0) return;
 
