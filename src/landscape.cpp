@@ -1063,7 +1063,6 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	TileIndex origin_tile = *(TileIndex *)data;
 	Slope cur_slope = GetTileSlope(tile);
 	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
-	assert(IsInclinedSlope(desired_slope) || desired_slope == SLOPE_FLAT);
 
 	/* Never flow uphill. */
 	if (GetTileMaxZ(tile) > GetTileMaxZ(origin_tile)) return false;
@@ -1131,7 +1130,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			if (it != adjacent_sloped_river_tiles.end()) {
 				matching_tuple = *it;
 			} else {
-				assert(!IsInclinedSlope(desired_slope));
+				assert(desired_slope == SLOPE_FLAT);
 
 				/* The desired slope is not inclined, so try to match with the slope which is closest to the origin tile. */
 				if (!std::equal_to<uint>()(std::get<3>(adjacent_sloped_river_tiles[0]), std::get<3>(adjacent_sloped_river_tiles[1]))) {
@@ -1276,6 +1275,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 	/* If the tile slope matches the desired slope, add a river tile. */
 	if (cur_slope == desired_slope) {
+		assert(IsInclinedSlope(desired_slope) || desired_slope == SLOPE_FLAT);
 		MakeRiverAndModifyDesertZoneAround(tile);
 	}
 
