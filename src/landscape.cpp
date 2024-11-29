@@ -1063,6 +1063,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	TileIndex origin_tile = *(TileIndex *)data;
 	Slope cur_slope = GetTileSlope(tile);
 	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
+	assert(IsInclinedSlope(desired_slope) || desired_slope == SLOPE_FLAT);
 
 	/* Never flow uphill. */
 	if (GetTileMaxZ(tile) > GetTileMaxZ(origin_tile)) return false;
@@ -1073,12 +1074,14 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		if (IsSteepSlope(cur_slope)) return false;
 
 		bool flat_river_found = false;
-		bool sloped_river_found = false;
 
 		/* There are two common possibilities:
 		 * 1. River flat, adjacent tile has one corner lowered.
 		 * 2. River descending, adjacent tile has either one or three corners raised.
 		 */
+
+		/* Vector used to capture inclined river tile, its slope, its length and its distance to the origin tile. */
+		std::vector<std::tuple<TileIndex, Slope, int, uint>> adjacent_sloped_river_tiles;
 
 		/* First, determine the desired slope based on adjacent river tiles. This doesn't necessarily match the origin tile for the CircularTileSearch. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
@@ -1090,17 +1093,107 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 				/* If the adjacent river tile flows downhill, we need to check where we are relative to the slope. */
 				if (IsInclinedSlope(other_slope) && GetTileMaxZ(tile) == GetTileMaxZ(other_tile)) {
 					/* Check for a parallel slope. If we don't find one, we're above or below the slope instead. */
-					if (GetInclinedSlopeDirection(other_slope) == ChangeDiagDir(d, DIAGDIRDIFF_90RIGHT) ||
-							GetInclinedSlopeDirection(other_slope) == ChangeDiagDir(d, DIAGDIRDIFF_90LEFT)) {
-						desired_slope = other_slope;
-						sloped_river_found = true;
-						break;
+					for (DiagDirection other_d : { ChangeDiagDir(d, DIAGDIRDIFF_90RIGHT), ChangeDiagDir(d, DIAGDIRDIFF_90LEFT) }) {
+						if (GetInclinedSlopeDirection(other_slope) == other_d) {
+							int length = 0;
+							TileIndex parallel_tile = other_tile;
+							for (;;) {
+								length++;
+								/* Update conditions */
+								parallel_tile = AddTileIndexDiffCWrap(parallel_tile, TileIndexDiffCByDiagDir(d));
+								if (parallel_tile == INVALID_TILE) break;
+								if (!IsWaterTile(parallel_tile)) break;
+								if (!IsRiver(parallel_tile)) break;
+								Slope parallel_slope = GetTileSlope(parallel_tile);
+								if (!IsInclinedSlope(parallel_slope)) break;
+								if (GetTileMaxZ(tile) != GetTileMaxZ(parallel_tile)) break;
+								if (GetInclinedSlopeDirection(parallel_slope) != other_d) break;
+							}
+							adjacent_sloped_river_tiles.push_back(std::make_tuple(other_tile, other_slope, length, DistanceManhattan(other_tile, origin_tile)));
+							continue;
+						}
 					}
 				}
 				/* If we find an adjacent river tile, remember it. We'll terraform to match it later if we don't find a slope. */
 				if (IsTileFlat(other_tile)) flat_river_found = true;
 			}
 		}
+		bool sloped_river_found = !adjacent_sloped_river_tiles.empty();
+
+		if (adjacent_sloped_river_tiles.size() >= 2) {
+			assert(adjacent_sloped_river_tiles.size() == 2);
+
+			/* Unfortunately, we have to initialize with one desired slope. */
+			auto matching_tuple = adjacent_sloped_river_tiles[RandomRange(static_cast<uint32_t>(adjacent_sloped_river_tiles.size()))];
+
+			/* Get the matching slope we're widening and retrieve its length. */
+			auto it = std::ranges::find(adjacent_sloped_river_tiles, desired_slope, [](const auto &tuple) { return std::get<1>(tuple); });
+			if (it != adjacent_sloped_river_tiles.end()) {
+				matching_tuple = *it;
+			} else {
+				assert(!IsInclinedSlope(desired_slope));
+
+				/* The desired slope is not inclined, so try to match with the slope which is closest to the origin tile. */
+				if (!std::equal_to<uint>()(std::get<3>(adjacent_sloped_river_tiles[0]), std::get<3>(adjacent_sloped_river_tiles[1]))) {
+					if (std::less<uint>()(std::get<3>(adjacent_sloped_river_tiles[0]), std::get<3>(adjacent_sloped_river_tiles[1]))) {
+						matching_tuple = adjacent_sloped_river_tiles[0];
+					} else {
+						matching_tuple = adjacent_sloped_river_tiles[1];
+					}
+				}
+			}
+			int current_length = std::get<2>(matching_tuple);
+
+			/* Get the other slope and retrieve it's length. */
+			auto other_tuple = matching_tuple == *adjacent_sloped_river_tiles.begin() ? adjacent_sloped_river_tiles[1] : adjacent_sloped_river_tiles[0];
+			int other_length = std::get<2>(other_tuple);
+
+			/* If the length of the other slope is too small in comparison with the length of the desired slope, switch. */
+			if (current_length == 1) {
+				if (other_length == 1) {
+					/* Widening either river would disconnect the other. Better skip? */
+				} else if (other_length == 2) {
+					/* 50/50 to widen the matching river at the detriment of the other, or do nothing. */
+					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
+				} else {
+					assert(other_length >= 3);
+					/* Both rivers end with at least 2 inclined river slopes each. */
+					desired_slope = std::get<1>(matching_tuple);
+				}
+			} else if (current_length == 2) {
+				if (other_length == 1) {
+					/* Widening the matching river would disconnect the other. 50/50 chance of doing nothing or widen the other. */
+					if (Chance16(1, 2)) desired_slope = std::get<1>(other_tuple);
+				} else if (other_length == 2) {
+					/* Both river slopes are already 2 tiles wide. Do we really want to shorten one of them? */
+				} else if (other_length == 3) {
+					/* 50/50 chance one of the river slopes becomes 2 tiles wide and the other 3. */
+					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
+				} else {
+					/* Both river slopes end with at least 3 tiles wide. */
+					assert(other_length >= 4);
+					desired_slope = std::get<1>(matching_tuple);
+				}
+			} else {
+				assert(current_length >= 3);
+				if (other_length == 1) {
+					/* Both river slopes end at least 2 tiles wide. */
+					desired_slope = std::get<1>(other_tuple);
+				} else if (other_length == 2) {
+					/* 50/50 chance the matching river slopes becomes 2 tiles wide and the other 3, or do nothing. */
+					if (Chance16(1, 2)) desired_slope = std::get<1>(other_tuple);
+				} else if (other_length == 3) {
+					/* Both river slopes are already 3 tiles wide.  Do we really want to shorten one of them? */
+				} else {
+					assert(other_length >= 4);
+					/* 50/50 chance to widen matching river slope to 3 tiles at the detriment of the other, or do nothing. */
+					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
+				}
+			}
+		} else if (!adjacent_sloped_river_tiles.empty()) {
+			desired_slope = std::get<1>(adjacent_sloped_river_tiles[0]);
+		}
+
 		/* We didn't find either an inclined or flat river, so we're climbing the wrong slope. Bail out. */
 		if (!sloped_river_found && !flat_river_found) return false;
 
@@ -1217,7 +1310,7 @@ struct River_UserData {
 	std::vector<TileIndex> &begin_end_points; ///< Stores all begin and end points for each flow segment of the entire river.
 };
 
-static int32_t RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *current)
+static AyStarStatus RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *current)
 {
 	TileIndex tile = current->GetTile();
 	if (IsWaterTile(tile) && tile == *(TileIndex *)aystar->user_target) return AYSTAR_FOUND_END_NODE;
@@ -1297,6 +1390,7 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 	finder.EndNodeCheck = RiverTest_EndNodeCheck;
 	finder.FoundEndNode = RiverTest_FoundEndNode;
 	finder.user_target = &end;
+	finder.max_search_nodes = 0;
 
 	AyStarNode start;
 	start.tile = begin;
@@ -1310,6 +1404,16 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 {
 	River_UserData *data = static_cast<River_UserData *>(aystar->user_data);
+
+	std::vector<TileIndex> river_path;
+	for (PathNode *path = current; path != nullptr; path = path->parent) {
+		river_path.push_back(path->GetTile());
+	}
+	[[maybe_unused]] TileIndex end = current->GetTile();
+	TileIndex begin;
+	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
+		begin = path->GetTile();
+	}
 
 	/* First, build the river without worrying about its width. */
 	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
@@ -1346,11 +1450,6 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 		}
 
 		/* Make sure the river is still intact. */
-		[[maybe_unused]] TileIndex end = current->GetTile();
-		TileIndex begin;
-		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-			begin = path->GetTile();
-		}
 		assert(TestRiverConnection(end, begin));
 	}
 }
@@ -1470,9 +1569,6 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 	marks.clear();
 	if (found) {
 		found = BuildRiver(begin, end, spring, main_river, begin_end_points);
-		if (!found) {
-			bool yes = true;
-		}
 	}
 	return { found, main_river };
 }
