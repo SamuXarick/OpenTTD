@@ -1329,16 +1329,36 @@ static int32_t RiverTest_CalculateH(AyStar *aystar, AyStarNode *current, PathNod
 
 static void RiverTest_GetNeighbours(AyStar *aystar, PathNode *current)
 {
-	TileIndex tile = current->GetTile();
+	TileIndex src_tile = current->GetTile();
+	Trackdir src_trackdir = current->GetTrackdir();
 
 	aystar->neighbours.clear();
-	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
-		if (IsValidTile(t2) && IsWaterTile(t2)) {
-			auto &neighbour = aystar->neighbours.emplace_back();
-			neighbour.tile = t2;
-			neighbour.td = INVALID_TRACKDIR;
+	auto add_neighbours = [&src_tile, &aystar](DiagDirection src_exitdir, Trackdir src_trackdir) {
+		TileIndex dst_tile = AddTileIndexDiffCWrap(src_tile, TileIndexDiffCByDiagDir(src_exitdir));
+		if (dst_tile != INVALID_TILE) {
+			TrackdirBits trackdirbits = TrackStatusToTrackdirBits(GetTileTrackStatus(dst_tile, TRANSPORT_WATER, 0));
+
+			if (trackdirbits == TRACKDIR_BIT_NONE && IsTileType(dst_tile, MP_WATER) && IsRiver(dst_tile)) {
+				trackdirbits = TrackBitsToTrackdirBits(AxisToTrackBits(DiagDirToAxis(GetInclinedSlopeDirection(GetTileSlope(dst_tile)))));
+			}
+
+			trackdirbits &= TrackdirReachesTrackdirs(src_trackdir);
+
+			while (trackdirbits != TRACKDIR_BIT_NONE) {
+				Trackdir dst_trackdir = RemoveFirstTrackdir(&trackdirbits);
+				auto &neighbour = aystar->neighbours.emplace_back();
+				neighbour.tile = dst_tile;
+				neighbour.td = dst_trackdir;
+			}
 		}
+	};
+
+	if (src_trackdir == INVALID_TRACKDIR) {
+		for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
+			add_neighbours(d, DiagDirToDiagTrackdir(d));
+		}
+	} else {
+		add_neighbours(TrackdirToExitdir(src_trackdir), src_trackdir);
 	}
 }
 
