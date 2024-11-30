@@ -1058,17 +1058,18 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	if (IsWaterTile(tile)) return false;
 
 	/* If the tile is at height 0 after terraforming but the ocean hasn't flooded yet, don't build river. */
-	if (GetTileMaxZ(tile) == 0) return false;
+	int tile_max_z = GetTileMaxZ(tile);
+	if (tile_max_z == 0) return false;
 
-	TileIndex origin_tile = *(TileIndex *)data;
 	Slope cur_slope = GetTileSlope(tile);
+	TileIndex origin_tile = *static_cast<TileIndex *>(data);
 	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
 
 	/* Never flow uphill. */
-	if (GetTileMaxZ(tile) > GetTileMaxZ(origin_tile)) return false;
+	if (tile_max_z > GetTileMaxZ(origin_tile)) return false;
 
 	/* If the new tile can't hold a river tile, try terraforming. */
-	if (!IsTileFlat(tile) && !IsInclinedSlope(cur_slope)) {
+	if (cur_slope != SLOPE_FLAT && !IsInclinedSlope(cur_slope)) {
 		/* Don't try to terraform steep slopes. */
 		if (IsSteepSlope(cur_slope)) return false;
 
@@ -1079,125 +1080,85 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		 * 2. River descending, adjacent tile has either one or three corners raised.
 		 */
 
-		/* Vector used to capture inclined river tile, its slope, its length and its distance to the origin tile. */
-		std::vector<std::tuple<TileIndex, Slope, int, uint>> adjacent_sloped_river_tiles;
+		/* Vector used to store data about adjacent inclined river tile slopes,
+		 * including the slope type, their lengths, and the distance to the origin tile. */
+		std::vector<std::tuple<Slope, int, uint>> sloped_rivers;
 
-		/* First, determine the desired slope based on adjacent river tiles. This doesn't necessarily match the origin tile for the CircularTileSearch. */
+		/* Determine the desired slope based on adjacent river tiles. 
+		 * This doesn't necessarily match the slope of the origin tile used in the CircularTileSearch. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
 			TileIndex other_tile = TileAddByDiagDir(tile, d);
 			Slope other_slope = GetTileSlope(other_tile);
 
-			/* Only consider river tiles. */
-			if (IsWaterTile(other_tile) && IsRiver(other_tile)) {
-				/* If the adjacent river tile flows downhill, we need to check where we are relative to the slope. */
-				if (IsInclinedSlope(other_slope) && GetTileMaxZ(tile) == GetTileMaxZ(other_tile)) {
-					/* Check for a parallel slope. If we don't find one, we're above or below the slope instead. */
-					for (DiagDirection other_d : { ChangeDiagDir(d, DIAGDIRDIFF_90RIGHT), ChangeDiagDir(d, DIAGDIRDIFF_90LEFT) }) {
-						if (GetInclinedSlopeDirection(other_slope) == other_d) {
-							int length = 0;
-							TileIndex parallel_tile = other_tile;
-							for (;;) {
-								length++;
-								/* Update conditions */
-								parallel_tile = AddTileIndexDiffCWrap(parallel_tile, TileIndexDiffCByDiagDir(d));
-								if (parallel_tile == INVALID_TILE) break;
-								if (!IsWaterTile(parallel_tile)) break;
-								if (!IsRiver(parallel_tile)) break;
-								Slope parallel_slope = GetTileSlope(parallel_tile);
-								if (!IsInclinedSlope(parallel_slope)) break;
-								if (GetTileMaxZ(tile) != GetTileMaxZ(parallel_tile)) break;
-								if (GetInclinedSlopeDirection(parallel_slope) != other_d) break;
-							}
-							adjacent_sloped_river_tiles.push_back(std::make_tuple(other_tile, other_slope, length, DistanceManhattan(other_tile, origin_tile)));
-							continue;
+			/* Only consider tiles that are part of the river. */
+			if (!IsWaterTile(other_tile) || !IsRiver(other_tile)) continue;
+
+			/* If the adjacent river tile is inclined and at the same height, 
+			 * check if it has a parallel slope to determine its length. */
+			if (IsInclinedSlope(other_slope) && GetTileMaxZ(other_tile) == tile_max_z) {
+				/* Check both perpendicular directions (90 degrees left and right) for a parallel slope. */
+				for (DiagDirDiff dir_diff : { DIAGDIRDIFF_90RIGHT, DIAGDIRDIFF_90LEFT }) {
+					DiagDirection other_d = ChangeDiagDir(d, dir_diff);
+					if (GetInclinedSlopeDirection(other_slope) == other_d) {
+						/* Calculate the length of the parallel slope. */
+						int length = 0;
+						TileIndex parallel_tile = other_tile;
+						while (true) {
+							length++;
+							parallel_tile = AddTileIndexDiffCWrap(parallel_tile, TileIndexDiffCByDiagDir(d));
+							if (parallel_tile == INVALID_TILE) break;
+							if (!IsWaterTile(parallel_tile) || !IsRiver(parallel_tile)) break;
+							if (GetTileMaxZ(parallel_tile) != tile_max_z) break;
+							Slope parallel_slope = GetTileSlope(parallel_tile);
+							if (!IsInclinedSlope(parallel_slope) || GetInclinedSlopeDirection(parallel_slope) != other_d) break;
 						}
-					}
-				}
-				/* If we find an adjacent river tile, remember it. We'll terraform to match it later if we don't find a slope. */
-				if (IsTileFlat(other_tile)) flat_river_found = true;
-			}
-		}
-		bool sloped_river_found = !adjacent_sloped_river_tiles.empty();
-
-		if (adjacent_sloped_river_tiles.size() >= 2) {
-			assert(adjacent_sloped_river_tiles.size() == 2);
-
-			/* Unfortunately, we have to initialize with one desired slope. */
-			auto matching_tuple = adjacent_sloped_river_tiles[RandomRange(static_cast<uint32_t>(adjacent_sloped_river_tiles.size()))];
-
-			/* Get the matching slope we're widening and retrieve its length. */
-			auto it = std::ranges::find(adjacent_sloped_river_tiles, desired_slope, [](const auto &tuple) { return std::get<1>(tuple); });
-			if (it != adjacent_sloped_river_tiles.end()) {
-				matching_tuple = *it;
-			} else {
-				assert(desired_slope == SLOPE_FLAT);
-
-				/* The desired slope is not inclined, so try to match with the slope which is closest to the origin tile. */
-				if (!std::equal_to<uint>()(std::get<3>(adjacent_sloped_river_tiles[0]), std::get<3>(adjacent_sloped_river_tiles[1]))) {
-					if (std::less<uint>()(std::get<3>(adjacent_sloped_river_tiles[0]), std::get<3>(adjacent_sloped_river_tiles[1]))) {
-						matching_tuple = adjacent_sloped_river_tiles[0];
-					} else {
-						matching_tuple = adjacent_sloped_river_tiles[1];
+						/* Store the slope, its length, and distance to the origin tile. */
+						sloped_rivers.push_back(std::make_tuple(other_slope, length, DistanceManhattan(other_tile, origin_tile)));
+						break;
 					}
 				}
 			}
-			int current_length = std::get<2>(matching_tuple);
-
-			/* Get the other slope and retrieve it's length. */
-			auto other_tuple = matching_tuple == *adjacent_sloped_river_tiles.begin() ? adjacent_sloped_river_tiles[1] : adjacent_sloped_river_tiles[0];
-			int other_length = std::get<2>(other_tuple);
-
-			/* If the length of the other slope is too small in comparison with the length of the desired slope, switch. */
-			if (current_length == 1) {
-				if (other_length == 1) {
-					/* Widening either river would disconnect the other. Better skip? */
-				} else if (other_length == 2) {
-					/* 50/50 to widen the matching river at the detriment of the other, or do nothing. */
-					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
-				} else {
-					assert(other_length >= 3);
-					/* Both rivers end with at least 2 inclined river slopes each. */
-					desired_slope = std::get<1>(matching_tuple);
-				}
-			} else if (current_length == 2) {
-				if (other_length == 1) {
-					/* Widening the matching river would disconnect the other. 50/50 chance of doing nothing or widen the other. */
-					if (Chance16(1, 2)) desired_slope = std::get<1>(other_tuple);
-				} else if (other_length == 2) {
-					/* Both river slopes are already 2 tiles wide. Do we really want to shorten one of them? */
-				} else if (other_length == 3) {
-					/* 50/50 chance one of the river slopes becomes 2 tiles wide and the other 3. */
-					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
-				} else {
-					/* Both river slopes end with at least 3 tiles wide. */
-					assert(other_length >= 4);
-					desired_slope = std::get<1>(matching_tuple);
-				}
-			} else {
-				assert(current_length >= 3);
-				if (other_length == 1) {
-					/* Both river slopes end at least 2 tiles wide. */
-					desired_slope = std::get<1>(other_tuple);
-				} else if (other_length == 2) {
-					/* 50/50 chance the matching river slopes becomes 2 tiles wide and the other 3, or do nothing. */
-					if (Chance16(1, 2)) desired_slope = std::get<1>(other_tuple);
-				} else if (other_length == 3) {
-					/* Both river slopes are already 3 tiles wide.  Do we really want to shorten one of them? */
-				} else {
-					assert(other_length >= 4);
-					/* 50/50 chance to widen matching river slope to 3 tiles at the detriment of the other, or do nothing. */
-					if (Chance16(1, 2)) desired_slope = std::get<1>(matching_tuple);
-				}
-			}
-		} else if (!adjacent_sloped_river_tiles.empty()) {
-			desired_slope = std::get<1>(adjacent_sloped_river_tiles[0]);
+			/* If we find an adjacent river tile, remember it. We'll terraform to match it later if we don't find a slope. */
+			if (IsTileFlat(other_tile)) flat_river_found = true;
 		}
 
-		/* We didn't find either an inclined or flat river, so we're climbing the wrong slope. Bail out. */
-		if (!sloped_river_found && !flat_river_found) return false;
+		if (sloped_rivers.empty()) {
+			/* We didn't find either an inclined or flat river, so we're climbing the wrong slope. Bail out. */
+			if (!flat_river_found) return false;
 
-		/* We didn't find an inclined river, but there is a flat river. */
-		if (!sloped_river_found && flat_river_found) desired_slope = SLOPE_FLAT;
+			/* We didn't find an inclined river, but there is a flat river. */
+			desired_slope = SLOPE_FLAT;
+		} else if (sloped_rivers.size() == 1) {
+			/* We found an inclined river. */
+			desired_slope = std::get<0>(sloped_rivers[0]);
+		} else {
+			/* We found two inclined rivers. */
+			assert(sloped_rivers.size() == 2);
+
+			/* Initialize slopes. */
+			auto &[short_slope, short_length, short_dist] = sloped_rivers[0];
+			auto &[wider_slope, wider_length, wider_dist] = sloped_rivers[1];
+
+			/* Swap values if needed. */
+			if (short_length > wider_length) {
+				std::swap(sloped_rivers[0], sloped_rivers[1]);
+			}
+
+			if (desired_slope != short_slope) {
+				/* If the lengths of both slopes are equal, do nothing.
+				 * If one slope is shorter, decide whether to widen the shorter river slope at the cost of the longer one:
+				 * - If the difference in lengths is 1, there's a 50% chance to widen the shorter slope.
+				 * - If the difference in lengths is exactly 2, always widen the shorter slope to make them equal.
+				 * - If the difference in lengths is greater than 2, always widen the shorter slope, but they will not be equal.
+				 *   For example, if the lengths are 1 and 4, widening will result in lengths of 2 and 3. */
+				int length_difference = wider_length - short_length;
+				if (length_difference == 1) {
+					if (Chance16(1, 2)) desired_slope = short_slope;
+				} else if (length_difference >= 2) {
+					desired_slope = short_slope;
+				}
+			}
+		}
 
 		/* Now that we know the desired slope, it's time to terraform! */
 
@@ -1206,7 +1167,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			/* Make sure we're not affecting an existing river slope tile. */
 			for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
 				TileIndex other_tile = TileAddByDiagDir(tile, d);
-				if (IsInclinedSlope(GetTileSlope(other_tile)) && IsWaterTile(other_tile)) return false;
+				if (IsWaterTile(other_tile) && IsInclinedSlope(GetTileSlope(other_tile))) return false;
 			}
 			Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, ComplementSlope(cur_slope), true);
 
@@ -1215,11 +1176,9 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			/* Don't break existing flat river tiles by terraforming under them. */
 			DiagDirection river_direction = ReverseDiagDir(GetInclinedSlopeDirection(desired_slope));
 
-			for (DiagDirDiff d = DIAGDIRDIFF_BEGIN; d < DIAGDIRDIFF_END; d++) {
+			for (DiagDirDiff d : { DIAGDIRDIFF_90RIGHT, DIAGDIRDIFF_90LEFT }) {
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
-				if (d == DIAGDIRDIFF_SAME || d == DIAGDIRDIFF_REVERSE) continue;
-
-				TileIndex other_tile = (TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d)));
+				TileIndex other_tile = TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d));
 				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return false;
 			}
 
@@ -1228,7 +1187,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 			/* Lower unwanted corners first. If only one corner is raised, no corners need lowering. */
 			if (!IsSlopeWithOneCornerRaised(cur_slope)) {
-				to_change = to_change & ComplementSlope(desired_slope);
+				to_change &= ComplementSlope(desired_slope);
 				Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, to_change, false);
 			}
 
@@ -1253,13 +1212,14 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		/* Don't look outside the map. */
 		if (!IsValidTile(upstream_tile) || !IsValidTile(downstream_tile)) return false;
 
-		/* Downstream might be new ocean created by our terraforming, and it hasn't flooded yet. */
-		bool downstream_is_ocean = GetTileZ(downstream_tile) == 0 && (GetTileSlope(downstream_tile) == SLOPE_FLAT || IsSlopeWithOneCornerRaised(GetTileSlope(downstream_tile)));
+		/* Downstream might be new ocean created by our terraforming. */
+		auto [downstream_slope, downstream_height] = GetTileSlopeZ(downstream_tile);
+		bool downstream_is_ocean = downstream_height == 0 && (downstream_slope == SLOPE_FLAT || IsSlopeWithOneCornerRaised(downstream_slope));
 
 		/* If downstream is dry, flat, and not ocean, try making it a river tile. */
 		if (!IsWaterTile(downstream_tile) && !downstream_is_ocean) {
-			/* If the tile upstream isn't flat, don't bother. */
-			if (GetTileSlope(downstream_tile) != SLOPE_FLAT) return false;
+			/* If the tile downstream isn't flat, don't bother. */
+			if (downstream_slope != SLOPE_FLAT) return false;
 
 			MakeRiverAndModifyDesertZoneAround(downstream_tile);
 		}
@@ -1267,7 +1227,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		/* If upstream is dry and flat, try making it a river tile. */
 		if (!IsWaterTile(upstream_tile)) {
 			/* If the tile upstream isn't flat, don't bother. */
-			if (GetTileSlope(upstream_tile) != SLOPE_FLAT) return false;
+			if (!IsTileFlat(upstream_tile)) return false;
 
 			MakeRiverAndModifyDesertZoneAround(upstream_tile);
 		}
