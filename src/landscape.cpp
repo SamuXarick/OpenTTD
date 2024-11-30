@@ -1256,19 +1256,21 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 {
 	assert(DistanceManhattan(begin, end) == 1);
 
-	/* Slope either is inclined or flat; rivers don't support other slopes. */
 	auto [slope_end, height_end] = GetTileSlopeZ(end);
+
+	/* Slope either is inclined or flat; rivers don't support other slopes. */
 	if (slope_end != SLOPE_FLAT && !IsInclinedSlope(slope_end)) return false;
 
-	/* Slope continues, then it must be lower... */
 	auto [slope_begin, height_begin] = GetTileSlopeZ(begin);
-	if (slope_end != slope_begin || height_end >= height_begin) return false;
-
-	/* ... or either end must be flat. */
-	if (slope_end != SLOPE_FLAT && slope_begin != SLOPE_FLAT) return false;
 
 	/* It can't flow uphill. */
-	return height_end <= height_begin;
+	if (height_end > height_begin) return false;
+
+	/* Slope continues, then it must be lower... */
+	if (slope_end == slope_begin && height_end < height_begin) return true;
+
+	/* ... or either end must be flat. */
+	return slope_end == SLOPE_FLAT || slope_begin == SLOPE_FLAT;
 }
 
 /** Parameters for river generation to pass as AyStar user data. */
@@ -1565,6 +1567,8 @@ static bool CreateRiver(TileIndex spring, uint min_river_length)
  */
 static void CreateRivers()
 {
+	static TicToc::State CreateRivers("CreateRivers", 1);
+	TicToc CreateRivers1(CreateRivers);
 	uint amount = _settings_game.game_creation.amount_of_rivers;
 	if (amount == 0) return;
 
