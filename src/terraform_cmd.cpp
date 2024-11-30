@@ -302,6 +302,7 @@ std::tuple<CommandCost, Money, TileIndex> CmdTerraformLand(DoCommandFlag flags, 
 			for (const auto &t : ts.dirty_tiles) {
 				/* Immediately convert ground tiles into water tiles during the river widening process. */
 				ConvertGroundTileIntoWaterTile(t);
+				MarkTileDirtyByTile(t);
 			}
 		}
 
