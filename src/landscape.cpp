@@ -1556,11 +1556,11 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 static bool CreateRiver(TileIndex spring, uint min_river_length)
 {
 	std::vector<TileIndex> begin_end_points;
-	auto is_created = FlowRiver(spring, spring, min_river_length, begin_end_points);
+	auto [created, main_river] = FlowRiver(spring, spring, min_river_length, begin_end_points);
 
 	/* Once a main river is created, even if partially, the marked canal tiles at
 	 * River_FoundEndNode must be converted back to rivers. */
-	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && std::get<1>(is_created)) {
+	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
 		for (TileIndex tile : begin_end_points) {
 			if (IsTileType(tile, MP_WATER) && IsCanal(tile)) {
 				assert(IsTileFlat(tile));
@@ -1569,7 +1569,7 @@ static bool CreateRiver(TileIndex spring, uint min_river_length)
 		}
 	}
 
-	return std::get<0>(is_created);
+	return created;
 }
 
 /**
@@ -1577,8 +1577,6 @@ static bool CreateRiver(TileIndex spring, uint min_river_length)
  */
 static void CreateRivers()
 {
-	static TicToc::State CreateRivers("CreateRivers", 1);
-	TicToc CreateRivers1(CreateRivers);
 	int amount = _settings_game.game_creation.amount_of_rivers;
 	if (amount == 0) return;
 
