@@ -42,6 +42,8 @@
 #include "table/strings.h"
 #include "table/sprites.h"
 
+#include <unordered_set>
+
 #include "safeguards.h"
 
 extern const TileTypeProcs
@@ -992,29 +994,27 @@ static void CreateDesertOrRainForest(uint desert_tropic_line)
  */
 static bool FindSpring(TileIndex tile, void *)
 {
-	int referenceHeight;
-	if (!IsTileFlat(tile, &referenceHeight) || IsWaterTile(tile)) return false;
-
 	/* In the tropics rivers start in the rainforest. */
 	if (_settings_game.game_creation.landscape == LT_TROPIC && GetTropicZone(tile) != TROPICZONE_RAINFOREST) return false;
 
+	int reference_height;
+	if (IsWaterTile(tile) || !IsTileFlat(tile, &reference_height)) return false;
+
 	/* Are there enough higher tiles to warrant a 'spring'? */
 	uint num = 0;
-	for (int dx = -1; dx <= 1; dx++) {
-		for (int dy = -1; dy <= 1; dy++) {
-			TileIndex t = TileAddWrap(tile, dx, dy);
-			if (t != INVALID_TILE && GetTileMaxZ(t) > referenceHeight) num++;
-		}
+	for (Direction d = DIR_BEGIN; d != DIR_END; d++) {
+		TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
+		if (IsValidTile(t) && GetTileMaxZ(t) > reference_height) num++;
+		if (num == 4) break;
 	}
 
 	if (num < 4) return false;
+	reference_height += 2;
 
 	/* Are we near the top of a hill? */
-	for (int dx = -16; dx <= 16; dx++) {
-		for (int dy = -16; dy <= 16; dy++) {
-			TileIndex t = TileAddWrap(tile, dx, dy);
-			if (t != INVALID_TILE && GetTileMaxZ(t) > referenceHeight + 2) return false;
-		}
+	TileArea tile_area = TileArea(tile, 1, 1).Expand(16);
+	for (TileIndex t : tile_area) {
+		if (IsValidTile(t) && GetTileMaxZ(t) > reference_height) return false;
 	}
 
 	return true;
@@ -1028,13 +1028,15 @@ static bool FindSpring(TileIndex tile, void *)
  */
 static bool MakeLake(TileIndex tile, void *user_data)
 {
-	uint height = *(uint*)user_data;
-	if (!IsValidTile(tile) || TileHeight(tile) != height || !IsTileFlat(tile)) return false;
 	if (_settings_game.game_creation.landscape == LT_TROPIC && GetTropicZone(tile) == TROPICZONE_DESERT) return false;
 
+	int height_lake = *static_cast<int *>(user_data);
+	int tile_height;
+	if (!IsValidTile(tile) || !IsTileFlat(tile, &tile_height) || tile_height != height_lake) return false;
+
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
-		if (IsWaterTile(t2)) {
+		TileIndex t = tile + TileOffsByDiagDir(d);
+		if (IsWaterTile(t)) {
 			MakeRiverAndModifyDesertZoneAround(tile);
 			return false;
 		}
@@ -1061,24 +1063,24 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	int tile_max_z = GetTileMaxZ(tile);
 	if (tile_max_z == 0) return false;
 
-	Slope cur_slope = GetTileSlope(tile);
 	TileIndex origin_tile = *static_cast<TileIndex *>(data);
-	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
 
 	/* Never flow uphill. */
 	if (tile_max_z > GetTileMaxZ(origin_tile)) return false;
+
+	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
+	Slope cur_slope = GetTileSlope(tile);
 
 	/* If the new tile can't hold a river tile, try terraforming. */
 	if (cur_slope != SLOPE_FLAT && !IsInclinedSlope(cur_slope)) {
 		/* Don't try to terraform steep slopes. */
 		if (IsSteepSlope(cur_slope)) return false;
 
-		bool flat_river_found = false;
-
 		/* There are two common possibilities:
 		 * 1. River flat, adjacent tile has one corner lowered.
 		 * 2. River descending, adjacent tile has either one or three corners raised.
 		 */
+		bool flat_river_found = false;
 
 		/* Vector used to store data about adjacent inclined river tile slopes,
 		 * including the slope type, their lengths, and the distance to the origin tile. */
@@ -1145,13 +1147,14 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			}
 
 			if (desired_slope != short_slope) {
+				int length_difference = wider_length - short_length;
+
 				/* If the lengths of both slopes are equal, do nothing.
 				 * If one slope is shorter, decide whether to widen the shorter river slope at the cost of the longer one:
 				 * - If the difference in lengths is 1, there's a 50% chance to widen the shorter slope.
 				 * - If the difference in lengths is exactly 2, always widen the shorter slope to make them equal.
 				 * - If the difference in lengths is greater than 2, always widen the shorter slope, but they will not be equal.
 				 *   For example, if the lengths are 1 and 4, widening will result in lengths of 2 and 3. */
-				int length_difference = wider_length - short_length;
 				if (length_difference == 1) {
 					if (Chance16(1, 2)) desired_slope = short_slope;
 				} else if (length_difference >= 2) {
@@ -1235,7 +1238,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 	/* If the tile slope matches the desired slope, add a river tile. */
 	if (cur_slope == desired_slope) {
-		assert(IsInclinedSlope(desired_slope) || desired_slope == SLOPE_FLAT);
+		assert(desired_slope == SLOPE_FLAT || IsInclinedSlope(desired_slope));
 		MakeRiverAndModifyDesertZoneAround(tile);
 	}
 
@@ -1253,14 +1256,19 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 {
 	assert(DistanceManhattan(begin, end) == 1);
 
-	auto [slopeBegin, heightBegin] = GetTileSlopeZ(begin);
-	auto [slopeEnd, heightEnd] = GetTileSlopeZ(end);
+	/* Slope either is inclined or flat; rivers don't support other slopes. */
+	auto [slope_end, height_end] = GetTileSlopeZ(end);
+	if (slope_end != SLOPE_FLAT && !IsInclinedSlope(slope_end)) return false;
 
-	return heightEnd <= heightBegin &&
-			/* Slope either is inclined or flat; rivers don't support other slopes. */
-			(slopeEnd == SLOPE_FLAT || IsInclinedSlope(slopeEnd)) &&
-			/* Slope continues, then it must be lower... or either end must be flat. */
-			((slopeEnd == slopeBegin && heightEnd < heightBegin) || slopeEnd == SLOPE_FLAT || slopeBegin == SLOPE_FLAT);
+	/* Slope continues, then it must be lower... */
+	auto [slope_begin, height_begin] = GetTileSlopeZ(begin);
+	if (slope_end != slope_begin || height_end >= height_begin) return false;
+
+	/* ... or either end must be flat. */
+	if (slope_end != SLOPE_FLAT && slope_begin != SLOPE_FLAT) return false;
+
+	/* It can't flow uphill. */
+	return height_end <= height_begin;
 }
 
 /** Parameters for river generation to pass as AyStar user data. */
@@ -1273,18 +1281,10 @@ struct River_UserData {
 static AyStarStatus RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *current)
 {
 	TileIndex tile = current->GetTile();
-	if (IsWaterTile(tile) && tile == *(TileIndex *)aystar->user_target) return AyStarStatus::FoundEndNode;
+	if (IsTileType(tile, MP_WATER) && (IsWater(tile) || (IsCoast(tile) && IsSlopeWithOneCornerRaised(GetTileSlope(tile))))) {
+		if (tile == *static_cast<TileIndex *>(aystar->user_target)) return AyStarStatus::FoundEndNode;
+	}
 	return AyStarStatus::Done;
-}
-
-static int32_t RiverTest_CalculateG(AyStar *, AyStarNode *, PathNode *)
-{
-	return 1;
-}
-
-static int32_t RiverTest_CalculateH(AyStar *aystar, AyStarNode *current, PathNode *)
-{
-	return DistanceManhattan(*(TileIndex*)aystar->user_target, current->tile);
 }
 
 static void RiverTest_GetNeighbours(AyStar *aystar, PathNode *current)
@@ -1322,15 +1322,28 @@ static void RiverTest_GetNeighbours(AyStar *aystar, PathNode *current)
 	}
 }
 
-static void RiverTest_FoundEndNode(AyStar *, PathNode *)
+[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
 {
-	return;
+	AyStar finder = {};
+	finder.CalculateG = [](AyStar *, AyStarNode *, PathNode *) { return 1; };
+	finder.CalculateH = [](AyStar *aystar, AyStarNode *current, PathNode *) { return static_cast<int32_t>(DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile)); };
+	finder.GetNeighbours = RiverTest_GetNeighbours;
+	finder.EndNodeCheck = RiverTest_EndNodeCheck;
+	finder.FoundEndNode = [](AyStar *, PathNode *) {};
+	finder.user_target = &end;
+	finder.max_search_nodes = 0;
+
+	AyStarNode start;
+	start.tile = begin;
+	start.td = INVALID_TRACKDIR;
+	finder.AddStartNode(&start, 0);
+	return finder.Main() == AyStarStatus::FoundEndNode;
 }
 
 /* AyStar callback for checking whether we reached our destination. */
 static AyStarStatus River_EndNodeCheck(const AyStar *aystar, const PathNode *current)
 {
-	return current->GetTile() == *(TileIndex*)aystar->user_target ? AyStarStatus::FoundEndNode : AyStarStatus::Done;
+	return current->GetTile() == *static_cast<TileIndex *>(aystar->user_target) ? AyStarStatus::FoundEndNode : AyStarStatus::Done;
 }
 
 /* AyStar callback for getting the cost of the current node. */
@@ -1342,58 +1355,29 @@ static int32_t River_CalculateG(AyStar *, AyStarNode *, PathNode *)
 /* AyStar callback for getting the estimated cost to the destination. */
 static int32_t River_CalculateH(AyStar *aystar, AyStarNode *current, PathNode *)
 {
-	return DistanceManhattan(*(TileIndex*)aystar->user_target, current->tile);
+	return DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile);
 }
 
 /* AyStar callback for getting the neighbouring nodes of the given node. */
 static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 {
-	TileIndex tile = current->GetTile();
+	TileIndex src_tile = current->GetTile();
 
 	aystar->neighbours.clear();
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
-		if (IsValidTile(t2) && FlowsDown(tile, t2)) {
+		TileIndex dst_tile = src_tile + TileOffsByDiagDir(d);
+		if (IsValidTile(dst_tile) && FlowsDown(src_tile, dst_tile)) {
 			auto &neighbour = aystar->neighbours.emplace_back();
-			neighbour.tile = t2;
+			neighbour.tile = dst_tile;
 			neighbour.td = INVALID_TRACKDIR;
 		}
 	}
 }
 
-[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
-{
-	AyStar finder = {};
-	finder.CalculateG = RiverTest_CalculateG;
-	finder.CalculateH = RiverTest_CalculateH;
-	finder.GetNeighbours = RiverTest_GetNeighbours;
-	finder.EndNodeCheck = RiverTest_EndNodeCheck;
-	finder.FoundEndNode = RiverTest_FoundEndNode;
-	finder.user_target = &end;
-	finder.max_search_nodes = 0;
-
-	AyStarNode start;
-	start.tile = begin;
-	start.td = INVALID_TRACKDIR;
-	finder.AddStartNode(&start, 0);
-	return finder.Main() == AyStarStatus::FoundEndNode;
-}
-
-
 /* AyStar callback when an route has been found. */
 static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 {
 	River_UserData *data = static_cast<River_UserData *>(aystar->user_data);
-
-	std::vector<TileIndex> river_path;
-	for (PathNode *path = current; path != nullptr; path = path->parent) {
-		river_path.push_back(path->GetTile());
-	}
-	[[maybe_unused]] TileIndex end = current->GetTile();
-	TileIndex begin;
-	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-		begin = path->GetTile();
-	}
 
 	/* First, build the river without worrying about its width. */
 	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
@@ -1430,6 +1414,11 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 		}
 
 		/* Make sure the river is still intact. */
+		[[maybe_unused]] TileIndex end = current->GetTile();
+		TileIndex begin;
+		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
+			begin = path->GetTile();
+		}
 		assert(TestRiverConnection(end, begin));
 	}
 }
@@ -1474,79 +1463,78 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
  */
 static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint min_river_length, std::vector<TileIndex> &begin_end_points)
 {
-#	define SET_MARK(x) marks.insert(x)
-#	define IS_MARKED(x) (marks.find(x) != marks.end())
-
 	if (IsWaterTile(begin)) {
 		return { DistanceManhattan(spring, begin) > min_river_length, GetTileZ(begin) == 0 };
 	}
 
-	std::set<TileIndex> marks;
-	SET_MARK(begin);
+	static std::unordered_set<TileIndex::BaseType> marks;
+	marks.clear();
+	marks.insert(begin.base());
 
-	/* Breadth first search for the closest tile we can flow down to. */
-	std::list<TileIndex> queue;
+	static std::vector<TileIndex> queue;
+	queue.clear();
 	queue.push_back(begin);
 
+	/* Breadth first search for the closest tile we can flow down to. */
 	bool found = false;
-	uint count = 0; // Number of tiles considered; to be used for lake location guessing.
 	TileIndex end;
-	int height = TileHeight(begin);
-	int height2;
-	do {
-		end = queue.front();
-		queue.pop_front();
+	int begin_height = TileHeight(begin);
+	int end_height;
+	for (size_t i = 0; i != queue.size(); i++) {
+		end = queue[i];
 
-		if (IsTileFlat(end, &height2) && (height2 < height || (height2 == height && IsWaterTile(end)))) {
+		if (IsTileFlat(end, &end_height) && (end_height < begin_height || (end_height == begin_height && IsWaterTile(end)))) {
 			found = true;
 			break;
 		}
 
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex t2 = end + TileOffsByDiagDir(d);
-			if (IsValidTile(t2) && !IS_MARKED(t2) && FlowsDown(end, t2)) {
-				SET_MARK(t2);
-				count++;
-				queue.push_back(t2);
+			TileIndex dst_tile = end + TileOffsByDiagDir(d);
+			if (IsValidTile(dst_tile) && !marks.contains(Tile(dst_tile)) && FlowsDown(end, dst_tile)) {
+				marks.insert(Tile(dst_tile));
+				queue.push_back(dst_tile);
 			}
 		}
-	} while (!queue.empty());
+	}
 
 	bool main_river = false;
 	if (found) {
 		/* Flow further down hill. */
 		if (begin_end_points.empty()) begin_end_points.push_back(begin);
-		if (height2 != 0) begin_end_points.push_back(end); // don't collect end point if it ends at sea
+		if (end_height != 0) begin_end_points.push_back(end); // don't collect end point if it ends at sea
 		std::tie(found, main_river) = FlowRiver(spring, end, min_river_length, begin_end_points);
-	} else if (count > 32) {
-		/* Maybe we can make a lake. Find the Nth of the considered tiles. */
-		std::set<TileIndex>::const_iterator cit = marks.cbegin();
-		std::advance(cit, RandomRange(count - 1));
-		TileIndex lakeCenter = *cit;
+	} else {
+		/* Number of tiles considered to be used for lake location guessing. */
+		static constexpr uint LAKE_THRESHOLD = 32;
 
-		if (IsValidTile(lakeCenter) &&
-				/* A river, or lake, can only be built on flat slopes. */
-				IsTileFlat(lakeCenter) &&
-				/* We want the lake to be built at the height of the river. */
-				TileHeight(begin) == TileHeight(lakeCenter) &&
-				/* We don't want the lake at the entry of the valley. */
-				lakeCenter != begin &&
-				/* We don't want lakes in the desert. */
-				(_settings_game.game_creation.landscape != LT_TROPIC || GetTropicZone(lakeCenter) != TROPICZONE_DESERT) &&
-				/* We only want a lake if the river is long enough. */
-				DistanceManhattan(spring, lakeCenter) > min_river_length) {
-			end = lakeCenter;
-			MakeRiverAndModifyDesertZoneAround(lakeCenter);
-			uint range = RandomRange(8) + 3;
-			CircularTileSearch(&lakeCenter, range, MakeLake, &height);
-			/* Call the search a second time so artefacts from going circular in one direction get (mostly) hidden. */
-			lakeCenter = end;
-			CircularTileSearch(&lakeCenter, range, MakeLake, &height);
-			found = true;
+		if (marks.size() > LAKE_THRESHOLD) {
+			/* Maybe we can make a lake. Find the Nth of the considered tiles. */
+			TileIndex lake_center = *std::next(queue.begin(), RandomRange(static_cast<uint32_t>(marks.size())));
+			int height_lake;
+
+			if (IsValidTile(lake_center) &&
+					/* We don't want the lake at the entry of the valley. */
+					lake_center != begin &&
+					/* We don't want lakes in the desert. */
+					(_settings_game.game_creation.landscape != LT_TROPIC || GetTropicZone(lake_center) != TROPICZONE_DESERT) &&
+					/* A river, or lake, can only be built on flat slopes. */
+					IsTileFlat(lake_center, &height_lake) &&
+					/* We want the lake to be built at the height of the river. */
+					height_lake == begin_height &&
+					/* We only want a lake if the river is long enough. */
+					DistanceManhattan(spring, lake_center) > min_river_length) {
+				end = lake_center;
+				MakeRiverAndModifyDesertZoneAround(lake_center);
+				uint range = RandomRange(8) + 3;
+				CircularTileSearch(&lake_center, range, MakeLake, &height_lake);
+				/* Call the search a second time so artefacts from going circular in one direction get (mostly) hidden. */
+				lake_center = end;
+				CircularTileSearch(&lake_center, range, MakeLake, &height_lake);
+				found = true;
+			}
 		}
 	}
 
-	marks.clear();
 	if (found) {
 		found = BuildRiver(begin, end, spring, main_river, begin_end_points);
 	}
@@ -1577,11 +1565,11 @@ static bool CreateRiver(TileIndex spring, uint min_river_length)
  */
 static void CreateRivers()
 {
-	int amount = _settings_game.game_creation.amount_of_rivers;
+	uint amount = _settings_game.game_creation.amount_of_rivers;
 	if (amount == 0) return;
 
-	uint wells = Map::ScaleBySize(4 << _settings_game.game_creation.amount_of_rivers);
-	const uint num_short_rivers = wells - std::max(1u, wells / 10);
+	uint wells = Map::ScaleBySize(4 << amount);
+	const uint num_short_rivers = wells - std::max<uint>(1, wells / 10);
 	SetGeneratingWorldProgress(GWP_RIVER, wells + TILE_UPDATE_FREQUENCY / 64); // Include the tile loop calls below.
 
 	/* Try to create long rivers. */
