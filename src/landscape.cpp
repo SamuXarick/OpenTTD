@@ -1273,8 +1273,8 @@ struct River_UserData {
 static AyStarStatus RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *current)
 {
 	TileIndex tile = current->GetTile();
-	if (IsWaterTile(tile) && tile == *(TileIndex *)aystar->user_target) return AYSTAR_FOUND_END_NODE;
-	return AYSTAR_DONE;
+	if (IsWaterTile(tile) && tile == *(TileIndex *)aystar->user_target) return AyStarStatus::FoundEndNode;
+	return AyStarStatus::Done;
 }
 
 static int32_t RiverTest_CalculateG(AyStar *, AyStarNode *, PathNode *)
@@ -1376,7 +1376,7 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 	start.tile = begin;
 	start.td = INVALID_TRACKDIR;
 	finder.AddStartNode(&start, 0);
-	return finder.Main() == AYSTAR_FOUND_END_NODE;
+	return finder.Main() == AyStarStatus::FoundEndNode;
 }
 
 
@@ -1461,7 +1461,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	start.tile = begin;
 	start.td = INVALID_TRACKDIR;
 	finder.AddStartNode(&start, 0);
-	return finder.Main() == AYSTAR_FOUND_END_NODE;
+	return finder.Main() == AyStarStatus::FoundEndNode;
 }
 
 /**
