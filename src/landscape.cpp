@@ -1397,8 +1397,10 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 		 * from possibly disconnecting the river. They will be turned into river at a later stage in CreateRiver. */
 		for (TileIndex tile : data->begin_end_points) {
 			if (IsWaterTile(tile) && IsCanal(tile)) break; // already marked all points
-			assert(IsTileFlat(tile) && (!IsWaterTile(tile) || IsRiver(tile)));
-			MakeCanal(tile, _current_company, Random());
+
+			if ((!IsWaterTile(tile) || IsRiver(tile)) && IsTileFlat(tile)) {
+				MakeCanal(tile, _current_company, Random());
+			}
 		}
 
 		const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
@@ -1446,7 +1448,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	finder.FoundEndNode = River_FoundEndNode;
 	finder.user_target = &end;
 	finder.user_data = &user_data;
-	finder.max_search_nodes = 0;
+//	finder.max_search_nodes = 0;
 
 	AyStarNode start;
 	start.tile = begin;
@@ -1463,8 +1465,10 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
  * @param begin_end_points Collection of all begin and end points for each flow segment of the entire river.
  * @return First element: True iff a river could/has been built, otherwise false; second element: River ends at sea.
  */
-static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint min_river_length, std::vector<TileIndex> &begin_end_points)
+static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint min_river_length, std::vector<TileIndex> &begin_end_points)
 {
+	const TileIndex original_spring = spring;
+
 	if (IsWaterTile(begin)) {
 		return { DistanceManhattan(spring, begin) > min_river_length, GetTileZ(begin) == 0 };
 	}
@@ -1501,9 +1505,10 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 
 	bool main_river = false;
 	if (found) {
-		/* Flow further down hill. */
 		if (begin_end_points.empty()) begin_end_points.push_back(begin);
-		if (end_height != 0) begin_end_points.push_back(end); // don't collect end point if it ends at sea
+		begin_end_points.push_back(end);
+
+		/* Flow further down hill. */
 		std::tie(found, main_river) = FlowRiver(spring, end, min_river_length, begin_end_points);
 	} else {
 		/* Number of tiles considered to be used for lake location guessing. */
@@ -1540,23 +1545,36 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 	if (found) {
 		found = BuildRiver(begin, end, spring, main_river, begin_end_points);
 	}
+
+	/* This may be a partially built river. Update the spring location. */
+	if (!found && original_spring == spring) {
+		spring = end;
+	}
+
 	return { found, main_river };
 }
 
-static bool CreateRiver(TileIndex spring, uint min_river_length)
+static bool CreateRiver(TileIndex &spring, uint min_river_length)
 {
 	std::vector<TileIndex> begin_end_points;
 	auto [created, main_river] = FlowRiver(spring, spring, min_river_length, begin_end_points);
 
 	/* Once a main river is created, even if partially, the marked canal tiles at
-	 * River_FoundEndNode must be converted back to rivers. */
+	 * River_FoundEndNode must be converted back to rivers or cleared. */
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
+		bool spring_found = false;
 		for (TileIndex tile : begin_end_points) {
+			if (tile == spring) spring_found = true;
 			if (IsTileType(tile, MP_WATER) && IsCanal(tile)) {
 				assert(IsTileFlat(tile));
-				MakeRiverAndModifyDesertZoneAround(tile);
+				if (spring_found) {
+					MakeRiverAndModifyDesertZoneAround(tile);
+				} else {
+					DoClearSquare(tile);
+				}
 			}
 		}
+		assert(begin_end_points.empty() || spring == begin_end_points.back() || TestRiverConnection(spring, begin_end_points.back()));
 	}
 
 	return created;
