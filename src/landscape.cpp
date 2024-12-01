@@ -1421,7 +1421,16 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 			uint radius = std::min<uint>(3, (current_river_length / (long_river_length / 3)) + 1);
 
 			if (radius > 1) {
-				CircularTileSearch(&tile, radius, RiverMakeWider, reinterpret_cast<void *>(&path->key.tile));
+				assert(radius <= 3);
+
+				/* We manually set the Directions to widen the river in adjacent basis manner. */
+				std::vector<Direction> directions = { DIR_SE, DIR_S, DIR_SW };
+				if (radius == 3) directions.insert(directions.end(), { DIR_W, DIR_NW, DIR_N, DIR_NE, DIR_E });
+
+				for (Direction d : directions) {
+					TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
+					RiverMakeWider(t, reinterpret_cast<void *>(&tile));
+				}
 			}
 		}
 
