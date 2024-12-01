@@ -1236,10 +1236,18 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		}
 	}
 
-	/* If the tile slope matches the desired slope, add a river tile. */
+	/* If the tile slope matches the desired slope, try adding a river tile. */
 	if (cur_slope == desired_slope) {
 		assert(desired_slope == SLOPE_FLAT || IsInclinedSlope(desired_slope));
-		MakeRiverAndModifyDesertZoneAround(tile);
+
+		for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
+			/* Only add a river if there's water nearby. */
+			TileIndex other_tile = TileAddByDiagDir(tile, d);
+			if (IsValidTile(other_tile) && IsWaterTile(other_tile)) {
+				MakeRiverAndModifyDesertZoneAround(tile);
+				break;
+			}
+		}
 	}
 
 	/* Always return false to keep searching. */
