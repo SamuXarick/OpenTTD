@@ -1093,7 +1093,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			Slope other_slope = GetTileSlope(other_tile);
 
 			/* Only consider tiles that are part of the river. */
-			if (!IsWaterTile(other_tile) || !IsRiver(other_tile)) continue;
+			if (!IsWaterTile(other_tile) || IsSea(other_tile)) continue;
 
 			/* If the adjacent river tile is inclined and at the same height, 
 			 * check if it has a parallel slope to determine its length. */
@@ -1182,7 +1182,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 			for (DiagDirDiff d : { DIAGDIRDIFF_90RIGHT, DIAGDIRDIFF_90LEFT }) {
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
 				TileIndex other_tile = TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d));
-				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return false;
+				if (IsWaterTile(other_tile) && !IsSea(other_tile) && IsTileFlat(other_tile)) return false;
 			}
 
 			/* Get the corners which are different between the current and desired slope. */
@@ -1475,7 +1475,7 @@ static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint
 
 	static std::unordered_set<TileIndex::BaseType> marks;
 	marks.clear();
-	marks.insert(begin.base());
+	marks.insert(Tile(begin));
 
 	static std::vector<TileIndex> queue;
 	queue.clear();
