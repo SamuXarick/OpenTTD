@@ -12,6 +12,7 @@
 
 #include "depot_type.h"
 #include "tile_map.h"
+#include "genworld.h"
 
 /**
  * Bit field layout of m5 for water tiles.
@@ -534,6 +535,18 @@ inline bool IsNonFloodingWaterTile(Tile t)
 {
 	assert(IsTileType(t, MP_WATER));
 	return HasBit(t.m3(), 0);
+}
+
+inline void SetUnterraformableRiver(Tile t, bool b)
+{
+	assert(_generating_world && IsTileType(t, MP_WATER) && IsRiver(t));
+	AssignBit(t.m3(), 1, b);
+}
+
+inline bool IsUnterraformableRiver(Tile t)
+{
+	assert(_generating_world && IsTileType(t, MP_WATER) && IsRiver(t));
+	return HasBit(t.m3(), 1);
 }
 
 #endif /* WATER_MAP_H */

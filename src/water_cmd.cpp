@@ -1419,7 +1419,9 @@ static VehicleEnterTileStatus VehicleEnter_Water(Vehicle *, TileIndex, int, int)
 static CommandCost TerraformTile_Water(TileIndex tile, DoCommandFlag flags, int, Slope)
 {
 	/* Canals can't be terraformed */
-	if (IsWaterTile(tile) && IsCanal(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+	if (IsCanal(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+
+	if (_generating_world && IsRiver(tile) && IsUnterraformableRiver(tile)) return CMD_ERROR;
 
 	return Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
 }

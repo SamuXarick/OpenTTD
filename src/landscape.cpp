@@ -1390,24 +1390,28 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 		if (IsWaterTile(tile)) continue;
 
 		MakeRiverAndModifyDesertZoneAround(tile);
-		if (!IsTileFlat(tile)) continue;
-
-		/* Mark the tile as canal to prevent terraform. */
-		MakeCanal(tile, _current_company, Random());
+		SetUnterraformableRiver(tile, true);
 	}
 
 	/* If the river is a main river, go back along the path to widen it.
 	 * Don't make wide rivers if we're using the original landscape generator.
 	 */
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && data->main_river) {
-		/* Pre-mark river tiles at all begin and end points with canals to prevent the terraform command in RiverMakeWider
-		 * from possibly disconnecting the river. They will be turned into river at a later stage in CreateRiver. */
+		/* Pre-mark river tiles at all begin and end points as unterraformable to prevent
+		 * RiverMakeWider from possibly disconnecting the river. */
 		for (TileIndex tile : data->begin_end_points) {
-			if (IsWaterTile(tile) && IsCanal(tile)) break; // already marked all points
-
-			if ((!IsWaterTile(tile) || IsRiver(tile)) && IsTileFlat(tile)) {
-				MakeCanal(tile, _current_company, Random());
+			if (IsWaterTile(tile)) {
+				if (IsRiver(tile)) {
+					if (IsUnterraformableRiver(tile)) break; // already marked all points
+				}
+				continue;
 			}
+
+			Slope slope = GetTileSlope(tile);
+			if (slope != SLOPE_FLAT && !IsInclinedSlope(slope)) continue;
+
+			MakeRiverAndModifyDesertZoneAround(tile);
+			SetUnterraformableRiver(tile, true);
 		}
 
 		const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
@@ -1575,20 +1579,14 @@ static bool CreateRiver(TileIndex &spring, uint min_river_length)
 	std::vector<TileIndex> begin_end_points;
 	auto [created, main_river] = FlowRiver(spring, spring, min_river_length, begin_end_points);
 
-	/* Once a main river is created, even if partially, the marked canal tiles at
-	 * River_FoundEndNode must be converted back to rivers or cleared. */
+	/* If a river is partially created, the unused marked river tiles at
+	 * River_FoundEndNode must be converted back to cleared land. */
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
 		bool spring_found = false;
 		for (TileIndex tile : begin_end_points) {
 			if (tile == spring) spring_found = true;
-			if (IsTileType(tile, MP_WATER) && IsCanal(tile)) {
-				assert(IsTileFlat(tile));
-				if (spring_found) {
-					MakeRiverAndModifyDesertZoneAround(tile);
-				} else {
-					DoClearSquare(tile);
-				}
-			}
+			if (!IsTileType(tile, MP_WATER) || !IsRiver(tile) || spring_found) continue;
+			DoClearSquare(tile);
 		}
 		assert(begin_end_points.empty() || spring == begin_end_points.back() || TestRiverConnection(spring, begin_end_points.back()));
 	}
@@ -1627,13 +1625,6 @@ static void CreateRivers()
 			TileIndex t = RandomTile();
 			if (!CircularTileSearch(&t, 8, FindSpring, nullptr)) continue;
 			if (CreateRiver(t, _settings_game.game_creation.min_river_length)) break;
-		}
-	}
-
-	/* Convert all canals back to rivers. */
-	for (const auto tile : Map::Iterate()) {
-		if (IsTileType(tile, MP_WATER) && IsCanal(tile)) {
-			MakeRiverAndModifyDesertZoneAround(tile);
 		}
 	}
 
