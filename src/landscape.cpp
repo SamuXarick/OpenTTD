@@ -1387,9 +1387,13 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 	/* First, build the river without worrying about its width. */
 	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
 		TileIndex tile = path->GetTile();
-		if (!IsWaterTile(tile)) {
-			MakeRiverAndModifyDesertZoneAround(tile);
-		}
+		if (IsWaterTile(tile)) continue;
+
+		MakeRiverAndModifyDesertZoneAround(tile);
+		if (!IsTileFlat(tile)) continue;
+
+		/* Mark the tile as canal to prevent terraform. */
+		MakeCanal(tile, _current_company, Random());
 	}
 
 	/* If the river is a main river, go back along the path to widen it.
@@ -1623,6 +1627,13 @@ static void CreateRivers()
 			TileIndex t = RandomTile();
 			if (!CircularTileSearch(&t, 8, FindSpring, nullptr)) continue;
 			if (CreateRiver(t, _settings_game.game_creation.min_river_length)) break;
+		}
+	}
+
+	/* Convert all canals back to rivers. */
+	for (const auto tile : Map::Iterate()) {
+		if (IsTileType(tile, MP_WATER) && IsCanal(tile)) {
+			MakeRiverAndModifyDesertZoneAround(tile);
 		}
 	}
 
