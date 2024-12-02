@@ -1058,12 +1058,13 @@ static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 	/* If the tile is already sea or river, don't expand. */
 	if (IsWaterTile(tile)) return;
 
-	/* Never flow uphill. */
-	int tile_max_z = GetTileMaxZ(tile);
-	if (tile_max_z > GetTileMaxZ(origin_tile)) return;
+	auto [cur_slope, tile_max_z] = GetTileSlopeMaxZ(tile);
 
-	Slope cur_slope = GetTileSlope(tile);
-	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
+	/* Initialize matching the origin tile as a shortcut if no terraforming is needed. */
+	auto [desired_slope, origin_max_z] = GetTileSlopeMaxZ(origin_tile);
+
+	/* Never flow uphill. */
+	if (tile_max_z > origin_max_z) return;
 
 	/* If the new tile can't hold a river tile, try terraforming. */
 	if (cur_slope != SLOPE_FLAT && !IsInclinedSlope(cur_slope)) {
@@ -1084,14 +1085,14 @@ static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 		 * This doesn't necessarily match the slope of the origin tile. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
 			TileIndex other_tile = TileAddByDiagDir(tile, d);
-			Slope other_slope = GetTileSlope(other_tile);
+			auto [other_slope, other_max_z] = GetTileSlopeMaxZ(other_tile);
 
 			/* Only consider tiles that are part of the river. */
-			if (!IsWaterTile(other_tile) || IsSea(other_tile)) continue;
+			if (!IsWaterTile(other_tile) || !IsRiver(other_tile)) continue;
 
 			/* If the adjacent river tile is inclined and at the same height, 
 			 * check if it has a parallel slope to determine its length. */
-			if (IsInclinedSlope(other_slope) && GetTileMaxZ(other_tile) == tile_max_z) {
+			if (IsInclinedSlope(other_slope) && other_max_z == tile_max_z) {
 				/* Check both perpendicular directions (90 degrees left and right) for a parallel slope. */
 				for (DiagDirDiff dir_diff : { DIAGDIRDIFF_90RIGHT, DIAGDIRDIFF_90LEFT }) {
 					DiagDirection other_d = ChangeDiagDir(d, dir_diff);
@@ -1104,8 +1105,8 @@ static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 							parallel_tile = AddTileIndexDiffCWrap(parallel_tile, TileIndexDiffCByDiagDir(d));
 							if (parallel_tile == INVALID_TILE) break;
 							if (!IsWaterTile(parallel_tile) || !IsRiver(parallel_tile)) break;
-							if (GetTileMaxZ(parallel_tile) != tile_max_z) break;
-							Slope parallel_slope = GetTileSlope(parallel_tile);
+							auto [parallel_slope, parallel_max_z] = GetTileSlopeMaxZ(parallel_tile);
+							if (parallel_max_z != tile_max_z) break;
 							if (!IsInclinedSlope(parallel_slope) || GetInclinedSlopeDirection(parallel_slope) != other_d) break;
 						}
 						/* Store the slope, its length, and distance to the origin tile. */
@@ -1176,7 +1177,7 @@ static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 			for (DiagDirDiff d : { DIAGDIRDIFF_90RIGHT, DIAGDIRDIFF_90LEFT }) {
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
 				TileIndex other_tile = TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d));
-				if (IsWaterTile(other_tile) && !IsSea(other_tile) && IsTileFlat(other_tile)) return;
+				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return;
 			}
 
 			/* Get the corners which are different between the current and desired slope. */
