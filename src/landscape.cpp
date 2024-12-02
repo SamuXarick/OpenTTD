@@ -1506,6 +1506,8 @@ static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint
 		return { DistanceManhattan(spring, begin) > min_river_length, GetTileZ(begin) == 0 };
 	}
 
+	int begin_height = TileHeight(begin);
+
 	static std::unordered_set<TileIndex::BaseType> marks;
 	marks.clear();
 	marks.insert(Tile(begin));
@@ -1517,11 +1519,10 @@ static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint
 	/* Breadth first search for the closest tile we can flow down to. */
 	bool found = false;
 	TileIndex end;
-	int begin_height = TileHeight(begin);
-	int end_height;
 	for (size_t i = 0; i != queue.size(); i++) {
 		end = queue[i];
 
+		int end_height;
 		if (IsTileFlat(end, &end_height) && (end_height < begin_height || (end_height == begin_height && IsWaterTile(end)))) {
 			found = true;
 			break;
