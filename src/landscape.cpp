@@ -1049,7 +1049,6 @@ static bool MakeLake(TileIndex tile, void *user_data)
  * Widen a river by expanding into adjacent tiles via circular tile search.
  * @param tile The tile to try expanding the river into.
  * @param origin_tile The tile to try surrounding the river around.
- * @return Always false, so it continues searching.
  */
 static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 {
@@ -1276,6 +1275,90 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 	return slope_end == SLOPE_FLAT || slope_begin == SLOPE_FLAT;
 }
 
+/**
+ * TestRiverConnection - Check if there's a river connection between two tiles.
+ * @param begin - The starting tile index.
+ * @param end - The ending tile index.
+ * @return true if a connection exists, otherwise false.
+ */
+[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
+{
+	AyStar finder = {};
+
+	/* Calculate G function - returns a constant value of 1 for every step. */
+	finder.CalculateG = [](AyStar *, AyStarNode *, PathNode *) {
+		return 1;
+	};
+
+	/* Calculate H function - estimates the distance using Manhattan Distance. */
+	finder.CalculateH = [](AyStar *aystar, AyStarNode *current, PathNode *) {
+		return static_cast<int32_t>(DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile));
+	};
+
+	/* GetNeighbours function - retrieves neighboring tiles. */
+	finder.GetNeighbours = [](AyStar *aystar, PathNode *current) {
+		TileIndex src_tile = current->GetTile();
+		Trackdir src_trackdir = current->GetTrackdir();
+
+		aystar->neighbours.clear();
+
+		/* Adds neighboring tiles based on the direction and track. */
+		auto add_neighbours = [&src_tile, &aystar](DiagDirection src_exitdir, Trackdir src_trackdir) {
+			TileIndex dst_tile = AddTileIndexDiffCWrap(src_tile, TileIndexDiffCByDiagDir(src_exitdir));
+			if (dst_tile != INVALID_TILE) {
+				TrackdirBits trackdirbits = TrackStatusToTrackdirBits(GetTileTrackStatus(dst_tile, TRANSPORT_WATER, 0));
+
+				if (trackdirbits == TRACKDIR_BIT_NONE && IsTileType(dst_tile, MP_WATER) && IsRiver(dst_tile)) {
+					trackdirbits = TrackBitsToTrackdirBits(AxisToTrackBits(DiagDirToAxis(GetInclinedSlopeDirection(GetTileSlope(dst_tile)))));
+				}
+
+				trackdirbits &= TrackdirReachesTrackdirs(src_trackdir);
+
+				while (trackdirbits != TRACKDIR_BIT_NONE) {
+					Trackdir dst_trackdir = RemoveFirstTrackdir(&trackdirbits);
+					auto &neighbour = aystar->neighbours.emplace_back();
+					neighbour.tile = dst_tile;
+					neighbour.td = dst_trackdir;
+				}
+			}
+		};
+
+		/* If no specific direction, consider all diagonal directions. */
+		if (src_trackdir == INVALID_TRACKDIR) {
+			for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
+				add_neighbours(d, DiagDirToDiagTrackdir(d));
+			}
+		} else {
+			add_neighbours(TrackdirToExitdir(src_trackdir), src_trackdir);
+		};
+	};
+
+	/* EndNodeCheck function - checks if the current tile is the target tile. */
+	finder.EndNodeCheck = [](const AyStar *aystar, const PathNode *current) {
+		TileIndex tile = current->GetTile();
+		if (tile != *static_cast<TileIndex *>(aystar->user_target)) return AyStarStatus::Done;
+		if (!IsTileType(tile, MP_WATER)) return AyStarStatus::Done;
+		if (IsWater(tile)) return AyStarStatus::FoundEndNode;
+		if (IsCoast(tile) && IsSlopeWithOneCornerRaised(GetTileSlope(tile))) return AyStarStatus::FoundEndNode;
+		return AyStarStatus::Done;
+	};
+
+	/* FoundEndNode function - placeholder as no specific action is needed. */
+	finder.FoundEndNode = [](AyStar *, PathNode *) {};
+
+	finder.user_target = &end;
+	
+	/* Initialize the starting node. */
+	AyStarNode start;
+	start.tile = begin;
+	start.td = INVALID_TRACKDIR;
+	finder.AddStartNode(&start, 0);
+
+	/* Execute the pathfinding and return if the end node was found. */
+	finder.max_search_nodes = 0; // Avoid returning with no path prematurely.
+	return finder.Main() == AyStarStatus::FoundEndNode;
+}
+
 /** Parameters for river generation to pass as AyStar user data. */
 struct River_UserData {
 	TileIndex spring; ///< The current spring during river generation.
@@ -1283,167 +1366,10 @@ struct River_UserData {
 	std::vector<TileIndex> &begin_end_points; ///< Stores all begin and end points for each flow segment of the entire river.
 };
 
-static AyStarStatus RiverTest_EndNodeCheck(const AyStar *aystar, const PathNode *current)
-{
-	TileIndex tile = current->GetTile();
-	if (IsTileType(tile, MP_WATER) && (IsWater(tile) || (IsCoast(tile) && IsSlopeWithOneCornerRaised(GetTileSlope(tile))))) {
-		if (tile == *static_cast<TileIndex *>(aystar->user_target)) return AyStarStatus::FoundEndNode;
-	}
-	return AyStarStatus::Done;
-}
-
-static void RiverTest_GetNeighbours(AyStar *aystar, PathNode *current)
-{
-	TileIndex src_tile = current->GetTile();
-	Trackdir src_trackdir = current->GetTrackdir();
-
-	aystar->neighbours.clear();
-	auto add_neighbours = [&src_tile, &aystar](DiagDirection src_exitdir, Trackdir src_trackdir) {
-		TileIndex dst_tile = AddTileIndexDiffCWrap(src_tile, TileIndexDiffCByDiagDir(src_exitdir));
-		if (dst_tile != INVALID_TILE) {
-			TrackdirBits trackdirbits = TrackStatusToTrackdirBits(GetTileTrackStatus(dst_tile, TRANSPORT_WATER, 0));
-
-			if (trackdirbits == TRACKDIR_BIT_NONE && IsTileType(dst_tile, MP_WATER) && IsRiver(dst_tile)) {
-				trackdirbits = TrackBitsToTrackdirBits(AxisToTrackBits(DiagDirToAxis(GetInclinedSlopeDirection(GetTileSlope(dst_tile)))));
-			}
-
-			trackdirbits &= TrackdirReachesTrackdirs(src_trackdir);
-
-			while (trackdirbits != TRACKDIR_BIT_NONE) {
-				Trackdir dst_trackdir = RemoveFirstTrackdir(&trackdirbits);
-				auto &neighbour = aystar->neighbours.emplace_back();
-				neighbour.tile = dst_tile;
-				neighbour.td = dst_trackdir;
-			}
-		}
-	};
-
-	if (src_trackdir == INVALID_TRACKDIR) {
-		for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-			add_neighbours(d, DiagDirToDiagTrackdir(d));
-		}
-	} else {
-		add_neighbours(TrackdirToExitdir(src_trackdir), src_trackdir);
-	}
-}
-
-[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
-{
-	AyStar finder = {};
-	finder.CalculateG = [](AyStar *, AyStarNode *, PathNode *) { return 1; };
-	finder.CalculateH = [](AyStar *aystar, AyStarNode *current, PathNode *) { return static_cast<int32_t>(DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile)); };
-	finder.GetNeighbours = RiverTest_GetNeighbours;
-	finder.EndNodeCheck = RiverTest_EndNodeCheck;
-	finder.FoundEndNode = [](AyStar *, PathNode *) {};
-	finder.user_target = &end;
-	finder.max_search_nodes = 0;
-
-	AyStarNode start;
-	start.tile = begin;
-	start.td = INVALID_TRACKDIR;
-	finder.AddStartNode(&start, 0);
-	return finder.Main() == AyStarStatus::FoundEndNode;
-}
-
-/* AyStar callback for checking whether we reached our destination. */
-static AyStarStatus River_EndNodeCheck(const AyStar *aystar, const PathNode *current)
-{
-	return current->GetTile() == *static_cast<TileIndex *>(aystar->user_target) ? AyStarStatus::FoundEndNode : AyStarStatus::Done;
-}
-
 /* AyStar callback for getting the cost of the current node. */
 static int32_t River_CalculateG(AyStar *, AyStarNode *, PathNode *)
 {
 	return 1 + RandomRange(_settings_game.game_creation.river_route_random);
-}
-
-/* AyStar callback for getting the estimated cost to the destination. */
-static int32_t River_CalculateH(AyStar *aystar, AyStarNode *current, PathNode *)
-{
-	return DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile);
-}
-
-/* AyStar callback for getting the neighbouring nodes of the given node. */
-static void River_GetNeighbours(AyStar *aystar, PathNode *current)
-{
-	TileIndex src_tile = current->GetTile();
-
-	aystar->neighbours.clear();
-	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex dst_tile = src_tile + TileOffsByDiagDir(d);
-		if (IsValidTile(dst_tile) && FlowsDown(src_tile, dst_tile)) {
-			auto &neighbour = aystar->neighbours.emplace_back();
-			neighbour.tile = dst_tile;
-			neighbour.td = INVALID_TRACKDIR;
-		}
-	}
-}
-
-/* AyStar callback when an route has been found. */
-static void River_FoundEndNode(AyStar *aystar, PathNode *current)
-{
-	River_UserData *data = static_cast<River_UserData *>(aystar->user_data);
-
-	/* First, build the river without worrying about its width. */
-	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-		TileIndex tile = path->GetTile();
-		if (IsWaterTile(tile)) continue;
-
-		MakeRiverAndModifyDesertZoneAround(tile);
-		SetUnterraformableRiver(tile, true);
-	}
-
-	/* If the river is a main river, go back along the path to widen it.
-	 * Don't make wide rivers if we're using the original landscape generator.
-	 */
-	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && data->main_river) {
-		/* Pre-mark river tiles at all begin and end points as unterraformable to prevent
-		 * RiverMakeWider from possibly disconnecting the river. */
-		for (TileIndex tile : data->begin_end_points) {
-			if (IsWaterTile(tile)) {
-				if (IsRiver(tile)) {
-					if (IsUnterraformableRiver(tile)) break; // already marked all points
-				}
-				continue;
-			}
-
-			Slope slope = GetTileSlope(tile);
-			if (slope != SLOPE_FLAT && !IsInclinedSlope(slope)) continue;
-
-			MakeRiverAndModifyDesertZoneAround(tile);
-			SetUnterraformableRiver(tile, true);
-		}
-
-		const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
-
-		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-			TileIndex tile = path->GetTile();
-
-			/* Check if we should widen river depending on how far we are away from the source. */
-			uint current_river_length = DistanceManhattan(data->spring, tile);
-			uint radius = std::min<uint>(3, (current_river_length / (long_river_length / 3)) + 1);
-
-			if (radius <= 1) continue;
-			assert(radius <= 3);
-
-			/* We manually set the Directions to widen the river in adjacent basis manner. */
-			std::vector<Direction> directions = { DIR_SE, DIR_S, DIR_SW };
-			if (radius == 3) directions.insert(directions.end(), { DIR_W, DIR_NW, DIR_N, DIR_NE, DIR_E });
-
-			for (Direction d : directions) {
-				TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
-				RiverMakeWider(t, tile);
-			}
-		}
-
-		/* Make sure the river is still intact. */
-		[[maybe_unused]] TileIndex end = current->GetTile();
-		TileIndex begin;
-		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
-			begin = path->GetTile();
-		}
-		assert(TestRiverConnection(end, begin));
-	}
 }
 
 /**
@@ -1460,11 +1386,103 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	River_UserData user_data = { spring, main_river, begin_end_points };
 
 	AyStar finder = {};
-	finder.CalculateG = River_CalculateG;
-	finder.CalculateH = River_CalculateH;
-	finder.GetNeighbours = River_GetNeighbours;
-	finder.EndNodeCheck = River_EndNodeCheck;
-	finder.FoundEndNode = River_FoundEndNode;
+
+	/* AyStar callback for getting the cost of the current node. */
+	finder.CalculateG = [](AyStar *, AyStarNode *, PathNode *) {
+		return 1 + static_cast<int32_t>(RandomRange(_settings_game.game_creation.river_route_random));
+	};
+
+	/* AyStar callback for getting the estimated cost to the destination. */
+	finder.CalculateH = [](AyStar *aystar, AyStarNode *current, PathNode *) {
+		return static_cast<int32_t>(DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile));
+	};
+
+	/* AyStar callback for getting the neighbouring nodes of the given node. */
+	finder.GetNeighbours = [](AyStar *aystar, PathNode *current) {
+		TileIndex src_tile = current->GetTile();
+
+		aystar->neighbours.clear();
+		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
+			TileIndex dst_tile = src_tile + TileOffsByDiagDir(d);
+			if (IsValidTile(dst_tile) && FlowsDown(src_tile, dst_tile)) {
+				auto &neighbour = aystar->neighbours.emplace_back();
+				neighbour.tile = dst_tile;
+				neighbour.td = INVALID_TRACKDIR;
+			}
+		}
+	};
+
+	/* AyStar callback for checking whether we reached our destination. */
+	finder.EndNodeCheck = [](const AyStar *aystar, const PathNode *current) {
+		return current->GetTile() == *static_cast<TileIndex *>(aystar->user_target) ? AyStarStatus::FoundEndNode : AyStarStatus::Done;
+	};
+
+	/* AyStar callback when an route has been found. */
+	finder.FoundEndNode = [](AyStar *aystar, PathNode *current) {
+		River_UserData *data = static_cast<River_UserData *>(aystar->user_data);
+
+		/* First, build the river without worrying about its width. */
+		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
+			TileIndex tile = path->GetTile();
+			if (IsWaterTile(tile)) continue;
+
+			MakeRiverAndModifyDesertZoneAround(tile);
+			SetUnterraformableRiver(tile, true);
+		}
+
+		/* If the river is a main river, go back along the path to widen it.
+		 * Don't make wide rivers if we're using the original landscape generator.
+		 */
+		if (_settings_game.game_creation.land_generator != LG_ORIGINAL && data->main_river) {
+			/* Pre-mark river tiles at all begin and end points as unterraformable to prevent
+			 * RiverMakeWider from possibly disconnecting the river. */
+			for (TileIndex tile : data->begin_end_points) {
+				if (IsWaterTile(tile)) {
+					if (IsRiver(tile)) {
+						if (IsUnterraformableRiver(tile)) break; // already marked all points
+					}
+					continue;
+				}
+
+				Slope slope = GetTileSlope(tile);
+				if (slope != SLOPE_FLAT && !IsInclinedSlope(slope)) continue;
+
+				MakeRiverAndModifyDesertZoneAround(tile);
+				SetUnterraformableRiver(tile, true);
+			}
+
+			const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
+
+			for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
+				TileIndex tile = path->GetTile();
+
+				/* Check if we should widen river depending on how far we are away from the source. */
+				uint current_river_length = DistanceManhattan(data->spring, tile);
+				uint radius = std::min<uint>(3, (current_river_length / (long_river_length / 3)) + 1);
+
+				if (radius <= 1) continue;
+				assert(radius <= 3);
+
+				/* We manually set the Directions to widen the river in adjacent basis manner. */
+				std::vector<Direction> directions = { DIR_SE, DIR_S, DIR_SW };
+				if (radius == 3) directions.insert(directions.end(), { DIR_W, DIR_NW, DIR_N, DIR_NE, DIR_E });
+
+				for (Direction d : directions) {
+					TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
+					RiverMakeWider(t, tile);
+				}
+			}
+
+			/* Make sure the river is still intact. */
+			[[maybe_unused]] TileIndex end = current->GetTile();
+			TileIndex begin;
+			for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
+				begin = path->GetTile();
+			}
+			assert(TestRiverConnection(end, begin));
+		}
+	};
+
 	finder.user_target = &end;
 	finder.user_data = &user_data;
 
