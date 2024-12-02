@@ -1364,12 +1364,6 @@ struct River_UserData {
 	std::vector<TileIndex> &begin_end_points; ///< Stores all begin and end points for each flow segment of the entire river.
 };
 
-/* AyStar callback for getting the cost of the current node. */
-static int32_t River_CalculateG(AyStar *, AyStarNode *, PathNode *)
-{
-	return 1 + RandomRange(_settings_game.game_creation.river_route_random);
-}
-
 /**
  * Actually build the river between the begin and end tiles using AyStar.
  * @param begin The begin of the river.
