@@ -1591,7 +1591,6 @@ static bool CreateRiver(TileIndex &spring, uint min_river_length)
 	/* If a river is partially created, the unused marked river tiles at
 	 * River_FoundEndNode must be converted back to cleared land. */
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
-		bool spring_found = false;
 		for (TileIndex tile : begin_end_points) {
 			if (tile == spring) break;
 			if (!IsTileType(tile, MP_WATER) || !IsRiver(tile)) continue;
