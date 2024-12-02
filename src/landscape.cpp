@@ -1465,6 +1465,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 				}
 			}
 
+#ifdef _DEBUG
 			/* Make sure the river is still intact. */
 			[[maybe_unused]] TileIndex end = current->GetTile();
 			TileIndex begin;
@@ -1472,6 +1473,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 				begin = path->GetTile();
 			}
 			assert(TestRiverConnection(end, begin));
+#endif
 		}
 	};
 
