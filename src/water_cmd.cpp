@@ -1297,38 +1297,45 @@ void TileLoop_Water(TileIndex tile)
 	}
 }
 
+void ConvertGroundTileIntoWaterTile(TileIndex tile)
+{
+	assert(tile < Map::Size());
+
+	auto [slope, z] = GetTileSlopeZ(tile);
+	if (IsTileType(tile, MP_CLEAR) && z == 0) {
+		/* Make both water for tiles at level 0
+		 * and make shore, as that looks much better
+		 * during the generation. */
+		switch (slope) {
+			case SLOPE_FLAT:
+				MakeSea(tile);
+				break;
+
+			case SLOPE_N:
+			case SLOPE_E:
+			case SLOPE_S:
+			case SLOPE_W:
+				MakeShore(tile);
+				break;
+
+			default:
+				for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope & ~SLOPE_STEEP])) {
+					TileIndex dest = TileAddByDir(tile, dir);
+					Slope slope_dest = GetTileSlope(dest) & ~SLOPE_STEEP;
+					if (slope_dest == SLOPE_FLAT || IsSlopeWithOneCornerRaised(slope_dest) || IsTileType(dest, MP_VOID)) {
+						MakeShore(tile);
+						break;
+					}
+				}
+				break;
+		}
+	}
+}
+
 void ConvertGroundTilesIntoWaterTiles()
 {
 	for (TileIndex tile = 0; tile < Map::Size(); ++tile) {
-		auto [slope, z] = GetTileSlopeZ(tile);
-		if (IsTileType(tile, MP_CLEAR) && z == 0) {
-			/* Make both water for tiles at level 0
-			 * and make shore, as that looks much better
-			 * during the generation. */
-			switch (slope) {
-				case SLOPE_FLAT:
-					MakeSea(tile);
-					break;
-
-				case SLOPE_N:
-				case SLOPE_E:
-				case SLOPE_S:
-				case SLOPE_W:
-					MakeShore(tile);
-					break;
-
-				default:
-					for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope & ~SLOPE_STEEP])) {
-						TileIndex dest = TileAddByDir(tile, dir);
-						Slope slope_dest = GetTileSlope(dest) & ~SLOPE_STEEP;
-						if (slope_dest == SLOPE_FLAT || IsSlopeWithOneCornerRaised(slope_dest) || IsTileType(dest, MP_VOID)) {
-							MakeShore(tile);
-							break;
-						}
-					}
-					break;
-			}
-		}
+		ConvertGroundTileIntoWaterTile(tile);
 	}
 }
 
@@ -1412,7 +1419,9 @@ static VehicleEnterTileStatus VehicleEnter_Water(Vehicle *, TileIndex, int, int)
 static CommandCost TerraformTile_Water(TileIndex tile, DoCommandFlag flags, int, Slope)
 {
 	/* Canals can't be terraformed */
-	if (IsWaterTile(tile) && IsCanal(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+	if (IsCanal(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_CANAL_FIRST);
+
+	if (_generating_world && IsRiver(tile) && IsUnterraformableRiver(tile)) return CMD_ERROR;
 
 	return Command<CMD_LANDSCAPE_CLEAR>::Do(flags, tile);
 }
