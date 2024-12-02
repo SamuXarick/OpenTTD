@@ -18,9 +18,9 @@
  * @param hwest  The height at the western corner in the same unit as TileHeight.
  * @param heast  The height at the eastern corner in the same unit as TileHeight.
  * @param hsouth The height at the southern corner in the same unit as TileHeight.
- * @return The slope and the lowest height of the four corners.
+ * @return The slope, the lowest height and the highest height of the four corners.
  */
-static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
+static std::tuple<Slope, int, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
 {
 	/* Due to the fact that tiles must connect with each other without leaving gaps, the
 	 * biggest difference in height between any corner and 'min' is between 0, 1, or 2.
@@ -44,7 +44,7 @@ static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int
 
 	if (hmax - hmin == 2) r |= SLOPE_STEEP;
 
-	return {r, hmin};
+	return {r, hmin, hmax};
 }
 
 /**
@@ -64,7 +64,29 @@ std::tuple<Slope, int> GetTileSlopeZ(TileIndex tile)
 	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
 	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
 
-	return GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	auto [slope, h, hmax] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	return {slope, h};
+}
+
+/**
+ * Return the slope of a given tile inside the map.
+ * @param tile Tile to compute slope of
+ * @return Slope of the tile, except for the HALFTILE part, and the max z height
+ */
+std::tuple<Slope, int> GetTileSlopeMaxZ(TileIndex tile)
+{
+	uint x1 = TileX(tile);
+	uint y1 = TileY(tile);
+	uint x2 = std::min(x1 + 1, Map::MaxX());
+	uint y2 = std::min(y1 + 1, Map::MaxY());
+
+	int hnorth = TileHeight(tile);           // Height of the North corner.
+	int hwest  = TileHeight(TileXY(x2, y1)); // Height of the West corner.
+	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
+	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
+
+	auto [slope, h, hmax] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	return {slope, hmax};
 }
 
 /**
@@ -82,7 +104,7 @@ std::tuple<Slope, int> GetTilePixelSlopeOutsideMap(int x, int y)
 	int heast  = TileHeightOutsideMap(x,     y + 1); // E corner.
 	int hsouth = TileHeightOutsideMap(x + 1, y + 1); // S corner.
 
-	auto [slope, h] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	auto [slope, h, hmax] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
 	return {slope, h * TILE_HEIGHT};
 }
 
