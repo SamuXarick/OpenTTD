@@ -1423,17 +1423,16 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 			uint current_river_length = DistanceManhattan(data->spring, tile);
 			uint radius = std::min<uint>(3, (current_river_length / (long_river_length / 3)) + 1);
 
-			if (radius > 1) {
-				assert(radius <= 3);
+			if (radius <= 1) continue;
+			assert(radius <= 3);
 
-				/* We manually set the Directions to widen the river in adjacent basis manner. */
-				std::vector<Direction> directions = { DIR_SE, DIR_S, DIR_SW };
-				if (radius == 3) directions.insert(directions.end(), { DIR_W, DIR_NW, DIR_N, DIR_NE, DIR_E });
+			/* We manually set the Directions to widen the river in adjacent basis manner. */
+			std::vector<Direction> directions = { DIR_SE, DIR_S, DIR_SW };
+			if (radius == 3) directions.insert(directions.end(), { DIR_W, DIR_NW, DIR_N, DIR_NE, DIR_E });
 
-				for (Direction d : directions) {
-					TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
-					RiverMakeWider(t, tile);
-				}
+			for (Direction d : directions) {
+				TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(d));
+				RiverMakeWider(t, tile);
 			}
 		}
 
@@ -1468,7 +1467,6 @@ static bool BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	finder.FoundEndNode = River_FoundEndNode;
 	finder.user_target = &end;
 	finder.user_data = &user_data;
-//	finder.max_search_nodes = 0;
 
 	AyStarNode start;
 	start.tile = begin;
@@ -1584,8 +1582,8 @@ static bool CreateRiver(TileIndex &spring, uint min_river_length)
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
 		bool spring_found = false;
 		for (TileIndex tile : begin_end_points) {
-			if (tile == spring) spring_found = true;
-			if (!IsTileType(tile, MP_WATER) || !IsRiver(tile) || spring_found) continue;
+			if (tile == spring) break;
+			if (!IsTileType(tile, MP_WATER) || !IsRiver(tile)) continue;
 			DoClearSquare(tile);
 		}
 		assert(begin_end_points.empty() || spring == begin_end_points.back() || TestRiverConnection(spring, begin_end_points.back()));
