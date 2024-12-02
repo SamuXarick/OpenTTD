@@ -1058,15 +1058,12 @@ static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 	/* If the tile is already sea or river, don't expand. */
 	if (IsWaterTile(tile)) return;
 
-	/* If the tile is at height 0 after terraforming but the ocean hasn't flooded yet, don't build river. */
-	int tile_max_z = GetTileMaxZ(tile);
-	if (tile_max_z == 0) return;
-
 	/* Never flow uphill. */
+	int tile_max_z = GetTileMaxZ(tile);
 	if (tile_max_z > GetTileMaxZ(origin_tile)) return;
 
-	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
 	Slope cur_slope = GetTileSlope(tile);
+	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
 
 	/* If the new tile can't hold a river tile, try terraforming. */
 	if (cur_slope != SLOPE_FLAT && !IsInclinedSlope(cur_slope)) {
