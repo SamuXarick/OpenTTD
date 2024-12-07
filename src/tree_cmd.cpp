@@ -207,35 +207,92 @@ static void PlaceTreeGroups(uint num_groups)
 }
 
 /**
- * Place a tree at the same height as an existing tree.
+ * Place a number of trees based on the tile height.
  *
- * Add a new tree around the given tile which is at the same
+ * Adds trees around the given tile which is at the same
  * height or at some offset (2 units) of it.
  *
- * @param tile The base tile to add a new tree somewhere around
- * @param height The height (like the one from the tile)
+ * @param tile The base tile to add new trees somewhere around
  */
-static void PlaceTreeAtSameHeight(TileIndex tile, int height)
+static void PlaceTreesAtSameHeight(TileIndex tile)
 {
-	for (uint i = 0; i < DEFAULT_TREE_STEPS; i++) {
-		uint32_t r = Random();
-		int x = GB(r, 0, 5) - 16;
-		int y = GB(r, 8, 5) - 16;
-		TileIndex cur_tile = TileAddWrap(tile, x, y);
-		if (cur_tile == INVALID_TILE) continue;
+	/* Place a number of trees based on the tile height.
+	 *  This gives a cool effect of multiple trees close together.
+	 *  It is almost real life ;) */
+	int ht = GetTileZ(tile);
 
-		/* Keep in range of the existing tree */
-		if (abs(x) + abs(y) > 16) continue;
+	/* The higher we get, the more trees we plant */
+	int j = ht * 2;
 
-		/* Clear tile, no farm-tiles or rocks */
-		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
+	/* Above snowline more trees! */
+	if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) {
+		j *= 3;
+	}
 
-		/* Not too much height difference */
-		if (Delta(GetTileZ(cur_tile), height) > 2) continue;
+	/* Keep in range of the existing tree */
+	int x = TileX(tile);
+	int y = TileY(tile);
+	uint x1 = std::max(x - 16, 0);
+	uint x2 = std::min(static_cast<int>(Map::MaxX()), x + 16);
+	TileIndex start_tile = TileXY(x1, y);
+	TileIndex end_tile = TileXY(x2, y);
 
-		/* Place one tree and quit */
-		PlaceTree(cur_tile, r);
-		break;
+	int hs = GetTileZ(start_tile);
+	int he = GetTileZ(end_tile);
+
+	if (std::max({ abs(hs - he), abs(hs - ht), abs(he - ht) }) <= 2) {
+		/* If the terrain around is (maybe) too flat or too smooth,
+		 * use this suposedly faster method to place trees. */
+		if (j > 50) {
+			j = 50 + ((150 * (j - 50)) / (2 * 3 * MAX_TILE_HEIGHT));
+		}
+		while (j-- != 0) {
+			for (uint i = 0; i < DEFAULT_TREE_STEPS; i++) {
+				uint32_t r = Random();
+				int x = GB(r, 0, 5) - 16;
+				int y = GB(r, 8, 5) - 16;
+				TileIndex cur_tile = TileAddWrap(tile, x, y);
+				if (cur_tile == INVALID_TILE) continue;
+
+				/* Keep in range of the existing tree */
+				if (abs(x) + abs(y) > 16) continue;
+
+				/* Clear tile, no farm-tiles or rocks */
+				if (!CanPlantTreesOnTile(cur_tile, true)) continue;
+
+				/* Not too much height difference */
+				int height = GetTileZ(cur_tile);
+				if (abs(height - ht) > 2) continue;
+
+				/* Place one tree and quit */
+				PlaceTree(cur_tile, r);
+				break;
+			}
+		}
+	} else {
+		/* Use this other method to place trees when dealing with rougher terrain. */
+		DiagonalTileIterator iter = DiagonalTileIterator(start_tile, end_tile);
+
+		std::vector<TileIndex> available_tiles;
+		/* Maximum diagonal area size is (16 * 16) + (17 * 17) = 545 */
+		available_tiles.reserve(545);
+
+		for (TileIndex cur_tile = *iter; *iter != INVALID_TILE; cur_tile = ++iter) {
+			/* Clear tile, no farm-tiles or rocks */
+			if (!CanPlantTreesOnTile(cur_tile, true)) continue;
+
+			/* Not too much height difference */
+			int height = GetTileZ(cur_tile);
+			if (abs(height - ht) > 2) continue;
+
+			available_tiles.push_back(cur_tile);
+		}
+
+		while (j-- > 0 && !available_tiles.empty()) {
+			auto it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
+			PlaceTree(*it, Random());
+			available_tiles.erase(it);
+		}
 	}
 }
 
@@ -246,9 +303,7 @@ static void PlaceTreeAtSameHeight(TileIndex tile, int height)
  */
 void PlaceTreesRandomly()
 {
-	int i, j, ht;
-
-	i = Map::ScaleBySize(DEFAULT_TREE_STEPS);
+	int i = Map::ScaleBySize(DEFAULT_TREE_STEPS);
 	if (_game_mode == GM_EDITOR) i /= EDITOR_TREE_DIV;
 	do {
 		uint32_t r = Random();
@@ -260,17 +315,7 @@ void PlaceTreesRandomly()
 			PlaceTree(tile, r);
 			if (_settings_game.game_creation.tree_placer != TP_IMPROVED) continue;
 
-			/* Place a number of trees based on the tile height.
-			 *  This gives a cool effect of multiple trees close together.
-			 *  It is almost real life ;) */
-			ht = GetTileZ(tile);
-			/* The higher we get, the more trees we plant */
-			j = GetTileZ(tile) * 2;
-			/* Above snowline more trees! */
-			if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
-			while (j--) {
-				PlaceTreeAtSameHeight(tile, ht);
-			}
+			PlaceTreesAtSameHeight(tile);
 		}
 	} while (--i);
 
