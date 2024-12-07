@@ -68,15 +68,18 @@ static const uint16_t EDITOR_TREE_DIV = 5;                   ///< Game editor tr
  */
 static bool CanPlantTreesOnTile(TileIndex tile, bool allow_desert)
 {
+	if (IsBridgeAbove(tile)) return false;
+
 	switch (GetTileType(tile)) {
 		case MP_WATER:
-			return !IsBridgeAbove(tile) && IsCoast(tile) && !IsSlopeWithOneCornerRaised(GetTileSlope(tile));
+			return IsCoast(tile) && !IsSlopeWithOneCornerRaised(GetTileSlope(tile));
 
 		case MP_CLEAR:
-			return !IsBridgeAbove(tile) && !IsClearGround(tile, CLEAR_FIELDS) && GetRawClearGround(tile) != CLEAR_ROCKS &&
+			return !IsClearGround(tile, CLEAR_FIELDS) && GetRawClearGround(tile) != CLEAR_ROCKS &&
 			       (allow_desert || !IsClearGround(tile, CLEAR_DESERT));
 
-		default: return false;
+		default:
+			return false;
 	}
 }
 
@@ -231,7 +234,7 @@ static void PlaceTreeAtSameHeight(TileIndex tile, int height)
 		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
 
 		/* Not too much height difference */
-		if (Delta(GetTileZ(cur_tile), height) > 2) continue;
+		if (abs(static_cast<int>(TileHeight(cur_tile)) - height) > 2) continue;
 
 		/* Place one tree and quit */
 		PlaceTree(cur_tile, r);
@@ -263,11 +266,12 @@ void PlaceTreesRandomly()
 			/* Place a number of trees based on the tile height.
 			 *  This gives a cool effect of multiple trees close together.
 			 *  It is almost real life ;) */
-			ht = GetTileZ(tile);
+			ht = TileHeight(tile);
 			/* The higher we get, the more trees we plant */
-			j = GetTileZ(tile) * 2;
+			j = ht * 2;
 			/* Above snowline more trees! */
 			if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
+			j = std::min(16 * 16, j);
 			while (j--) {
 				PlaceTreeAtSameHeight(tile, ht);
 			}
