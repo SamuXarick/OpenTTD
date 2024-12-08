@@ -25,7 +25,6 @@
 #include "timer/timer_game_tick.h"
 #include "tree_cmd.h"
 #include "landscape_cmd.h"
-#include "signs_cmd.h"
 
 #include "table/strings.h"
 #include "table/tree_land.h"
@@ -211,41 +210,52 @@ static void PlaceTreeGroups(uint num_groups)
 }
 
 /**
- * Place a tree at the same height as an existing tree.
+ * Place a number of trees based on the tile height.
  *
- * Add a new tree around the given tile which is at the same
+ * Adds trees around the given tile which is at the same
  * height or at some offset (2 units) of it.
  *
- * @param tile The base tile to add a new tree somewhere around
- * @param height The height (like the one from the tile)
+ * @param tile The base tile to add new trees somewhere around
  */
-static bool PlaceTreeAtSameHeight(TileIndex tile, int height)
+static void PlaceTreesAtSameHeight(TileIndex tile)
 {
-	static uint x1, x2;
-	static TileIndex start_tile, end_tile;
-	x1 = std::max<int>(TileX(tile) - 16, 0);
-	x2 = std::min<int>(Map::MaxX(), TileX(tile) + 16);
-	start_tile = TileXY(x1, TileY(tile));
-	end_tile = TileXY(x2, TileY(tile));
-	std::unique_ptr<TileIterator> iter = TileIterator::Create(end_tile, start_tile, true);
+	/* Place a number of trees based on the tile height.
+	 *  This gives a cool effect of multiple trees close together.
+	 *  It is almost real life ;) */
+	int ht = GetTileZ(tile);
+	/* The higher we get, the more trees we plant */
+	int j = GetTileZ(tile) * 2;
+	/* Above snowline more trees! */
+	if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
 
-	static std::vector<TileIndex> available_tiles;
-	for (; *iter != INVALID_TILE; ++(*iter)) {
-		TileIndex cur_tile = *iter;
+	int x = TileX(tile);
+	int y = TileY(tile);
+	uint x1 = std::max(x - 16, 0);
+	uint x2 = std::min(static_cast<int>(Map::MaxX()), x + 16);
+	TileIndex start_tile = TileXY(x1, y);
+	TileIndex end_tile = TileXY(x2, y);
+	/* Keep in range of the existing tree */
+	DiagonalTileArea area = DiagonalTileArea(start_tile, end_tile);
+	DiagonalTileIterator iter = DiagonalTileIterator(area);
+
+	uint count = 0;
+	std::vector<TileIndex> available_tiles;
+	for (TileIndex cur_tile = *iter; *iter != INVALID_TILE; cur_tile = ++iter) {
+		/* Clear tile, no farm-tiles or rocks */
 		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
-		if (abs(static_cast<int>(TileHeight(cur_tile)) - height) > 2) continue;
+
+		/* Not too much height difference */
+		if (Delta(GetTileZ(cur_tile), ht) > 2) continue;
 
 		available_tiles.push_back(cur_tile);
 	}
 
-	bool placed_tree = !available_tiles.empty();
-	if (placed_tree) {
-		TileIndex tree_tile = *std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
-		PlaceTree(tree_tile, Random());
+	while (j-- != 0 && !available_tiles.empty()) {
+		if (!Chance16(17 * 17 + 16 * 16, DEFAULT_TREE_STEPS)) continue;
+		std::vector<TileIndex>::iterator it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
+		PlaceTree(*it, Random());
+		available_tiles.erase(it);
 	}
-
-	available_tiles.clear();
-	return placed_tree;
 }
 
 /**
@@ -255,9 +265,7 @@ static bool PlaceTreeAtSameHeight(TileIndex tile, int height)
  */
 void PlaceTreesRandomly()
 {
-	int i, j, ht;
-
-	i = Map::ScaleBySize(DEFAULT_TREE_STEPS);
+	int i = Map::ScaleBySize(DEFAULT_TREE_STEPS);
 	if (_game_mode == GM_EDITOR) i /= EDITOR_TREE_DIV;
 	do {
 		uint32_t r = Random();
@@ -269,18 +277,7 @@ void PlaceTreesRandomly()
 			PlaceTree(tile, r);
 			if (_settings_game.game_creation.tree_placer != TP_IMPROVED) continue;
 
-			/* Place a number of trees based on the tile height.
-			 *  This gives a cool effect of multiple trees close together.
-			 *  It is almost real life ;) */
-			ht = TileHeight(tile);
-			/* The higher we get, the more trees we plant */
-			j = ht * 2;
-			/* Above snowline more trees! */
-			if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
-			j = std::min(16 * 16, j);
-			while (j--) {
-				if (!PlaceTreeAtSameHeight(tile, ht)) break;
-			}
+			PlaceTreesAtSameHeight(tile);
 		}
 	} while (--i);
 
