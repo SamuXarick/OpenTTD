@@ -209,6 +209,7 @@ static void PlaceTreeGroups(uint num_groups)
 	} while (--num_groups);
 }
 
+uint _num_trees_placed_at_same_height = 0;
 /**
  * Place a number of trees based on the tile height.
  *
@@ -222,38 +223,44 @@ static void PlaceTreesAtSameHeight(TileIndex tile)
 	/* Place a number of trees based on the tile height.
 	 *  This gives a cool effect of multiple trees close together.
 	 *  It is almost real life ;) */
-	int ht = GetTileZ(tile);
-	/* The higher we get, the more trees we plant */
-	int j = GetTileZ(tile) * 2;
-	/* Above snowline more trees! */
-	if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
+	int ht = TileHeight(tile);
 
+	/* The higher we get, the more trees we plant */
+	int j = ht * 2;
+
+	/* Above snowline more trees! */
+	if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) {
+		j *= 3;
+	}
+
+	/* Keep in range of the existing tree */
 	int x = TileX(tile);
 	int y = TileY(tile);
 	uint x1 = std::max(x - 16, 0);
 	uint x2 = std::min(static_cast<int>(Map::MaxX()), x + 16);
 	TileIndex start_tile = TileXY(x1, y);
 	TileIndex end_tile = TileXY(x2, y);
-	/* Keep in range of the existing tree */
-	DiagonalTileArea area = DiagonalTileArea(start_tile, end_tile);
-	DiagonalTileIterator iter = DiagonalTileIterator(area);
+	DiagonalTileIterator iter = DiagonalTileIterator(start_tile, end_tile);
 
-	uint count = 0;
 	std::vector<TileIndex> available_tiles;
+	/* Maximum diagonal area size is (16 * 16) + (17 * 17) = 545 */
+	available_tiles.reserve(545);
+
 	for (TileIndex cur_tile = *iter; *iter != INVALID_TILE; cur_tile = ++iter) {
 		/* Clear tile, no farm-tiles or rocks */
 		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
 
 		/* Not too much height difference */
-		if (Delta(GetTileZ(cur_tile), ht) > 2) continue;
+		int height = TileHeight(cur_tile);
+		if (abs(height - ht) > 2) continue;
 
 		available_tiles.push_back(cur_tile);
 	}
 
-	while (j-- != 0 && !available_tiles.empty()) {
-		if (!Chance16(17 * 17 + 16 * 16, DEFAULT_TREE_STEPS)) continue;
-		std::vector<TileIndex>::iterator it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
+	while (j-- > 0 && !available_tiles.empty()) {
+		auto it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
 		PlaceTree(*it, Random());
+		_num_trees_placed_at_same_height++;
 		available_tiles.erase(it);
 	}
 }
@@ -362,6 +369,7 @@ void GenerateTrees()
 {
 	static TicToc::State GenerateTrees("GenerateTrees", 1);
 	TicToc GenerateTrees1(GenerateTrees);
+	_num_trees_placed_at_same_height = 0;
 	uint i, total;
 
 	if (_settings_game.game_creation.tree_placer == TP_NONE) return;
@@ -390,6 +398,7 @@ void GenerateTrees()
 		if (IsTileType(tile, MP_TREES)) num_tree_tiles++;
 	}
 	Debug(misc, 0, "num_tree_tiles = {}", num_tree_tiles);
+	Debug(misc, 0, "_num_trees_placed_at_same_height = {}", _num_trees_placed_at_same_height);
 }
 
 /**
