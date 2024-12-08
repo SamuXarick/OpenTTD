@@ -25,6 +25,7 @@
 #include "timer/timer_game_tick.h"
 #include "tree_cmd.h"
 #include "landscape_cmd.h"
+#include "signs_cmd.h"
 
 #include "table/strings.h"
 #include "table/tree_land.h"
@@ -218,28 +219,33 @@ static void PlaceTreeGroups(uint num_groups)
  * @param tile The base tile to add a new tree somewhere around
  * @param height The height (like the one from the tile)
  */
-static void PlaceTreeAtSameHeight(TileIndex tile, int height)
+static bool PlaceTreeAtSameHeight(TileIndex tile, int height)
 {
-	for (uint i = 0; i < DEFAULT_TREE_STEPS; i++) {
-		uint32_t r = Random();
-		int x = GB(r, 0, 5) - 16;
-		int y = GB(r, 8, 5) - 16;
-		TileIndex cur_tile = TileAddWrap(tile, x, y);
-		if (cur_tile == INVALID_TILE) continue;
+	static uint x1, x2;
+	static TileIndex start_tile, end_tile;
+	x1 = std::max<int>(TileX(tile) - 16, 0);
+	x2 = std::min<int>(Map::MaxX(), TileX(tile) + 16);
+	start_tile = TileXY(x1, TileY(tile));
+	end_tile = TileXY(x2, TileY(tile));
+	std::unique_ptr<TileIterator> iter = TileIterator::Create(end_tile, start_tile, true);
 
-		/* Keep in range of the existing tree */
-		if (abs(x) + abs(y) > 16) continue;
-
-		/* Clear tile, no farm-tiles or rocks */
+	static std::vector<TileIndex> available_tiles;
+	for (; *iter != INVALID_TILE; ++(*iter)) {
+		TileIndex cur_tile = *iter;
 		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
-
-		/* Not too much height difference */
 		if (abs(static_cast<int>(TileHeight(cur_tile)) - height) > 2) continue;
 
-		/* Place one tree and quit */
-		PlaceTree(cur_tile, r);
-		break;
+		available_tiles.push_back(cur_tile);
 	}
+
+	bool placed_tree = !available_tiles.empty();
+	if (placed_tree) {
+		TileIndex tree_tile = *std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
+		PlaceTree(tree_tile, Random());
+	}
+
+	available_tiles.clear();
+	return placed_tree;
 }
 
 /**
@@ -273,7 +279,7 @@ void PlaceTreesRandomly()
 			if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
 			j = std::min(16 * 16, j);
 			while (j--) {
-				PlaceTreeAtSameHeight(tile, ht);
+				if (!PlaceTreeAtSameHeight(tile, ht)) break;
 			}
 		}
 	} while (--i);
