@@ -240,28 +240,62 @@ static void PlaceTreesAtSameHeight(TileIndex tile)
 	uint x2 = std::min(static_cast<int>(Map::MaxX()), x + 16);
 	TileIndex start_tile = TileXY(x1, y);
 	TileIndex end_tile = TileXY(x2, y);
-	DiagonalTileIterator iter = DiagonalTileIterator(start_tile, end_tile);
 
-	std::vector<TileIndex> available_tiles;
-	/* Maximum diagonal area size is (16 * 16) + (17 * 17) = 545 */
-	available_tiles.reserve(545);
+	int hs = TileHeight(start_tile);
+	int he = TileHeight(end_tile);
 
-	for (TileIndex cur_tile = *iter; *iter != INVALID_TILE; cur_tile = ++iter) {
-		/* Clear tile, no farm-tiles or rocks */
-		if (!CanPlantTreesOnTile(cur_tile, true)) continue;
+	if (std::max({ abs(hs - he), abs(hs - ht), abs(he - ht) }) <= 2) {
+		/* If the terrain around is (maybe) too flat or too smooth,
+		 * use this suposedly faster method to place trees. */
+		while (j-- != 0) {
+			for (uint i = 0; i < DEFAULT_TREE_STEPS; i++) {
+				uint32_t r = Random();
+				int x = GB(r, 0, 5) - 16;
+				int y = GB(r, 8, 5) - 16;
+				TileIndex cur_tile = TileAddWrap(tile, x, y);
+				if (cur_tile == INVALID_TILE) continue;
 
-		/* Not too much height difference */
-		int height = TileHeight(cur_tile);
-		if (abs(height - ht) > 2) continue;
+				/* Keep in range of the existing tree */
+				if (abs(x) + abs(y) > 16) continue;
 
-		available_tiles.push_back(cur_tile);
-	}
+				/* Clear tile, no farm-tiles or rocks */
+				if (!CanPlantTreesOnTile(cur_tile, true)) continue;
 
-	while (j-- > 0 && !available_tiles.empty()) {
-		auto it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
-		PlaceTree(*it, Random());
-		_num_trees_placed_at_same_height++;
-		available_tiles.erase(it);
+				/* Not too much height difference */
+				int height = TileHeight(cur_tile);
+				if (abs(height - ht) > 2) continue;
+
+				/* Place one tree and quit */
+				PlaceTree(cur_tile, r);
+				_num_trees_placed_at_same_height++;
+				break;
+			}
+		}
+	} else {
+		/* Use this other method to place trees when dealing with rougher terrain. */
+		DiagonalTileIterator iter = DiagonalTileIterator(start_tile, end_tile);
+
+		std::vector<TileIndex> available_tiles;
+		/* Maximum diagonal area size is (16 * 16) + (17 * 17) = 545 */
+		available_tiles.reserve(545);
+
+		for (TileIndex cur_tile = *iter; *iter != INVALID_TILE; cur_tile = ++iter) {
+			/* Clear tile, no farm-tiles or rocks */
+			if (!CanPlantTreesOnTile(cur_tile, true)) continue;
+
+			/* Not too much height difference */
+			int height = TileHeight(cur_tile);
+			if (abs(height - ht) > 2) continue;
+
+			available_tiles.push_back(cur_tile);
+		}
+
+		while (j-- > 0 && !available_tiles.empty()) {
+			auto it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
+			PlaceTree(*it, Random());
+			_num_trees_placed_at_same_height++;
+			available_tiles.erase(it);
+		}
 	}
 }
 
