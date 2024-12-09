@@ -241,12 +241,10 @@ static void PlaceTreesAtSameHeight(TileIndex tile)
 	int hs = GetTileZ(start_tile);
 	int he = GetTileZ(end_tile);
 
-	if (std::max({ abs(hs - he), abs(hs - ht), abs(he - ht) }) <= 2) {
+	if (std::max({ abs(hs - he), abs(hs - ht), abs(he - ht) }) <= 2 || j < 66) {
 		/* If the terrain around is (maybe) too flat or too smooth,
 		 * use this suposedly faster method to place trees. */
-		if (j > 50) {
-			j = 50 + ((150 * (j - 50)) / (2 * 3 * MAX_TILE_HEIGHT));
-		}
+		if (j > 100) j = 100 + 100 * (j - 100) / (2 * 3 * MAX_TILE_HEIGHT - 100);
 		while (j-- != 0) {
 			for (uint i = 0; i < DEFAULT_TREE_STEPS; i++) {
 				uint32_t r = Random();
