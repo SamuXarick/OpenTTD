@@ -206,6 +206,7 @@ static void PlaceTreeGroups(uint num_groups)
 	} while (--num_groups);
 }
 
+uint _num_trees_placed_at_same_height = 0;
 /**
  * Place a number of trees based on the tile height.
  *
@@ -266,6 +267,7 @@ static void PlaceTreesAtSameHeight(TileIndex tile)
 
 				/* Place one tree and quit */
 				PlaceTree(cur_tile, r);
+				_num_trees_placed_at_same_height++;
 				break;
 			}
 		}
@@ -291,6 +293,7 @@ static void PlaceTreesAtSameHeight(TileIndex tile)
 		while (j-- > 0 && !available_tiles.empty()) {
 			auto it = std::next(available_tiles.begin(), RandomRange(static_cast<uint32_t>(available_tiles.size())));
 			PlaceTree(*it, Random());
+			_num_trees_placed_at_same_height++;
 			available_tiles.erase(it);
 		}
 	}
@@ -398,6 +401,9 @@ uint PlaceTreeGroupAroundTile(TileIndex tile, TreeType treetype, uint radius, ui
  */
 void GenerateTrees()
 {
+	static TicToc::State GenerateTrees("GenerateTrees", 1);
+	TicToc GenerateTrees1(GenerateTrees);
+	_num_trees_placed_at_same_height = 0;
 	uint i, total;
 
 	if (_settings_game.game_creation.tree_placer == TP_NONE) return;
@@ -420,6 +426,13 @@ void GenerateTrees()
 	for (; i != 0; i--) {
 		PlaceTreesRandomly();
 	}
+
+	uint num_tree_tiles = 0;
+	for (const auto tile : Map::Iterate()) {
+		if (IsTileType(tile, MP_TREES)) num_tree_tiles++;
+	}
+	Debug(misc, 0, "num_tree_tiles = {}", num_tree_tiles);
+	Debug(misc, 0, "_num_trees_placed_at_same_height = {}", _num_trees_placed_at_same_height);
 }
 
 /**
