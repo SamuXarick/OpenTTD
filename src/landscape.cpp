@@ -1061,9 +1061,6 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 	/* If the tile is already sea or river, don't expand. */
 	if (IsWaterTile(tile)) return false;
 
-	/* If the tile is at height 0 after terraforming but the ocean hasn't flooded yet, don't build river. */
-	if (GetTileMaxZ(tile) == 0) return false;
-
 	TileIndex origin_tile = *static_cast<TileIndex *>(user_data);
 	Slope cur_slope = GetTileSlope(tile);
 	Slope desired_slope = GetTileSlope(origin_tile); // Initialize matching the origin tile as a shortcut if no terraforming is needed.
@@ -1165,7 +1162,7 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 		/* Don't look outside the map. */
 		if (!IsValidTile(upstream_tile) || !IsValidTile(downstream_tile)) return false;
 
-		/* Downstream might be new ocean created by our terraforming, and it hasn't flooded yet. */
+		/* Downstream might be new ocean created by our terraforming. */
 		bool downstream_is_ocean = GetTileZ(downstream_tile) == 0 && (GetTileSlope(downstream_tile) == SLOPE_FLAT || IsSlopeWithOneCornerRaised(GetTileSlope(downstream_tile)));
 
 		/* If downstream is dry, flat, and not ocean, try making it a river tile. */
@@ -1599,9 +1596,6 @@ static void CreateRivers()
 			if (CreateRiver(t, _settings_game.game_creation.min_river_length)) break;
 		}
 	}
-
-	/* Widening rivers may have left some tiles requiring to be watered. */
-	ConvertGroundTilesIntoWaterTiles();
 
 	/* Run tile loop to update the ground density. */
 	for (uint i = 0; i != TILE_UPDATE_FREQUENCY; i++) {
