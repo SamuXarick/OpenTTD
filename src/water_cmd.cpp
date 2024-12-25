@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(tile + TileOffsByDir(dir));
+		MarkTileDirtyIfCanalOrRiver(AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir)));
 	}
 }
 
