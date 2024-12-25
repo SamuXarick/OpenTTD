@@ -1263,8 +1263,8 @@ static bool GrowTownWithRoad(const Town *t, TileIndex tile, RoadBits rcmd)
  */
 static bool CanRoadContinueIntoNextTile(const Town *t, const TileIndex tile, const DiagDirection road_dir)
 {
-	const TileIndexDiff delta = TileOffsByDiagDir(road_dir); // +1 tile in the direction of the road
-	TileIndex next_tile = tile + delta; // The tile beyond which must be connectable to the target tile
+	const TileIndexDiffC delta = TileIndexDiffCByDiagDir(road_dir); // +1 tile in the direction of the road
+	TileIndex next_tile = AddTileIndexDiffCWrap(tile, delta); // The tile beyond which must be connectable to the target tile
 	RoadBits rcmd = DiagDirToRoadBits(ReverseDiagDir(road_dir));
 	RoadType rt = GetTownRoadType();
 
