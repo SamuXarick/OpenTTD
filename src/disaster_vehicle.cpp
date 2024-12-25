@@ -892,11 +892,11 @@ static void Disaster_CoalMine_Init()
 
 				{
 					TileIndex tile = i->location.tile;
-					TileIndexDiff step = TileOffsByDiagDir((DiagDirection)GB(Random(), 0, 2));
+					TileIndexDiffC step = TileIndexDiffCByDiagDir((DiagDirection)GB(Random(), 0, 2));
 
 					for (uint n = 0; n < 30; n++) {
 						DisasterClearSquare(tile);
-						tile += step;
+						tile = AddTileIndexDiffCWrap(tile, step);
 						if (!IsValidTile(tile)) break;
 					}
 				}
