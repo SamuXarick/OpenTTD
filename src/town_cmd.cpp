@@ -1346,7 +1346,7 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 	uint bridge_length = 0;       // This value stores the length of the possible bridge
 	TileIndex bridge_tile = tile; // Used to store the other waterside
 
-	const TileIndexDiff delta = TileOffsByDiagDir(bridge_dir);
+	const TileIndexDiffC delta = TileIndexDiffCByDiagDir(bridge_dir);
 
 	/* To prevent really small towns from building disproportionately
 	 * long bridges, make the max a function of its population. */
@@ -1361,7 +1361,7 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 				/* Allow to cross rivers, not big lakes, nor large amounts of rails or one-way roads. */
 				return false;
 			}
-			bridge_tile += delta;
+			bridge_tile += ToTileIndexDiff(delta);
 		} while (IsValidTile(bridge_tile) && ((IsWaterTile(bridge_tile) && !IsSea(bridge_tile)) || IsPlainRailTile(bridge_tile) || (IsNormalRoadTile(bridge_tile) && GetDisallowedRoadDirections(bridge_tile) != DRD_NONE)));
 	} else {
 		do {
@@ -1369,7 +1369,7 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 				/* Ensure the bridge is not longer than the max allowed length. */
 				return false;
 			}
-			bridge_tile += delta;
+			bridge_tile = AddTileIndexDiffCWrap(bridge_tile, delta);
 		} while (IsValidTile(bridge_tile) && (IsWaterTile(bridge_tile) || IsPlainRailTile(bridge_tile) || (IsNormalRoadTile(bridge_tile) && GetDisallowedRoadDirections(bridge_tile) != DRD_NONE)));
 	}
 
