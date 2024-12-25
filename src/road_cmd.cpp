@@ -949,7 +949,7 @@ do_clear:;
  */
 static bool CanConnectToRoad(TileIndex tile, RoadType rt, DiagDirection dir)
 {
-	tile += TileOffsByDiagDir(dir);
+	tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(dir));
 	if (!IsValidTile(tile) || !MayHaveRoad(tile)) return false;
 
 	RoadTramType rtt = GetRoadTramType(rt);
