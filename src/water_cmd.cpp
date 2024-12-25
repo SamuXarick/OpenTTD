@@ -97,7 +97,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = tile + TileOffsByDir(dir);
+		TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
