@@ -1481,7 +1481,7 @@ static inline bool RoadTypesAllowHouseHere(TileIndex t)
 	bool allow = false;
 
 	for (const auto &ptr : tiles) {
-		TileIndex cur_tile = t + ToTileIndexDiff(ptr);
+		TileIndex cur_tile = AddTileIndexDiffCWrap(t, ptr);
 		if (!IsValidTile(cur_tile)) continue;
 
 		if (!(IsTileType(cur_tile, MP_ROAD) || IsAnyRoadStopTile(cur_tile))) continue;
