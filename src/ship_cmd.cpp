@@ -649,7 +649,7 @@ bool IsShipDestinationTile(TileIndex tile, StationID station)
 	assert(IsDockingTile(tile));
 	/* Check each tile adjacent to docking tile. */
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex t = tile + TileOffsByDiagDir(d);
+		TileIndex t = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(d));
 		if (!IsValidTile(t)) continue;
 		if (IsDockTile(t) && GetStationIndex(t) == station && IsDockWaterPart(t)) return true;
 		if (IsTileType(t, MP_INDUSTRY)) {
