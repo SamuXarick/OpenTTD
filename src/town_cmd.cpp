@@ -1035,23 +1035,23 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 	if (!IsValidTile(tile)) return false;
 
 	/* Lookup table for the used diff values */
-	const TileIndexDiff tid_lt[3] = {
-		TileOffsByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90RIGHT)),
-		TileOffsByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90LEFT)),
-		TileOffsByDiagDir(ReverseDiagDir(dir)),
+	const TileIndexDiffC tid_lt[3] = {
+		TileIndexDiffCByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90RIGHT)),
+		TileIndexDiffCByDiagDir(ChangeDiagDir(dir, DIAGDIRDIFF_90LEFT)),
+		TileIndexDiffCByDiagDir(ReverseDiagDir(dir)),
 	};
 
 	dist_multi = (dist_multi + 1) * 4;
 	for (uint pos = 4; pos < dist_multi; pos++) {
 		/* Go (pos / 4) tiles to the left or the right */
-		TileIndexDiff cur = tid_lt[(pos & 1) ? 0 : 1] * (pos / 4);
+		TileIndexDiffC cur = tid_lt[(pos & 1) ? 0 : 1] * (pos / 4);
 
 		/* Use the current tile as origin, or go one tile backwards */
 		if (pos & 2) cur += tid_lt[2];
 
 		/* Test for roadbit parallel to dir and facing towards the middle axis */
-		if (IsValidTile(tile + cur) &&
-				GetTownRoadBits(TileAdd(tile, cur)) & DiagDirToRoadBits((pos & 2) ? dir : ReverseDiagDir(dir))) return true;
+		if (IsValidTile(AddTileIndexDiffCWrap(tile, cur)) &&
+				GetTownRoadBits(TileAdd(tile, ToTileIndexDiff(cur))) & DiagDirToRoadBits((pos & 2) ? dir : ReverseDiagDir(dir))) return true;
 	}
 	return false;
 }
