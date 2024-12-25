@@ -568,6 +568,20 @@ inline TileIndex TileAddXY(TileIndex tile, int x, int y)
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
 /**
+ * Returns the TileIndexDiffC offset from an Axis.
+ *
+ * @param axis The Axis
+ * @return The resulting TileIndexDiffC in southern direction (either SW or SE).
+ */
+inline TileIndexDiffC TileIndexDiffCByAxis(Axis axis)
+{
+	extern const TileIndexDiffC _tileoffs_by_axis[];
+
+	assert(IsValidAxis(axis));
+	return _tileoffs_by_axis[axis];
+}
+
+/**
  * Returns the TileIndexDiffC offset from a DiagDirection.
  *
  * @param dir The given direction
