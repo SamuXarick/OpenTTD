@@ -547,15 +547,6 @@ inline TileOffset ToTileOffset(TileOffsetC tidc)
  * Adds a given offset to a tile.
  *
  * @param tile The tile to add an offset to.
- * @param offset The offset to add.
- * @return The resulting tile.
- */
-inline TileIndex TileAdd(TileIndex tile, TileOffset offset) { return tile + offset; }
-
-/**
- * Adds a given offset to a tile.
- *
- * @param tile The tile to add an offset to.
  * @param x The x offset to add to the tile.
  * @param y The y offset to add to the tile.
  * @return The resulting tile.
@@ -705,7 +696,7 @@ inline TileOffset TileOffsByDir(Direction dir)
  */
 inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
 {
-	return TileAdd(tile, TileOffsByDir(dir));
+	return tile + TileOffsByDir(dir);
 }
 
 /**
@@ -717,7 +708,7 @@ inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
  */
 inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
 {
-	return TileAdd(tile, TileOffsByDiagDir(dir));
+	return tile + TileOffsByDiagDir(dir);
 }
 
 /**
