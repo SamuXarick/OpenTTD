@@ -1554,17 +1554,17 @@ restart:
 	/* too small? */
 	if (ta.w != 0 && ta.h != 0) {
 		/* check the left side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileOffsXY(0, i));) {
+		for (uint i = 0; !func(st, ta.tile + TileOffset(0, i));) {
 			/* the left side is unused? */
 			if (++i == ta.h) {
-				ta.tile += TileOffsXY(1, 0);
+				ta.tile += TileOffset(1, 0);
 				ta.w--;
 				goto restart;
 			}
 		}
 
 		/* check the right side, x = constant, y changes */
-		for (uint i = 0; !func(st, ta.tile + TileOffsXY(ta.w - 1, i));) {
+		for (uint i = 0; !func(st, ta.tile + TileOffset(ta.w - 1, i));) {
 			/* the right side is unused? */
 			if (++i == ta.h) {
 				ta.w--;
@@ -1573,17 +1573,17 @@ restart:
 		}
 
 		/* check the upper side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileOffsXY(i, 0));) {
+		for (uint i = 0; !func(st, ta.tile + TileOffset(i, 0));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
-				ta.tile += TileOffsXY(0, 1);
+				ta.tile += TileOffset(0, 1);
 				ta.h--;
 				goto restart;
 			}
 		}
 
 		/* check the lower side, y = constant, x changes */
-		for (uint i = 0; !func(st, ta.tile + TileOffsXY(i, ta.h - 1));) {
+		for (uint i = 0; !func(st, ta.tile + TileOffset(i, ta.h - 1));) {
 			/* the left side is unused? */
 			if (++i == ta.w) {
 				ta.h--;

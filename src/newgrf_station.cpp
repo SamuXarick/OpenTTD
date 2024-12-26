@@ -166,10 +166,10 @@ static uint32_t GetPlatformInfoHelper(TileIndex tile, bool check_type, bool chec
 {
 	int tx = TileX(tile);
 	int ty = TileY(tile);
-	int sx = TileX(FindRailStationEnd(tile, TileOffsXY(-1,  0), check_type, check_axis));
-	int sy = TileY(FindRailStationEnd(tile, TileOffsXY( 0, -1), check_type, check_axis));
-	int ex = TileX(FindRailStationEnd(tile, TileOffsXY( 1,  0), check_type, check_axis)) + 1;
-	int ey = TileY(FindRailStationEnd(tile, TileOffsXY( 0,  1), check_type, check_axis)) + 1;
+	int sx = TileX(FindRailStationEnd(tile, TileOffset(-1,  0), check_type, check_axis));
+	int sy = TileY(FindRailStationEnd(tile, TileOffset( 0, -1), check_type, check_axis));
+	int ex = TileX(FindRailStationEnd(tile, TileOffset( 1,  0), check_type, check_axis)) + 1;
+	int ey = TileY(FindRailStationEnd(tile, TileOffset( 0,  1), check_type, check_axis)) + 1;
 
 	tx -= sx; ex -= sx;
 	ty -= sy; ey -= sy;

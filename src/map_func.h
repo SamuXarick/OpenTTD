@@ -418,11 +418,16 @@ debug_inline static uint TileY(TileIndex tile)
  * able to perform stringent overflow checks on the X and Y axes. However,
  * that structure has negative performance impacts not warranted for releases.
  *
- * @see TileOffsXY(int, int)
+ * @see TileOffset(int, int)
  */
 struct TileOffset {
 public:
-	friend inline TileOffset TileOffsXY(int x, int y);
+	debug_inline explicit TileOffset(int32_t x, int32_t y) : offset(GetOffset(x, y))
+#ifdef _DEBUG
+		, x(x), y(y)
+#endif /* _DEBUG */
+	{
+	}
 	friend inline TileIndex operator-(const TileIndex &tile, const TileOffset &offset);
 	friend inline TileIndex operator+(const TileIndex &tile, const TileOffset &offset);
 
@@ -469,12 +474,6 @@ private:
 	int32_t y;
 #endif /* _DEBUG */
 
-	debug_inline explicit TileOffset(int32_t x, int32_t y) : offset(GetOffset(x, y))
-#ifdef _DEBUG
-	, x(x), y(y)
-#endif /* _DEBUG */
-	{
-	}
 #ifndef _DEBUG
 	debug_inline explicit TileOffset(int32_t offset) : offset(offset) {}
 #endif /* !_DEBUG */
@@ -512,34 +511,18 @@ debug_inline TileIndex& operator-=(TileIndex &tile, const TileOffset &offset) { 
 debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffset &offset) { tile = tile + offset; return tile; }
 
 /**
- * Calculates an offset for the given coordinate(-offset).
- *
- * This function calculate an offset value which can be added to a
- * #TileIndex. The coordinates can be negative.
- *
- * @param x The offset in x direction
- * @param y The offset in y direction
- * @return The resulting offset value of the given coordinate
- * @see ToTileOffset(TileOffsetC)
- */
-inline TileOffset TileOffsXY(int x, int y)
-{
-	return TileOffset(x, y);
-}
-
-/**
  * Return the offset between two tiles from a TileOffsetC struct.
  *
- * This function works like #TileOffsXY(int, int) and returns the
+ * This function works like #TileOffset(int, int) and returns the
  * difference between two tiles.
  *
  * @param tidc The coordinate of the offset as TileOffsetC
  * @return The difference between two tiles.
- * @see TileOffsXY(int, int)
+ * @see TileOffset(int, int)
  */
 inline TileOffset ToTileOffset(TileOffsetC tidc)
 {
-	return TileOffsXY(tidc.x, tidc.y);
+	return TileOffset(tidc.x, tidc.y);
 }
 
 
@@ -553,7 +536,7 @@ inline TileOffset ToTileOffset(TileOffsetC tidc)
  */
 inline TileIndex TileAddXY(TileIndex tile, int x, int y)
 {
-	return tile + TileOffsXY(x, y);
+	return tile + TileOffset(x, y);
 }
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);

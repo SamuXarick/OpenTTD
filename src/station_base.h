@@ -339,11 +339,11 @@ struct Airport : public TileArea {
 		switch (this->rotation) {
 			case DIR_N: return this->tile + ToTileOffset(tidc);
 
-			case DIR_E: return this->tile + TileOffsXY(tidc.y, as->size_x - 1 - tidc.x);
+			case DIR_E: return this->tile + TileOffset(tidc.y, as->size_x - 1 - tidc.x);
 
-			case DIR_S: return this->tile + TileOffsXY(as->size_x - 1 - tidc.x, as->size_y - 1 - tidc.y);
+			case DIR_S: return this->tile + TileOffset(as->size_x - 1 - tidc.x, as->size_y - 1 - tidc.y);
 
-			case DIR_W: return this->tile + TileOffsXY(as->size_y - 1 - tidc.y, tidc.x);
+			case DIR_W: return this->tile + TileOffset(as->size_y - 1 - tidc.y, tidc.x);
 
 			default: NOT_REACHED();
 		}
