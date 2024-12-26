@@ -82,9 +82,9 @@ static void TerraformAddDirtyTile(TerraformerState *ts, TileIndex tile)
 static void TerraformAddDirtyTileAround(TerraformerState *ts, TileIndex tile)
 {
 	/* Make sure all tiles passed to TerraformAddDirtyTile are within [0, Map::Size()] */
-	if (TileY(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileDiffXY( 0, -1));
-	if (TileY(tile) >= 1 && TileX(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileDiffXY(-1, -1));
-	if (TileX(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileDiffXY(-1,  0));
+	if (TileY(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileOffsXY( 0, -1));
+	if (TileY(tile) >= 1 && TileX(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileOffsXY(-1, -1));
+	if (TileX(tile) >= 1) TerraformAddDirtyTile(ts, tile + TileOffsXY(-1,  0));
 	TerraformAddDirtyTile(ts, tile);
 }
 
@@ -136,7 +136,7 @@ static std::tuple<CommandCost, TileIndex> TerraformTileHeight(TerraformerState *
 
 	/* Recurse to neighboured corners if height difference is larger than 1 */
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		TileIndex neighbour_tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(dir));
+		TileIndex neighbour_tile = AddTileOffsetCWrap(tile, TileOffsCByDiagDir(dir));
 
 		/* Not using IsValidTile as we want to also change MP_VOID tiles, which IsValidTile excludes. */
 		if (neighbour_tile == INVALID_TILE) continue;
@@ -173,29 +173,29 @@ std::tuple<CommandCost, Money, TileIndex> CmdTerraformLand(DoCommandFlag flags, 
 	TerraformerState ts;
 
 	/* Compute the costs and the terraforming result in a model of the landscape */
-	if ((slope & SLOPE_W) != 0 && tile + TileDiffXY(1, 0) < Map::Size()) {
-		TileIndex t = tile + TileDiffXY(1, 0);
+	if ((slope & SLOPE_W) != 0 && tile + TileOffsXY(1, 0) < Map::Size()) {
+		TileIndex t = tile + TileOffsXY(1, 0);
 		auto [cost, err_tile] = TerraformTileHeight(&ts, t, TileHeight(t) + direction);
 		if (cost.Failed()) return { cost, 0, err_tile };
 		total_cost.AddCost(cost);
 	}
 
-	if ((slope & SLOPE_S) != 0 && tile + TileDiffXY(1, 1) < Map::Size()) {
-		TileIndex t = tile + TileDiffXY(1, 1);
+	if ((slope & SLOPE_S) != 0 && tile + TileOffsXY(1, 1) < Map::Size()) {
+		TileIndex t = tile + TileOffsXY(1, 1);
 		auto [cost, err_tile] = TerraformTileHeight(&ts, t, TileHeight(t) + direction);
 		if (cost.Failed()) return { cost, 0, err_tile };
 		total_cost.AddCost(cost);
 	}
 
-	if ((slope & SLOPE_E) != 0 && tile + TileDiffXY(0, 1) < Map::Size()) {
-		TileIndex t = tile + TileDiffXY(0, 1);
+	if ((slope & SLOPE_E) != 0 && tile + TileOffsXY(0, 1) < Map::Size()) {
+		TileIndex t = tile + TileOffsXY(0, 1);
 		auto [cost, err_tile] = TerraformTileHeight(&ts, t, TileHeight(t) + direction);
 		if (cost.Failed()) return { cost, 0, err_tile };
 		total_cost.AddCost(cost);
 	}
 
 	if ((slope & SLOPE_N) != 0) {
-		TileIndex t = tile + TileDiffXY(0, 0);
+		TileIndex t = tile + TileOffsXY(0, 0);
 		auto [cost, err_tile] = TerraformTileHeight(&ts, t, TileHeight(t) + direction);
 		if (cost.Failed()) return { cost, 0, err_tile };
 		total_cost.AddCost(cost);
@@ -212,10 +212,10 @@ std::tuple<CommandCost, Money, TileIndex> CmdTerraformLand(DoCommandFlag flags, 
 			if (IsTileType(t, MP_VOID)) continue;
 
 			/* Find new heights of tile corners */
-			int z_N = TerraformGetHeightOfTile(&ts, t + TileDiffXY(0, 0));
-			int z_W = TerraformGetHeightOfTile(&ts, t + TileDiffXY(1, 0));
-			int z_S = TerraformGetHeightOfTile(&ts, t + TileDiffXY(1, 1));
-			int z_E = TerraformGetHeightOfTile(&ts, t + TileDiffXY(0, 1));
+			int z_N = TerraformGetHeightOfTile(&ts, t + TileOffsXY(0, 0));
+			int z_W = TerraformGetHeightOfTile(&ts, t + TileOffsXY(1, 0));
+			int z_S = TerraformGetHeightOfTile(&ts, t + TileOffsXY(1, 1));
+			int z_E = TerraformGetHeightOfTile(&ts, t + TileOffsXY(0, 1));
 
 			/* Find min and max height of tile */
 			int z_min = std::min({z_N, z_W, z_S, z_E});

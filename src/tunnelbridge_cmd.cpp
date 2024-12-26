@@ -66,7 +66,7 @@ static const int BRIDGE_Z_START = 3;
  */
 void MarkBridgeDirty(TileIndex begin, TileIndex end, DiagDirection direction, uint bridge_height)
 {
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
+	TileOffset delta = TileOffsByDiagDir(direction);
 	for (TileIndex t = begin; t != end; t += delta) {
 		MarkTileDirtyByTile(t, bridge_height - TileHeight(t));
 	}
@@ -440,7 +440,7 @@ CommandCost CmdBuildBridge(DoCommandFlag flags, TileIndex tile_end, TileIndex ti
 			}
 		}
 
-		TileIndexDiff delta = TileOffsByAxis(direction);
+		TileOffset delta = TileOffsByAxis(direction);
 		for (TileIndex tile = tile_start + delta; tile != tile_end; tile += delta) {
 			if (GetTileMaxZ(tile) > z_start) return CommandCost(STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN);
 
@@ -668,7 +668,7 @@ CommandCost CmdBuildTunnel(DoCommandFlag flags, TileIndex start_tile, TransportT
 	 * cost before the loop will yield different costs depending on start-
 	 * position, because of increased-cost-by-length: 'cost += cost >> 3' */
 
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
+	TileOffset delta = TileOffsByDiagDir(direction);
 	DiagDirection tunnel_in_way_dir;
 	if (DiagDirToAxis(direction) == AXIS_Y) {
 		tunnel_in_way_dir = (TileX(start_tile) < (Map::MaxX() / 2)) ? DIAGDIR_SW : DIAGDIR_NE;
@@ -934,7 +934,7 @@ static CommandCost DoClearBridge(TileIndex tile, DoCommandFlag flags)
 	if (ret.Failed()) return ret;
 
 	DiagDirection direction = GetTunnelBridgeDirection(tile);
-	TileIndexDiff delta = TileOffsByDiagDir(direction);
+	TileOffset delta = TileOffsByDiagDir(direction);
 
 	Town *t = nullptr;
 	if (IsTileOwner(tile, OWNER_TOWN) && _game_mode != GM_EDITOR) {

@@ -321,7 +321,7 @@ void InvalidateWaterRegion(TileIndex tile)
 	 * traversability. This means that if we invalidate any region edge tiles we might also change the traversability
 	 * of the adjacent region. This code ensures the adjacent regions also get invalidated in such a case. */
 	for (DiagDirection side = DIAGDIR_BEGIN; side < DIAGDIR_END; side++) {
-		const TileIndex adjacent_tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(side));
+		const TileIndex adjacent_tile = AddTileOffsetCWrap(tile, TileOffsCByDiagDir(side));
 		if (adjacent_tile == INVALID_TILE) continue;
 		if (GetWaterRegionIndex(adjacent_tile) != GetWaterRegionIndex(tile)) invalidate_region(adjacent_tile);
 	}
@@ -340,7 +340,7 @@ static inline void VisitAdjacentWaterRegionPatchNeighbors(const WaterRegionPatch
 
 	const WaterRegion current_region = GetUpdatedWaterRegion(water_region_patch.x, water_region_patch.y);
 
-	const TileIndexDiffC offset = TileIndexDiffCByDiagDir(side);
+	const TileOffsetC offset = TileOffsCByDiagDir(side);
 	const int nx = water_region_patch.x + offset.x;
 	const int ny = water_region_patch.y + offset.y;
 

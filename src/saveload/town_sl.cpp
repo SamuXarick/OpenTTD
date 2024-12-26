@@ -44,7 +44,7 @@ void RebuildTownCaches()
 		if (IsHouseCompleted(t)) town->cache.population += HouseSpec::Get(house_id)->population;
 
 		/* Increase the number of houses for every house, but only once. */
-		if (GetHouseNorthPart(house_id) == TileDiffXY(0, 0)) town->cache.num_houses++;
+		if (GetHouseNorthPart(house_id) == TileOffsXY(0, 0)) town->cache.num_houses++;
 	}
 
 	/* Update the population and num_house dependent values */
@@ -85,17 +85,17 @@ void UpdateHousesAndTowns()
 			const HouseSpec *hs = HouseSpec::Get(house_type);
 			bool valid_house = true;
 			if (hs->building_flags & TILE_SIZE_2x1) {
-				TileIndex tile = t + TileDiffXY(1, 0);
+				TileIndex tile = t + TileOffsXY(1, 0);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags & TILE_SIZE_1x2) {
-				TileIndex tile = t + TileDiffXY(0, 1);
+				TileIndex tile = t + TileOffsXY(0, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
 			} else if (hs->building_flags & TILE_SIZE_2x2) {
-				TileIndex tile = t + TileDiffXY(0, 1);
+				TileIndex tile = t + TileOffsXY(0, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 1) valid_house = false;
-				tile = t + TileDiffXY(1, 0);
+				tile = t + TileOffsXY(1, 0);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 2) valid_house = false;
-				tile = t + TileDiffXY(1, 1);
+				tile = t + TileOffsXY(1, 1);
 				if (!IsTileType(tile, MP_HOUSE) || GetCleanHouseType(tile) != house_type + 3) valid_house = false;
 			}
 			/* If not all tiles of this house are present remove the house.

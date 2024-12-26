@@ -10,20 +10,20 @@
 #ifndef MAP_TYPE_H
 #define MAP_TYPE_H
 
-struct TileIndexDiff;
+struct TileOffset;
 
 /**
- * A pair-construct of a TileIndexDiff.
+ * A pair-construct of a TileOffset.
  *
  * This can be used to save the difference between to
  * tiles as a pair of x and y value.
  */
-struct TileIndexDiffC {
+struct TileOffsetC {
 	int16_t x;        ///< The x value of the coordinate
 	int16_t y;        ///< The y value of the coordinate
 
-	inline constexpr TileIndexDiffC operator*(const int16_t &amount) const { return TileIndexDiffC(this->x * amount, this->y * amount); }
-	inline constexpr TileIndexDiffC &operator+=(const TileIndexDiffC &other) { this->x += other.x; this->y += other.y; return *this; }
+	inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
+	inline constexpr TileOffsetC &operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
 };
 
 /** Minimal and maximal map width and height */

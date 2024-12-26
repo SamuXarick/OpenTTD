@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir)));
+		MarkTileDirtyIfCanalOrRiver(AddTileOffsetCWrap(tile, TileOffsCByDir(dir)));
 	}
 }
 
@@ -97,7 +97,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
+		TileIndex dest = AddTileOffsetCWrap(tile, TileOffsCByDir(dir));
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
@@ -195,7 +195,7 @@ bool IsPossibleDockingTile(Tile t)
 void CheckForDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = AddTileIndexDiffCWrap(t, TileIndexDiffCByDiagDir(d));
+		TileIndex tile = AddTileOffsetCWrap(t, TileOffsCByDiagDir(d));
 		if (!IsValidTile(tile)) continue;
 
 		if (IsDockTile(tile) && IsDockWaterPart(tile)) {
@@ -313,7 +313,7 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 {
 	CommandCost cost(EXPENSES_CONSTRUCTION);
 
-	TileIndexDiff delta = TileOffsByDiagDir(dir);
+	TileOffset delta = TileOffsByDiagDir(dir);
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile + delta);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
@@ -394,7 +394,7 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 		if (ret.Failed()) return ret;
 	}
 
-	TileIndexDiff delta = TileOffsByDiagDir(GetLockDirection(tile));
+	TileOffset delta = TileOffsByDiagDir(GetLockDirection(tile));
 
 	/* make sure no vehicle is on the tile. */
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
@@ -603,7 +603,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 		}
 
 		case WATER_TILE_LOCK: {
-			static const TileIndexDiffC _lock_tomiddle_offs[][DIAGDIR_END] = {
+			static const TileOffsetC _lock_tomiddle_offs[][DIAGDIR_END] = {
 				/*   NE       SE        SW      NW       */
 				{ { 0,  0}, {0,  0}, { 0, 0}, {0,  0} }, // LOCK_PART_MIDDLE
 				{ {-1,  0}, {0,  1}, { 1, 0}, {0, -1} }, // LOCK_PART_LOWER
@@ -613,7 +613,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_AUTO) return CommandCost(STR_ERROR_BUILDING_MUST_BE_DEMOLISHED);
 			if (_current_company == OWNER_WATER) return CMD_ERROR;
 			/* move to the middle tile.. */
-			return RemoveLock(tile + ToTileIndexDiff(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
+			return RemoveLock(tile + ToTileOffset(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
 		}
 
 		case WATER_TILE_DEPOT:
@@ -1253,7 +1253,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_ACTIVE: {
 			bool continue_flooding = false;
 			for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-				TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
+				TileIndex dest = AddTileOffsetCWrap(tile, TileOffsCByDir(dir));
 				/* Contrary to drying up, flooding does not consider MP_VOID tiles. */
 				if (!IsValidTile(dest)) continue;
 				/* do not try to flood water tiles - increases performance a lot */
@@ -1282,7 +1282,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_DRYUP: {
 			Slope slope_here = std::get<0>(GetFoundationSlope(tile)) & ~SLOPE_HALFTILE_MASK & ~SLOPE_STEEP;
 			for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope_here])) {
-				TileIndex dest = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDir(dir));
+				TileIndex dest = AddTileOffsetCWrap(tile, TileOffsCByDir(dir));
 				/* Contrary to flooding, drying up does consider MP_VOID tiles. */
 				if (dest == INVALID_TILE) continue;
 

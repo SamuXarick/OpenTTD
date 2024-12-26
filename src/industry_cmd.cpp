@@ -781,7 +781,7 @@ static void MakeIndustryTileBigger(TileIndex tile)
 		 * tiles (like the default oil rig). Do a proper check to ensure the
 		 * tiles belong to the same industry and based on that build the oil rig's
 		 * station. */
-		TileIndex other = tile + TileDiffXY(0, 1);
+		TileIndex other = tile + TileOffsXY(0, 1);
 
 		if (IsTileType(other, MP_INDUSTRY) &&
 				GetIndustryGfx(other) == GFX_OILRIG_1 &&
@@ -1015,8 +1015,8 @@ static bool IsSuitableForFarmField(TileIndex tile, bool allow_fields)
  */
 static void SetupFarmFieldFence(TileIndex tile, int size, uint8_t type, DiagDirection side)
 {
-	TileIndexDiffC diff = TileIndexDiffCByAxis(OtherAxis(DiagDirToAxis(side)));
-	TileIndexDiff neighbour_diff = TileOffsByDiagDir(side);
+	TileOffsetC diff = TileOffsCByAxis(OtherAxis(DiagDirToAxis(side)));
+	TileOffset neighbour_diff = TileOffsByDiagDir(side);
 
 	do {
 		tile = Map::WrapToMap(tile);
@@ -1033,7 +1033,7 @@ static void SetupFarmFieldFence(TileIndex tile, int size, uint8_t type, DiagDire
 			}
 		}
 
-		tile = AddTileIndexDiffCWrap(tile, diff);
+		tile = AddTileOffsetCWrap(tile, diff);
 	} while (--size);
 }
 
@@ -1049,7 +1049,7 @@ static void PlantFarmField(TileIndex tile, IndustryID industry)
 	uint size_x = GB(r, 0, 8);
 	uint size_y = GB(r, 8, 8);
 
-	TileArea ta(tile - TileDiffXY(std::min(TileX(tile), size_x / 2), std::min(TileY(tile), size_y / 2)), size_x, size_y);
+	TileArea ta(tile - TileOffsXY(std::min(TileX(tile), size_x / 2), std::min(TileY(tile), size_y / 2)), size_x, size_y);
 	ta.ClampToMap();
 
 	if (ta.w == 0 || ta.h == 0) return;
@@ -1084,8 +1084,8 @@ static void PlantFarmField(TileIndex tile, IndustryID industry)
 
 	SetupFarmFieldFence(ta.tile, ta.h, type, DIAGDIR_NE);
 	SetupFarmFieldFence(ta.tile, ta.w, type, DIAGDIR_NW);
-	SetupFarmFieldFence(ta.tile + TileDiffXY(ta.w - 1, 0), ta.h, type, DIAGDIR_SW);
-	SetupFarmFieldFence(ta.tile + TileDiffXY(0, ta.h - 1), ta.w, type, DIAGDIR_SE);
+	SetupFarmFieldFence(ta.tile + TileOffsXY(ta.w - 1, 0), ta.h, type, DIAGDIR_SW);
+	SetupFarmFieldFence(ta.tile + TileOffsXY(0, ta.h - 1), ta.w, type, DIAGDIR_SE);
 }
 
 void PlantRandomFarmField(const Industry *i)
@@ -1592,7 +1592,7 @@ static bool CheckCanTerraformSurroundingTiles(TileIndex tile, uint height, int i
 	/* Check if we don't leave the map */
 	if (TileX(tile) == 0 || TileY(tile) == 0 || GetTileType(tile) == MP_VOID) return false;
 
-	TileArea ta(tile - TileDiffXY(1, 1), 2, 2);
+	TileArea ta(tile - TileOffsXY(1, 1), 2, 2);
 	for (TileIndex tile_walk : ta) {
 		uint curh = TileHeight(tile_walk);
 		/* Is the tile clear? */
@@ -1605,7 +1605,7 @@ static bool CheckCanTerraformSurroundingTiles(TileIndex tile, uint height, int i
 		 *  has to be correct too (in level, or almost in level)
 		 *  else you get a chain-reaction of terraforming. */
 		if (internal == 0 && curh != height) {
-			if (TileX(tile_walk) == 0 || TileY(tile_walk) == 0 || !CheckCanTerraformSurroundingTiles(tile_walk + TileDiffXY(-1, -1), height, internal + 1)) {
+			if (TileX(tile_walk) == 0 || TileY(tile_walk) == 0 || !CheckCanTerraformSurroundingTiles(tile_walk + TileOffsXY(-1, -1), height, internal + 1)) {
 				return false;
 			}
 		}
@@ -1639,7 +1639,7 @@ static bool CheckIfCanLevelIndustryPlatform(TileIndex tile, DoCommandFlag flags,
 
 	/* TileArea::Expand is not used here as we need to abort
 	 * instead of clamping if the bounds cannot expanded. */
-	TileArea ta(tile + TileDiffXY(-_settings_game.construction.industry_platform, -_settings_game.construction.industry_platform),
+	TileArea ta(tile + TileOffsXY(-_settings_game.construction.industry_platform, -_settings_game.construction.industry_platform),
 			max_x + 2 + 2 * _settings_game.construction.industry_platform, max_y + 2 + 2 * _settings_game.construction.industry_platform);
 
 	if (TileX(ta.tile) + ta.w >= Map::MaxX() || TileY(ta.tile) + ta.h >= Map::MaxY()) return false;
@@ -1933,7 +1933,7 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 	/* Plant the tiles */
 
 	for (const IndustryTileLayoutTile &it : layout) {
-		TileIndex cur_tile = tile + ToTileIndexDiff(it.ti);
+		TileIndex cur_tile = tile + ToTileOffset(it.ti);
 
 		if (it.gfx != GFX_WATERTILE_SPECIALCHECK) {
 			i->location.Add(cur_tile);
@@ -2994,7 +2994,7 @@ static void ChangeIndustryProduction(Industry *i, bool monthly)
 		}
 		/* and report the news to the user */
 		if (closeit) {
-			AddTileNewsItem(str, nt, i->location.tile + TileDiffXY(1, 1));
+			AddTileNewsItem(str, nt, i->location.tile + TileOffsXY(1, 1));
 		} else {
 			AddIndustryNewsItem(str, nt, i->index);
 		}

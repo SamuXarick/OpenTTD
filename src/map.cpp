@@ -68,7 +68,7 @@
  * addx = +3 and addy = -4. This function will now return
  * INVALID_TILE, because the y is wrapped. This is needed in
  * for example, farmland. When the tile is not wrapped,
- * the result will be tile + TileDiffXY(addx, addy)
+ * the result will be tile + TileOffsXY(addx, addy)
  *
  * @param tile the 'starting' point of the adding
  * @param addx the amount of tiles in the X direction to add
@@ -90,13 +90,13 @@ TileIndex TileAddWrap(TileIndex tile, int addx, int addy)
 }
 
 /** 'Lookup table' for tile offsets given an Axis */
-extern const TileIndexDiffC _tileoffs_by_axis[] = {
+extern const TileOffsetC _tileoffs_by_axis[] = {
 	{ 1,  0}, ///< AXIS_X
 	{ 0,  1}, ///< AXIS_Y
 };
 
 /** 'Lookup table' for tile offsets given a DiagDirection */
-extern const TileIndexDiffC _tileoffs_by_diagdir[] = {
+extern const TileOffsetC _tileoffs_by_diagdir[] = {
 	{-1,  0}, ///< DIAGDIR_NE
 	{ 0,  1}, ///< DIAGDIR_SE
 	{ 1,  0}, ///< DIAGDIR_SW
@@ -104,7 +104,7 @@ extern const TileIndexDiffC _tileoffs_by_diagdir[] = {
 };
 
 /** 'Lookup table' for tile offsets given a Direction */
-extern const TileIndexDiffC _tileoffs_by_dir[] = {
+extern const TileOffsetC _tileoffs_by_dir[] = {
 	{-1, -1}, ///< DIR_N
 	{-1,  0}, ///< DIR_NE
 	{-1,  1}, ///< DIR_E

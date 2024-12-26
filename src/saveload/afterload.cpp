@@ -3137,8 +3137,8 @@ bool AfterLoadGame()
 		/* Link oil rigs to their industry and back. */
 		for (Station *st : Station::Iterate()) {
 			if (IsTileType(st->xy, MP_STATION) && IsOilRig(st->xy)) {
-				/* Industry tile is always adjacent during construction by TileDiffXY(0, 1) */
-				st->industry = Industry::GetByTile(st->xy + TileDiffXY(0, 1));
+				/* Industry tile is always adjacent during construction by TileOffsXY(0, 1) */
+				st->industry = Industry::GetByTile(st->xy + TileOffsXY(0, 1));
 				st->industry->neutral_station = st;
 			}
 		}

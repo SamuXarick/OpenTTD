@@ -23,7 +23,7 @@ typedef uint8_t StationGfx;
 
 /** Tile-offset / AirportTileID pair. */
 struct AirportTileTable {
-	TileIndexDiffC ti; ///< Tile offset from  the top-most airport tile.
+	TileOffsetC ti; ///< Tile offset from  the top-most airport tile.
 	StationGfx gfx;    ///< AirportTile to use for this tile.
 };
 
@@ -39,7 +39,7 @@ public:
 	 * @param att The TileTable we want to iterate over.
 	 * @param base_tile The basetile for all offsets.
 	 */
-	AirportTileTableIterator(const AirportTileTable *att, TileIndex base_tile) : TileIterator(base_tile + ToTileIndexDiff(att->ti)), att(att), base_tile(base_tile)
+	AirportTileTableIterator(const AirportTileTable *att, TileIndex base_tile) : TileIterator(base_tile + ToTileOffset(att->ti)), att(att), base_tile(base_tile)
 	{
 	}
 
@@ -49,7 +49,7 @@ public:
 		if (this->att->ti.x == -0x80) {
 			this->tile = INVALID_TILE;
 		} else {
-			this->tile = this->base_tile + ToTileIndexDiff(this->att->ti);
+			this->tile = this->base_tile + ToTileOffset(this->att->ti);
 		}
 		return *this;
 	}
@@ -89,7 +89,7 @@ enum TTDPAirportType {
 
 /** A list of all hangar tiles in an airport */
 struct HangarTileTable {
-	TileIndexDiffC ti; ///< Tile offset from the top-most airport tile.
+	TileOffsetC ti; ///< Tile offset from the top-most airport tile.
 	Direction dir;     ///< Direction of the exit.
 	uint8_t hangar_num;   ///< The hangar to which this tile belongs.
 };

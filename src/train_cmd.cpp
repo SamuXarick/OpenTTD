@@ -1824,7 +1824,7 @@ void UpdateAdjacentLevelCrossingTilesOnLevelCrossingRemoval(TileIndex tile, Axis
 	const DiagDirection dir1 = AxisToDiagDir(road_axis);
 	const DiagDirection dir2 = ReverseDiagDir(dir1);
 	for (DiagDirection dir : { dir1, dir2 }) {
-		const TileIndexDiff diff = TileOffsByDiagDir(dir);
+		const TileOffset diff = TileOffsByDiagDir(dir);
 		bool occupied = false;
 		for (TileIndex t = tile + diff; t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis; t += diff) {
 			occupied |= CheckLevelCrossing(t);
@@ -3615,7 +3615,7 @@ static Vehicle *CollectTrackbitsFromCrashedVehiclesEnum(Vehicle *v, void *data)
 
 static bool IsRailStationPlatformOccupied(TileIndex tile)
 {
-	TileIndexDiff delta = TileOffsByAxis(GetRailStationAxis(tile));
+	TileOffset delta = TileOffsByAxis(GetRailStationAxis(tile));
 
 	for (TileIndex t = tile; IsCompatibleTrainStationTile(t, tile); t -= delta) {
 		if (HasVehicleOnPos(t, nullptr, &TrainOnTileEnum)) return true;

@@ -896,7 +896,7 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur++;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileOffsXY(0, 1);
 			} while (--h != 0);
 			break;
 
@@ -907,14 +907,14 @@ static void GenerateTerrain(int type, uint flag)
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur += TileDiffXY(0, 1);
+					tile_cur += TileOffsXY(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileOffsXY(1, 0);
 			} while (--w != 0);
 			break;
 
 		case DIAGDIR_SW:
-			tile += TileDiffXY(w - 1, 0);
+			tile += TileOffsXY(w - 1, 0);
 			do {
 				TileIndex tile_cur = tile;
 
@@ -923,21 +923,21 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur--;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileOffsXY(0, 1);
 			} while (--h != 0);
 			break;
 
 		case DIAGDIR_NW:
-			tile += TileDiffXY(0, h - 1);
+			tile += TileOffsXY(0, h - 1);
 			do {
 				TileIndex tile_cur = tile;
 
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur -= TileDiffXY(0, 1);
+					tile_cur -= TileOffsXY(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileOffsXY(1, 0);
 			} while (--w != 0);
 			break;
 	}
@@ -956,7 +956,7 @@ static void CreateDesertOrRainForest(uint desert_tropic_line)
 		if (!IsValidTile(tile)) continue;
 
 		auto allows_desert = [tile, desert_tropic_line](auto &offset) {
-			TileIndex t = AddTileIndexDiffCWrap(tile, offset);
+			TileIndex t = AddTileOffsetCWrap(tile, offset);
 			return t == INVALID_TILE || (TileHeight(t) < desert_tropic_line && !IsTileType(t, MP_WATER));
 		};
 		if (std::all_of(std::begin(_make_desert_or_rainforest_data), std::end(_make_desert_or_rainforest_data), allows_desert)) {
@@ -976,7 +976,7 @@ static void CreateDesertOrRainForest(uint desert_tropic_line)
 		if (!IsValidTile(tile)) continue;
 
 		auto allows_rainforest = [tile](auto &offset) {
-			TileIndex t = AddTileIndexDiffCWrap(tile, offset);
+			TileIndex t = AddTileOffsetCWrap(tile, offset);
 			return t == INVALID_TILE || !IsTileType(t, MP_CLEAR) || !IsClearGround(t, CLEAR_DESERT);
 		};
 		if (std::all_of(std::begin(_make_desert_or_rainforest_data), std::end(_make_desert_or_rainforest_data), allows_rainforest)) {
@@ -1478,7 +1478,7 @@ static uint CalculateCoverageLine(uint coverage, uint edge_multiplier)
 		if (edge_multiplier != 0) {
 			/* Check if any of our neighbours is below us. */
 			for (auto dir : neighbour_dir) {
-				TileIndex neighbour_tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(dir));
+				TileIndex neighbour_tile = AddTileOffsetCWrap(tile, TileOffsCByDiagDir(dir));
 				if (IsValidTile(neighbour_tile) && TileHeight(neighbour_tile) < h) {
 					edge_histogram[h]++;
 				}

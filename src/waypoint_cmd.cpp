@@ -233,7 +233,7 @@ CommandCost CmdBuildRailWaypoint(DoCommandFlag flags, TileIndex start_tile, Axis
 	StationID est = INVALID_STATION;
 
 	/* Check whether the tiles we're building on are valid rail or not. */
-	TileIndexDiff offset = TileOffsByAxis(OtherAxis(axis));
+	TileOffset offset = TileOffsByAxis(OtherAxis(axis));
 	for (int i = 0; i < count; i++) {
 		TileIndex tile = start_tile + i * offset;
 		CommandCost ret = IsValidTileForWaypoint(tile, axis, &est);

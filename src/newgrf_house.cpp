@@ -452,7 +452,7 @@ static uint32_t GetDistanceFromNearbyHouse(uint8_t parameter, TileIndex tile, Ho
 			/* Extract tile offset. */
 			int8_t x_offs = GB(GetRegister(0x100), 0, 8);
 			int8_t y_offs = GB(GetRegister(0x100), 8, 8);
-			TileIndex testtile = Map::WrapToMap(this->tile + TileDiffXY(x_offs, y_offs));
+			TileIndex testtile = Map::WrapToMap(this->tile + TileOffsXY(x_offs, y_offs));
 
 			StationFinder stations(TileArea(testtile, 1, 1));
 
@@ -740,7 +740,7 @@ void TriggerHouse(TileIndex t, HouseTrigger trigger)
  */
 void DoWatchedCargoCallback(TileIndex tile, TileIndex origin, CargoTypes trigger_cargoes, uint16_t random)
 {
-	TileIndexDiffC diff = TileIndexToTileIndexDiffC(origin, tile);
+	TileOffsetC diff = TileIndexToTileOffsetC(origin, tile);
 	uint32_t cb_info = random << 16 | (uint8_t)diff.y << 8 | (uint8_t)diff.x;
 	HouseAnimationBase::ChangeAnimationFrame(CBID_HOUSE_WATCHED_CARGO_ACCEPTED, HouseSpec::Get(GetHouseType(tile)), Town::GetByTile(tile), tile, 0, cb_info, trigger_cargoes);
 }
