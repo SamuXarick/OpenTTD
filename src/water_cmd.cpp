@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(tile + TileOffsCByDir(dir));
+		MarkTileDirtyIfCanalOrRiver(tile + dir);
 	}
 }
 
@@ -97,7 +97,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = tile + TileOffsCByDir(dir);
+		TileIndex dest = tile + dir;
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
@@ -1253,7 +1253,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_ACTIVE: {
 			bool continue_flooding = false;
 			for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-				TileIndex dest = tile + TileOffsCByDir(dir);
+				TileIndex dest = tile + dir;
 				/* Contrary to drying up, flooding does not consider MP_VOID tiles. */
 				if (!IsValidTile(dest)) continue;
 				/* do not try to flood water tiles - increases performance a lot */
@@ -1282,7 +1282,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_DRYUP: {
 			Slope slope_here = std::get<0>(GetFoundationSlope(tile)) & ~SLOPE_HALFTILE_MASK & ~SLOPE_STEEP;
 			for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope_here])) {
-				TileIndex dest = tile + TileOffsCByDir(dir);
+				TileIndex dest = tile + dir;
 				/* Contrary to flooding, drying up does consider MP_VOID tiles. */
 				if (dest == INVALID_TILE) continue;
 
