@@ -21,6 +21,9 @@ struct TileIndexDiff;
 struct TileIndexDiffC {
 	int16_t x;        ///< The x value of the coordinate
 	int16_t y;        ///< The y value of the coordinate
+
+	inline constexpr TileIndexDiffC operator*(const int16_t &amount) const { return TileIndexDiffC(this->x * amount, this->y * amount); }
+	inline constexpr TileIndexDiffC &operator+=(const TileIndexDiffC &other) { this->x += other.x; this->y += other.y; return *this; }
 };
 
 /** Minimal and maximal map width and height */
