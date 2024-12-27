@@ -1484,7 +1484,7 @@ CommandCost CmdRemoveSingleSignal(DoCommandFlag flags, TileIndex tile, Track tra
 			for (int i = 0; v == nullptr && i < 2; i++, td = ReverseTrackdir(td)) {
 				/* Only test the active signal side. */
 				if (!HasSignalOnTrackdir(tile, ReverseTrackdir(td))) continue;
-				TileIndex next = TileAddByDiagDir(tile, TrackdirToExitdir(td));
+				TileIndex next = tile + TileOffsByDiagDir(TrackdirToExitdir(td));
 				TrackBits tracks = TrackdirBitsToTrackBits(TrackdirReachesTrackdirs(td));
 				if (HasReservedTracks(next, tracks)) {
 					v = GetTrainForReservation(next, TrackBitsToTrack(GetReservedTrackbits(next) & tracks));

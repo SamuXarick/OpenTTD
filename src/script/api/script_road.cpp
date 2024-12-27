@@ -459,7 +459,7 @@ static std::optional<RoadPartOrientation> ToRoadPartOrientation(const TileIndex 
  */
 static bool NeighbourHasReachableRoad(::RoadType rt, TileIndex start_tile, DiagDirection neighbour)
 {
-	TileIndex neighbour_tile = ::TileAddByDiagDir(start_tile, neighbour);
+	TileIndex neighbour_tile = start_tile + ::TileOffsByDiagDir(neighbour);
 	if (!HasBit(::GetPresentRoadTypes(neighbour_tile), rt)) return false;
 
 	switch (::GetTileType(neighbour_tile)) {

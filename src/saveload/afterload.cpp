@@ -110,7 +110,7 @@ void SetWaterClassDependingOnSurroundings(Tile t, bool include_invalid_water_cla
 	bool has_river = false;
 
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		Tile neighbour = TileAddByDiagDir(t, dir);
+		Tile neighbour = t + TileOffsByDiagDir(dir);
 		switch (GetTileType(neighbour)) {
 			case MP_WATER:
 				/* clear water and shipdepots have already a WaterClass associated */

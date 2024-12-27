@@ -753,7 +753,7 @@ static void ShipController(Ship *v)
 						SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
 						/* Test if continuing forward would lead to a dead-end, moving into the dock. */
 						const DiagDirection exitdir = VehicleExitDir(v->direction, v->state);
-						const TileIndex tile = TileAddByDiagDir(v->tile, exitdir);
+						const TileIndex tile = v->tile + TileOffsByDiagDir(exitdir);
 						if (TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_WATER, 0, exitdir)) == TRACK_BIT_NONE) return ReverseShip(v);
 					} else if (v->dest_tile != 0) {
 						/* We have a target, let's see if we reached it... */

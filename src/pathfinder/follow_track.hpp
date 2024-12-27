@@ -226,7 +226,7 @@ protected:
 		}
 
 		/* normal or station tile, do one step */
-		this->new_tile = TileAddByDiagDir(this->old_tile, this->exitdir);
+		this->new_tile = this->old_tile + TileOffsByDiagDir(this->exitdir);
 
 		/* special handling for stations */
 		if (IsRailTT() && HasStationTileRail(this->new_tile)) {

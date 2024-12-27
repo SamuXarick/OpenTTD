@@ -1082,7 +1082,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 		/* First, determine the desired slope based on adjacent river tiles. This doesn't necessarily match the origin tile for the CircularTileSearch. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex other_tile = TileAddByDiagDir(tile, d);
+			TileIndex other_tile = tile + TileOffsByDiagDir(d);
 			Slope other_slope = GetTileSlope(other_tile);
 
 			/* Only consider river tiles. */
@@ -1113,7 +1113,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		if (desired_slope == SLOPE_FLAT && IsSlopeWithThreeCornersRaised(cur_slope)) {
 			/* Make sure we're not affecting an existing river slope tile. */
 			for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-				TileIndex other_tile = TileAddByDiagDir(tile, d);
+				TileIndex other_tile = tile + TileOffsByDiagDir(d);
 				if (IsInclinedSlope(GetTileSlope(other_tile)) && IsWaterTile(other_tile)) return false;
 			}
 			Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, ComplementSlope(cur_slope), true);
@@ -1127,7 +1127,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
 				if (d == DIAGDIRDIFF_SAME || d == DIAGDIRDIFF_REVERSE) continue;
 
-				TileIndex other_tile = (TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d)));
+				TileIndex other_tile = (tile + TileOffsByDiagDir(ChangeDiagDir(river_direction, d)));
 				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return false;
 			}
 
@@ -1155,8 +1155,8 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	if (IsInclinedSlope(cur_slope)) {
 		DiagDirection slope_direction = GetInclinedSlopeDirection(cur_slope);
 
-		TileIndex upstream_tile = TileAddByDiagDir(tile, slope_direction);
-		TileIndex downstream_tile = TileAddByDiagDir(tile, ReverseDiagDir(slope_direction));
+		TileIndex upstream_tile = tile + TileOffsByDiagDir(slope_direction);
+		TileIndex downstream_tile = tile + TileOffsByDiagDir(ReverseDiagDir(slope_direction));
 
 		/* Don't look outside the map. */
 		if (!IsValidTile(upstream_tile) || !IsValidTile(downstream_tile)) return false;
