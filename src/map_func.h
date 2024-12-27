@@ -671,18 +671,6 @@ inline TileOffset TileOffsByDir(Direction dir)
 }
 
 /**
- * Adds a Direction to a tile.
- *
- * @param tile The current tile
- * @param dir The direction in which we want to step
- * @return the moved tile
- */
-inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
-{
-	return tile + TileOffsByDir(dir);
-}
-
-/**
  * Adds a DiagDir to a tile.
  *
  * @param tile The current tile
