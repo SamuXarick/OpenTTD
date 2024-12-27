@@ -526,19 +526,6 @@ inline TileOffset ToTileOffset(TileOffsetC tidc)
 }
 
 
-/**
- * Adds a given offset to a tile.
- *
- * @param tile The tile to add an offset to.
- * @param x The x offset to add to the tile.
- * @param y The y offset to add to the tile.
- * @return The resulting tile.
- */
-inline TileIndex TileAddXY(TileIndex tile, int x, int y)
-{
-	return tile + TileOffset(x, y);
-}
-
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
 /**

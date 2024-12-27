@@ -74,7 +74,7 @@ static TileIndex GetOtherAqueductEnd(TileIndex tile_from, TileIndex *tile_to = n
 	 * complains about the wrong slope instead of the ends not matching up.
 	 * Make sure the coordinate is always a valid tile within the map, so we
 	 * don't go "off" the map. That would cause the wrong error message. */
-	if (!IsValidDiagDirection(dir)) return TileAddXY(tile_from, TileX(tile_from) > 2 ? -1 : 1, 0);
+	if (!IsValidDiagDirection(dir)) return tile_from + TileOffset(TileX(tile_from) > 2 ? -1 : 1, 0);
 
 	/* Direction the aqueduct is built to. */
 	TileOffset offset = TileOffsByDiagDir(ReverseDiagDir(dir));

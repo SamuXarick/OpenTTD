@@ -203,7 +203,7 @@ public:
 		for (int y = 0; y < WATER_REGION_EDGE_LENGTH; ++y) {
 			std::string line{};
 			for (int x = 0; x < WATER_REGION_EDGE_LENGTH; ++x) {
-				const auto label = this->GetLabel(TileAddXY(this->tile_area.tile, x, y));
+				const auto label = this->GetLabel(this->tile_area.tile + TileOffset(x, y));
 				const std::string label_str = label == INVALID_WATER_REGION_PATCH ? "." : std::to_string(label);
 				line = fmt::format("{:{}}", label_str, max_element_width) + " " + line;
 			}

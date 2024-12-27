@@ -521,10 +521,10 @@ static void AdvanceSingleHouseConstruction(TileIndex tile)
 static void AdvanceHouseConstruction(TileIndex tile)
 {
 	uint flags = HouseSpec::Get(GetHouseType(tile))->building_flags;
-	if (flags & BUILDING_HAS_1_TILE)  AdvanceSingleHouseConstruction(TileAddXY(tile, 0, 0));
-	if (flags & BUILDING_2_TILES_Y)   AdvanceSingleHouseConstruction(TileAddXY(tile, 0, 1));
-	if (flags & BUILDING_2_TILES_X)   AdvanceSingleHouseConstruction(TileAddXY(tile, 1, 0));
-	if (flags & BUILDING_HAS_4_TILES) AdvanceSingleHouseConstruction(TileAddXY(tile, 1, 1));
+	if (flags & BUILDING_HAS_1_TILE)  AdvanceSingleHouseConstruction(tile + TileOffset(0, 0));
+	if (flags & BUILDING_2_TILES_Y)   AdvanceSingleHouseConstruction(tile + TileOffset(0, 1));
+	if (flags & BUILDING_2_TILES_X)   AdvanceSingleHouseConstruction(tile + TileOffset(1, 0));
+	if (flags & BUILDING_HAS_4_TILES) AdvanceSingleHouseConstruction(tile + TileOffset(1, 1));
 }
 
 /**
@@ -693,11 +693,11 @@ static void TileLoop_Town(TileIndex tile)
 				int y = Clamp(grid_pos.y, 0, 1);
 
 				if (hs->building_flags & TILE_SIZE_2x2) {
-					tile = TileAddXY(tile, x, y);
+					tile += TileOffset(x, y);
 				} else if (hs->building_flags & TILE_SIZE_1x2) {
-					tile = TileAddXY(tile, 0, y);
+					tile += TileOffset(0, y);
 				} else if (hs->building_flags & TILE_SIZE_2x1) {
-					tile = TileAddXY(tile, x, 0);
+					tile += TileOffset(x, 0);
 				}
 			}
 
@@ -2906,7 +2906,7 @@ CommandCost CmdPlaceHouse(DoCommandFlag flags, TileIndex tile, HouseID house)
 	if (noslope && slope != SLOPE_FLAT) return CommandCost(STR_ERROR_FLAT_LAND_REQUIRED);
 
 	TileArea ta = tile;
-	if (hs->building_flags & TILE_SIZE_2x2) ta.Add(TileAddXY(tile, 1, 1));
+	if (hs->building_flags & TILE_SIZE_2x2) ta.Add(tile + TileOffset(1, 1));
 	if (hs->building_flags & TILE_SIZE_2x1) ta.Add(tile + TileOffsByDiagDir(DIAGDIR_SW));
 	if (hs->building_flags & TILE_SIZE_1x2) ta.Add(tile + TileOffsByDiagDir(DIAGDIR_SE));
 
