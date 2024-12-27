@@ -522,6 +522,7 @@ struct TileOffsetC {
 
 	friend inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset);
 	friend inline TileIndex operator+(const TileIndex &tile, const Direction dir);
+	friend inline TileIndex operator+(const TileIndex &tile, const DiagDirection diagdir);
 
 	debug_inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
 	debug_inline constexpr TileOffsetC& operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
@@ -564,6 +565,25 @@ debug_inline TileIndex operator+(TileIndex &tile, Direction dir)
 	assert(IsValidDirection(dir));
 	return tile + _tileoffs_by_dir[dir];
 }
+
+/**
+ * Adds a DiagDirection as a TileOffsetC offset to a TileIndex and returns the new tile.
+ *
+ * Returns tile + the offset given in offset. If the result tile would end up
+ * outside of the map, INVALID_TILE is returned instead.
+ *
+ * @param diagdir The given diagonal direction
+ * @return The resulting TileIndex
+ */
+debug_inline TileIndex operator+(TileIndex &tile, DiagDirection diagdir)
+{
+	extern const TileOffsetC _tileoffs_by_diagdir[];
+
+	assert(IsValidDiagDirection(diagdir));
+	return tile + _tileoffs_by_diagdir[diagdir];
+}
+
+debug_inline TileIndex operator+=(TileIndex &tile, DiagDirection diagdir) { tile = tile + diagdir; return tile; }
 
 /**
  * Return the offset between two tiles from a TileOffsetC struct.

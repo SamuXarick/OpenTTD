@@ -1478,7 +1478,7 @@ static uint CalculateCoverageLine(uint coverage, uint edge_multiplier)
 		if (edge_multiplier != 0) {
 			/* Check if any of our neighbours is below us. */
 			for (auto dir : neighbour_dir) {
-				TileIndex neighbour_tile = tile + TileOffsCByDiagDir(dir);
+				TileIndex neighbour_tile = tile + dir;
 				if (IsValidTile(neighbour_tile) && TileHeight(neighbour_tile) < h) {
 					edge_histogram[h]++;
 				}
