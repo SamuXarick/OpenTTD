@@ -10,21 +10,10 @@
 #ifndef MAP_TYPE_H
 #define MAP_TYPE_H
 
+#include "map_func.h"
+
 struct TileOffset;
-
-/**
- * A pair-construct of a TileOffset.
- *
- * This can be used to save the difference between to
- * tiles as a pair of x and y value.
- */
-struct TileOffsetC {
-	int16_t x;        ///< The x value of the coordinate
-	int16_t y;        ///< The y value of the coordinate
-
-	inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
-	inline constexpr TileOffsetC &operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
-};
+struct TileOffsetC;
 
 /** Minimal and maximal map width and height */
 static const uint MIN_MAP_SIZE_BITS = 6;                       ///< Minimal size of map is equal to 2 ^ MIN_MAP_SIZE_BITS

@@ -1033,7 +1033,7 @@ static void SetupFarmFieldFence(TileIndex tile, int size, uint8_t type, DiagDire
 			}
 		}
 
-		tile = AddTileOffsetCWrap(tile, diff);
+		tile += diff;
 	} while (--size);
 }
 

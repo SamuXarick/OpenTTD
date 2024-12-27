@@ -1201,7 +1201,7 @@ static bool AdvanceSignalAutoFill(TileIndex &tile, Trackdir &trackdir, bool remo
 	/* We only process starting tiles of tunnels or bridges so jump to the other end before moving further. */
 	if (IsTileType(tile, MP_TUNNELBRIDGE)) tile = GetOtherTunnelBridgeEnd(tile);
 
-	tile = AddTileOffsetCWrap(tile, _trackdelta[trackdir]);
+	tile += _trackdelta[trackdir];
 	if (tile == INVALID_TILE) return false;
 
 	/* Check for track bits on the new tile */

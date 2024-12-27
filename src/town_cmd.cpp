@@ -1050,7 +1050,7 @@ static bool IsNeighborRoadTile(TileIndex tile, const DiagDirection dir, uint dis
 		if (pos & 2) cur += tid_lt[2];
 
 		/* Test for roadbit parallel to dir and facing towards the middle axis */
-		if (IsValidTile(AddTileOffsetCWrap(tile, cur)) &&
+		if (IsValidTile(tile + cur) &&
 				GetTownRoadBits(tile + ToTileOffset(cur)) & DiagDirToRoadBits((pos & 2) ? dir : ReverseDiagDir(dir))) return true;
 	}
 	return false;
@@ -1264,7 +1264,7 @@ static bool GrowTownWithRoad(const Town *t, TileIndex tile, RoadBits rcmd)
 static bool CanRoadContinueIntoNextTile(const Town *t, const TileIndex tile, const DiagDirection road_dir)
 {
 	const TileOffsetC delta = TileOffsCByDiagDir(road_dir); // +1 tile in the direction of the road
-	TileIndex next_tile = AddTileOffsetCWrap(tile, delta); // The tile beyond which must be connectable to the target tile
+	TileIndex next_tile = tile + delta; // The tile beyond which must be connectable to the target tile
 	RoadBits rcmd = DiagDirToRoadBits(ReverseDiagDir(road_dir));
 	RoadType rt = GetTownRoadType();
 
@@ -1369,7 +1369,7 @@ static bool GrowTownWithBridge(const Town *t, const TileIndex tile, const DiagDi
 				/* Ensure the bridge is not longer than the max allowed length. */
 				return false;
 			}
-			bridge_tile = AddTileOffsetCWrap(bridge_tile, delta);
+			bridge_tile += delta;
 		} while (IsValidTile(bridge_tile) && (IsWaterTile(bridge_tile) || IsPlainRailTile(bridge_tile) || (IsNormalRoadTile(bridge_tile) && GetDisallowedRoadDirections(bridge_tile) != DRD_NONE)));
 	}
 
@@ -1481,7 +1481,7 @@ static inline bool RoadTypesAllowHouseHere(TileIndex t)
 	bool allow = false;
 
 	for (const auto &ptr : tiles) {
-		TileIndex cur_tile = AddTileOffsetCWrap(t, ptr);
+		TileIndex cur_tile = t + ptr;
 		if (!IsValidTile(cur_tile)) continue;
 
 		if (!(IsTileType(cur_tile, MP_ROAD) || IsAnyRoadStopTile(cur_tile))) continue;

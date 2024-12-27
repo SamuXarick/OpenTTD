@@ -511,6 +511,43 @@ debug_inline TileIndex& operator-=(TileIndex &tile, const TileOffset &offset) { 
 debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffset &offset) { tile = tile + offset; return tile; }
 
 /**
+ * A pair-construct of a TileOffset.
+ *
+ * This can be used to save the difference between to
+ * tiles as a pair of x and y value.
+ */
+struct TileOffsetC {
+	int16_t x;        ///< The x value of the coordinate
+	int16_t y;        ///< The y value of the coordinate
+
+	friend inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset);
+
+	debug_inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
+	debug_inline constexpr TileOffsetC& operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
+};
+
+/**
+ * Add a TileOffsetC to a TileIndex and returns the new one.
+ *
+ * Returns tile + the offset given in offset. If the result tile would end up
+ * outside of the map, INVALID_TILE is returned instead.
+ *
+ * @param tile The base tile to add the offset on
+ * @param offset The offset to add on the tile
+ * @return The resulting TileIndex
+ */
+debug_inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset)
+{
+	uint x = TileX(tile) + offset.x;
+	uint y = TileY(tile) + offset.y;
+	if (x >= Map::SizeX()) return INVALID_TILE;
+	if (y >= Map::SizeY()) return INVALID_TILE;
+	return TileXY(x, y);
+}
+
+debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffsetC &offset) { tile = tile + offset; return tile; }
+
+/**
  * Return the offset between two tiles from a TileOffsetC struct.
  *
  * This function works like #TileOffset(int, int) and returns the
@@ -568,25 +605,6 @@ inline TileOffsetC TileOffsCByDir(Direction dir)
 
 	assert(IsValidDirection(dir));
 	return _tileoffs_by_dir[dir];
-}
-
-/**
- * Add a TileOffsetC to a TileIndex and returns the new one.
- *
- * Returns tile + the diff given in diff. If the result tile would end up
- * outside of the map, INVALID_TILE is returned instead.
- *
- * @param tile The base tile to add the offset on
- * @param diff The offset to add on the tile
- * @return The resulting TileIndex
- */
-inline TileIndex AddTileOffsetCWrap(TileIndex tile, TileOffsetC diff)
-{
-	int x = TileX(tile) + diff.x;
-	int y = TileY(tile) + diff.y;
-	/* Negative value will become big positive value after cast */
-	if ((uint)x >= Map::SizeX() || (uint)y >= Map::SizeY()) return INVALID_TILE;
-	return TileXY(x, y);
 }
 
 /**

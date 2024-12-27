@@ -136,7 +136,7 @@ static std::tuple<CommandCost, TileIndex> TerraformTileHeight(TerraformerState *
 
 	/* Recurse to neighboured corners if height difference is larger than 1 */
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		TileIndex neighbour_tile = AddTileOffsetCWrap(tile, TileOffsCByDiagDir(dir));
+		TileIndex neighbour_tile = tile + TileOffsCByDiagDir(dir);
 
 		/* Not using IsValidTile as we want to also change MP_VOID tiles, which IsValidTile excludes. */
 		if (neighbour_tile == INVALID_TILE) continue;

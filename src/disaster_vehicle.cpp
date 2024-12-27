@@ -896,7 +896,7 @@ static void Disaster_CoalMine_Init()
 
 					for (uint n = 0; n < 30; n++) {
 						DisasterClearSquare(tile);
-						tile = AddTileOffsetCWrap(tile, step);
+						tile += step;
 						if (!IsValidTile(tile)) break;
 					}
 				}

@@ -2877,7 +2877,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 void RemoveDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = AddTileOffsetCWrap(t, TileOffsCByDiagDir(d));
+		TileIndex tile = t + TileOffsCByDiagDir(d);
 		if (!IsValidTile(tile)) continue;
 
 		if (IsTileType(tile, MP_STATION)) {
