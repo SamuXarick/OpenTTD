@@ -426,42 +426,62 @@ public:
 #ifdef _DEBUG
 		, x(x), y(y)
 #endif /* _DEBUG */
-	{
-	}
+	{}
+
+	debug_inline explicit TileOffset(int32_t x, int32_t y, [[maybe_unused]] bool wrap) : x(x), y(y), wrap(true) {}
 	friend inline TileIndex operator-(const TileIndex &tile, const TileOffset &offset);
 	friend inline TileIndex operator+(const TileIndex &tile, const TileOffset &offset);
+	friend inline TileIndex operator+(const TileIndex &tile, const Direction dir);
+	friend inline TileIndex operator+(const TileIndex &tile, const DiagDirection diagdir);
 
 	debug_inline TileOffset operator*(int amount) const
 	{
-		int32_t new_offset = this->offset * amount;
+		if (this->wrap) {
+			TileOffset result = TileOffset(this->x * amount, this->y * amount);
+			return result;
+		} else {
+			int32_t new_offset = this->offset * amount;
 #ifdef _DEBUG
-		TileOffset result = TileOffset(this->x * amount, this->y * amount);
-		assert(result.offset == new_offset);
-		return result;
+			TileOffset result = TileOffset(this->x * amount, this->y * amount);
+			assert(result.offset == new_offset);
+			return result;
 #else
-		return TileOffset(new_offset);
+			return TileOffset(new_offset);
 #endif /* _DEBUG */
+		}
 	}
 
 	debug_inline TileOffset& operator*=(int amount)
 	{
-		this->offset *= amount;
+		if (this->wrap) {
+			this->x *= amount;
+			this->y *= amount;
+		} else {
+			this->offset *= amount;
 #ifdef _DEBUG
-		this->x *= amount;
-		this->y *= amount;
-		assert(this->offset == GetOffset(this->x, this->y));
+			this->x *= amount;
+			this->y *= amount;
+			assert(this->offset == GetOffset(this->x, this->y));
 #endif /* _DEBUG */
+		}
 		return *this;
 	}
 
 	debug_inline TileOffset& operator+=(const TileOffset &other)
 	{
-		this->offset += other.offset;
+		if (this->wrap && other.wrap) {
+			this->x += other.x;
+			this->y += other.y;
+		} else if (!this->wrap && !other.wrap) {
+			this->offset += other.offset;
 #ifdef _DEBUG
-		this->x += other.x;
-		this->y += other.y;
-		assert(this->offset == GetOffset(this->x, this->y));
+			this->x += other.x;
+			this->y += other.y;
+			assert(this->offset == GetOffset(this->x, this->y));
 #endif /* _DEBUG */
+		} else {
+			NOT_REACHED();
+		}
 		return *this;
 	}
 
@@ -469,10 +489,9 @@ public:
 
 private:
 	int32_t offset;
-#ifdef _DEBUG
 	int32_t x;
 	int32_t y;
-#endif /* _DEBUG */
+	bool wrap = false;
 
 #ifndef _DEBUG
 	debug_inline explicit TileOffset(int32_t offset) : offset(offset) {}
@@ -486,23 +505,39 @@ private:
 
 debug_inline TileIndex operator+(const TileIndex &tile, const TileOffset &offset)
 {
-	TileIndex result = tile + offset.offset;
+	TileIndex result;
+	if (offset.wrap) {
+		uint x = TileX(tile) + offset.x;
+		uint y = TileY(tile) + offset.y;
+		if (x >= Map::SizeX() || y >= Map::SizeY()) {
+			result = INVALID_TILE;
+		} else {
+			result = TileXY(x, y);
+		}
+	} else {
+		result = tile + offset.offset;
 #ifdef _DEBUG
-	uint x = TileX(tile) + offset.x;
-	uint y = TileY(tile) + offset.y;
-	assert(x < Map::SizeX());
-	assert(y < Map::SizeY());
-	assert(result == TileXY(x, y));
+		uint x = TileX(tile) + offset.x;
+		uint y = TileY(tile) + offset.y;
+		assert(x < Map::SizeX());
+		assert(y < Map::SizeY());
+		assert(result == TileXY(x, y));
 #endif /* _DEBUG */
+	}
 	return result;
 }
 
 debug_inline TileIndex operator-(const TileIndex &tile, const TileOffset &offset)
 {
-	TileIndex result = tile - offset.offset;
+	TileIndex result;
+	if (offset.wrap) {
+		result = tile + TileOffset(-offset.x, -offset.y);
+	} else {
+		result = tile - offset.offset;
 #ifdef _DEBUG
-	assert(result == tile + TileOffset(-offset.x, -offset.y));
+		assert(result == tile + TileOffset(-offset.x, -offset.y));
 #endif /* _DEBUG */
+	}
 	return result;
 }
 
@@ -521,12 +556,25 @@ struct TileOffsetC {
 	int16_t y;        ///< The y value of the coordinate
 
 	friend inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset);
-	friend inline TileIndex operator+(const TileIndex &tile, const Direction dir);
-	friend inline TileIndex operator+(const TileIndex &tile, const DiagDirection diagdir);
 
 	debug_inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
 	debug_inline constexpr TileOffsetC& operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
 };
+
+/**
+ * Return the offset between two tiles from a TileOffsetC struct.
+ *
+ * This function works like #TileOffset(int, int) and returns the
+ * difference between two tiles.
+ *
+ * @param tidc The coordinate of the offset as TileOffsetC
+ * @return The difference between two tiles.
+ * @see TileOffset(int, int)
+ */
+inline TileOffset ToTileOffset(TileOffsetC tidc, bool wrap = false)
+{
+	return wrap ? TileOffset(tidc.x, tidc.y, true) : TileOffset(tidc.x, tidc.y);
+}
 
 /**
  * Add a TileOffsetC to a TileIndex and returns the new one.
@@ -549,21 +597,12 @@ debug_inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offse
 
 debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffsetC &offset) { tile = tile + offset; return tile; }
 
-/**
- * Adds a Direction as a TileOffsetC offset to a TileIndex and returns the new tile.
- *
- * Returns tile + the offset given in offset. If the result tile would end up
- * outside of the map, INVALID_TILE is returned instead.
- *
- * @param dir The given direction
- * @return The resulting TileIndex
- */
 debug_inline TileIndex operator+(TileIndex &tile, Direction dir)
 {
 	extern const TileOffsetC _tileoffs_by_dir[];
 
 	assert(IsValidDirection(dir));
-	return tile + _tileoffs_by_dir[dir];
+	return tile + ToTileOffset(_tileoffs_by_dir[dir], true);
 }
 
 /**
@@ -580,25 +619,10 @@ debug_inline TileIndex operator+(TileIndex &tile, DiagDirection diagdir)
 	extern const TileOffsetC _tileoffs_by_diagdir[];
 
 	assert(IsValidDiagDirection(diagdir));
-	return tile + _tileoffs_by_diagdir[diagdir];
+	return tile + ToTileOffset(_tileoffs_by_diagdir[diagdir], true);
 }
 
 debug_inline TileIndex operator+=(TileIndex &tile, DiagDirection diagdir) { tile = tile + diagdir; return tile; }
-
-/**
- * Return the offset between two tiles from a TileOffsetC struct.
- *
- * This function works like #TileOffset(int, int) and returns the
- * difference between two tiles.
- *
- * @param tidc The coordinate of the offset as TileOffsetC
- * @return The difference between two tiles.
- * @see TileOffset(int, int)
- */
-inline TileOffset ToTileOffset(TileOffsetC tidc)
-{
-	return TileOffset(tidc.x, tidc.y);
-}
 
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
