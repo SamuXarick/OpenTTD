@@ -1782,7 +1782,7 @@ void UpdateLevelCrossing(TileIndex tile, bool sound, bool force_bar)
 
 	/* Check if an adjacent crossing is barred. */
 	for (DiagDirection dir : { dir1, dir2 }) {
-		for (TileIndex t = tile; !forced_state && t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == axis; t = TileAddByDiagDir(t, dir)) {
+		for (TileIndex t = tile; !forced_state && t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == axis; t += TileOffsByDiagDir(dir)) {
 			forced_state |= CheckLevelCrossing(t);
 		}
 	}
@@ -1791,7 +1791,7 @@ void UpdateLevelCrossing(TileIndex tile, bool sound, bool force_bar)
 	 * we need to update those tiles. We start with the tile itself, then look along the road axis. */
 	UpdateLevelCrossingTile(tile, sound, forced_state);
 	for (DiagDirection dir : { dir1, dir2 }) {
-		for (TileIndex t = TileAddByDiagDir(tile, dir); t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == axis; t = TileAddByDiagDir(t, dir)) {
+		for (TileIndex t = tile + TileOffsByDiagDir(dir); t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == axis; t += TileOffsByDiagDir(dir)) {
 			UpdateLevelCrossingTile(t, sound, forced_state);
 		}
 	}
@@ -1807,7 +1807,7 @@ void MarkDirtyAdjacentLevelCrossingTiles(TileIndex tile, Axis road_axis)
 	const DiagDirection dir1 = AxisToDiagDir(road_axis);
 	const DiagDirection dir2 = ReverseDiagDir(dir1);
 	for (DiagDirection dir : { dir1, dir2 }) {
-		const TileIndex t = TileAddByDiagDir(tile, dir);
+		const TileIndex t = tile + TileOffsByDiagDir(dir);
 		if (t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis) {
 			MarkTileDirtyByTile(t);
 		}
@@ -2367,7 +2367,7 @@ static void ClearPathReservation(const Train *v, TileIndex tile, Trackdir track_
 			}
 		}
 	} else if (IsRailStationTile(tile)) {
-		TileIndex new_tile = TileAddByDiagDir(tile, dir);
+		TileIndex new_tile = tile + TileOffsByDiagDir(dir);
 		/* If the new tile is not a further tile of the same station, we
 		 * clear the reservation for the whole platform. */
 		if (!IsCompatibleTrainStationTile(new_tile, tile)) {
@@ -2807,7 +2807,7 @@ static Track ChooseTrainTrack(Train *v, TileIndex tile, DiagDirection enterdir, 
 	while (!IsSafeWaitingPosition(v, res_dest.tile, res_dest.trackdir, true, _settings_game.pf.forbid_90_deg)) {
 		/* Extend reservation until we have found a safe position. */
 		DiagDirection exitdir = TrackdirToExitdir(res_dest.trackdir);
-		TileIndex     next_tile = TileAddByDiagDir(res_dest.tile, exitdir);
+		TileIndex     next_tile = res_dest.tile + TileOffsByDiagDir(exitdir);
 		TrackBits     reachable = TrackdirBitsToTrackBits((TrackdirBits)(GetTileTrackStatus(next_tile, TRANSPORT_RAIL, 0))) & DiagdirReachesTracks(exitdir);
 		if (Rail90DegTurnDisallowed(GetTileRailType(res_dest.tile), GetTileRailType(next_tile))) {
 			reachable &= ~TrackCrossesTracks(TrackdirToTrack(res_dest.trackdir));
@@ -2876,7 +2876,7 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 			return false;
 		} else {
 			/* Depot not reserved, but the next tile might be. */
-			TileIndex next_tile = TileAddByDiagDir(v->tile, GetRailDepotDirection(v->tile));
+			TileIndex next_tile = v->tile + TileOffsByDiagDir(GetRailDepotDirection(v->tile));
 			if (HasReservedTracks(next_tile, DiagdirReachesTracks(GetRailDepotDirection(v->tile)))) return false;
 		}
 	}
@@ -2907,7 +2907,7 @@ bool TryPathReserve(Train *v, bool mark_as_stuck, bool first_tile_okay)
 	}
 
 	DiagDirection exitdir = TrackdirToExitdir(origin.trackdir);
-	TileIndex     new_tile = TileAddByDiagDir(origin.tile, exitdir);
+	TileIndex     new_tile = origin.tile + TileOffsByDiagDir(exitdir);
 	TrackBits     reachable = TrackdirBitsToTrackBits(TrackStatusToTrackdirBits(GetTileTrackStatus(new_tile, TRANSPORT_RAIL, 0)) & DiagdirReachesTrackdirs(exitdir));
 
 	if (Rail90DegTurnDisallowed(GetTileRailType(origin.tile), GetTileRailType(new_tile))) reachable &= ~TrackCrossesTracks(TrackdirToTrack(origin.trackdir));
@@ -3380,7 +3380,7 @@ bool TrainController(Train *v, Vehicle *nomove, bool reverse)
 							v->progress = 255; // make sure that every bit of acceleration will hit the signal again, so speed stays 0.
 							if (!_settings_game.pf.reverse_at_signals || ++v->wait_counter < _settings_game.pf.wait_twoway_signal * Ticks::DAY_TICKS * 2) {
 								DiagDirection exitdir = TrackdirToExitdir(i);
-								TileIndex o_tile = TileAddByDiagDir(gp.new_tile, exitdir);
+								TileIndex o_tile = gp.new_tile + TileOffsByDiagDir(exitdir);
 
 								exitdir = ReverseDiagDir(exitdir);
 

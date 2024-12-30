@@ -211,7 +211,7 @@ struct BuildDocksToolbarWindow : Window {
 			case WID_DT_STATION: { // Build station button
 				/* Determine the watery part of the dock. */
 				DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile));
-				TileIndex tile_to = (dir != INVALID_DIAGDIR ? TileAddByDiagDir(tile, ReverseDiagDir(dir)) : tile);
+				TileIndex tile_to = (dir != INVALID_DIAGDIR ? tile + TileOffsByDiagDir(ReverseDiagDir(dir)) : tile);
 
 				bool adjacent = _ctrl_pressed;
 				auto proc = [=](bool test, StationID to_join) -> bool {
@@ -288,9 +288,9 @@ struct BuildDocksToolbarWindow : Window {
 			DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile_from));
 			if (IsValidDiagDirection(dir)) {
 				/* Locks and docks always select the tile "down" the slope. */
-				tile_to = TileAddByDiagDir(tile_from, ReverseDiagDir(dir));
+				tile_to = tile_from + TileOffsByDiagDir(ReverseDiagDir(dir));
 				/* Locks also select the tile "up" the slope. */
-				if (this->last_clicked_widget == WID_DT_LOCK) tile_from = TileAddByDiagDir(tile_from, dir);
+				if (this->last_clicked_widget == WID_DT_LOCK) tile_from += TileOffsByDiagDir(dir);
 			}
 		}
 

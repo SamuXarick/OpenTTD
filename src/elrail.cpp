@@ -135,7 +135,7 @@ static TrackBits MaskWireBits(TileIndex t, TrackBits tracks)
 		 * from this tile, mark all trackdirs that can be reached from the neighbour tile
 		 * as needing no catenary. We make an exception for blocked station tiles with a matching
 		 * axis that still display wires to preserve visual continuity. */
-		TileIndex next_tile = TileAddByDiagDir(t, d);
+		TileIndex next_tile = t + TileOffsByDiagDir(d);
 		RailType rt = GetTileRailType(next_tile);
 		if (rt == INVALID_RAILTYPE || !HasRailCatenary(rt) ||
 				((TrackStatusToTrackBits(GetTileTrackStatus(next_tile, TRANSPORT_RAIL, 0)) & DiagdirReachesTracks(d)) == TRACK_BIT_NONE &&

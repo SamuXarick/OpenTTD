@@ -538,18 +538,6 @@ inline TileIndexDiffC TileOffsByDir(Direction dir)
 }
 
 /**
- * Adds a DiagDir to a tile.
- *
- * @param tile The current tile
- * @param dir The direction in which we want to step
- * @return the moved tile
- */
-inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
-{
-	return tile + TileOffsByDiagDir(dir);
-}
-
-/**
  * Determines the DiagDirection to get from one tile to another.
  * The tiles do not necessarily have to be adjacent.
  * @param tile_from Origin tile
