@@ -58,7 +58,7 @@ struct OrthogonalTileArea {
 	 */
 	TileIndex GetCenterTile() const
 	{
-		return TileAddXY(this->tile, this->w / 2, this->h / 2);
+		return this->tile + TileIndexDiffC(this->w / 2, this->h / 2);
 	}
 
 	OrthogonalTileIterator begin() const;
