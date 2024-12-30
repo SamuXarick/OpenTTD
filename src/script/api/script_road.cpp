@@ -459,7 +459,7 @@ static std::optional<RoadPartOrientation> ToRoadPartOrientation(const TileIndex 
  */
 static bool NeighbourHasReachableRoad(::RoadType rt, TileIndex start_tile, DiagDirection neighbour)
 {
-	TileIndex neighbour_tile = start_tile + ::TileOffsByDiagDir(neighbour);
+	TileIndex neighbour_tile = start_tile + neighbour;
 	if (!HasBit(::GetPresentRoadTypes(neighbour_tile), rt)) return false;
 
 	switch (::GetTileType(neighbour_tile)) {
@@ -497,14 +497,14 @@ static bool NeighbourHasReachableRoad(::RoadType rt, TileIndex start_tile, DiagD
 {
 	if (!IsRoadDepotTile(depot)) return INVALID_TILE;
 
-	return depot + ::TileOffsByDiagDir(::GetRoadDepotDirection(depot));
+	return depot + ::GetRoadDepotDirection(depot);
 }
 
 /* static */ TileIndex ScriptRoad::GetRoadStationFrontTile(TileIndex station)
 {
 	if (!IsRoadStationTile(station)) return INVALID_TILE;
 
-	if (::IsBayRoadStopTile(station)) return station + ::TileOffsByDiagDir(::GetBayRoadStopDir(station));
+	if (::IsBayRoadStopTile(station)) return station + ::GetBayRoadStopDir(station);
 
 	return station - ::TileOffsByAxis(::GetDriveThroughStopAxis(station));
 }

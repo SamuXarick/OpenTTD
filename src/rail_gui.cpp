@@ -144,13 +144,13 @@ void CcRailDepot(Commands, const CommandCost &result, TileIndex tile, RailType, 
 	if (_settings_client.sound.confirm) SndPlayTileFx(SND_20_CONSTRUCTION_RAIL, tile);
 	if (!_settings_client.gui.persistent_buildingtools) ResetObjectToPlace();
 
-	tile += TileOffsByDiagDir(dir);
+	tile += dir;
 
 	if (IsTileType(tile, MP_RAILWAY)) {
 		PlaceExtraDepotRail(tile, _place_depot_extra_dir[dir], _place_depot_extra_track[dir]);
 
 		/* Don't place the rail straight out of the depot of there is another depot across from it. */
-		Tile double_depot_tile = tile + TileOffsByDiagDir(dir);
+		Tile double_depot_tile = tile + dir;
 		bool is_double_depot = IsValidTile(double_depot_tile) && IsRailDepotTile(double_depot_tile);
 		if (!is_double_depot) PlaceExtraDepotRail(tile, _place_depot_extra_dir[dir + 4], _place_depot_extra_track[dir + 4]);
 
@@ -1723,7 +1723,7 @@ struct BuildRailDepotWindow : public PickerWindowBase {
 			AutoRestoreBackup dpi_backup(_cur_dpi, &tmp_dpi);
 			int x = (ir.Width()  - ScaleSpriteTrad(64)) / 2 + ScaleSpriteTrad(31);
 			int y = (ir.Height() + ScaleSpriteTrad(48)) / 2 - ScaleSpriteTrad(31);
-			DrawTrainDepotSprite(x, y, widget - WID_BRAD_DEPOT_NE + DIAGDIR_NE, _cur_railtype);
+			DrawTrainDepotSprite(x, y, widget - WID_BRAD_DEPOT_NE + static_cast<int>(DIAGDIR_NE), _cur_railtype);
 		}
 	}
 

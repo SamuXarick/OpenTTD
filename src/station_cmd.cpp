@@ -1517,7 +1517,7 @@ CommandCost CmdBuildRailStation(DoCommandFlag flags, TileIndex tile_org, RailTyp
 			if (IsStationTileBlocked(tile)) continue;
 
 			DiagDirection dir = AxisToDiagDir(axis);
-			TileIndexDiffC tile_offset = TileOffsByDiagDir(dir);
+			TileIndexDiffC tile_offset = TileIndexDiffCByDiagDir(dir);
 			TileIndex platform_begin = tile;
 			TileIndex platform_end = tile;
 
@@ -2813,7 +2813,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 	if (ret.Failed()) return ret;
 	cost.AddCost(ret);
 
-	TileIndex tile_cur = tile + TileOffsByDiagDir(direction);
+	TileIndex tile_cur = tile + direction;
 
 	if (!HasTileWaterGround(tile_cur) || !IsTileFlat(tile_cur)) {
 		return CommandCost(STR_ERROR_SITE_UNSUITABLE);
@@ -2829,7 +2829,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 	if (ret.Failed()) return ret;
 	if (add_cost) cost.AddCost(ret);
 
-	tile_cur += TileOffsByDiagDir(direction);
+	tile_cur += direction;
 	if (!IsTileType(tile_cur, MP_WATER) || !IsTileFlat(tile_cur)) {
 		return CommandCost(STR_ERROR_SITE_UNSUITABLE);
 	}
@@ -2850,7 +2850,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 
 	if (flags & DC_EXEC) {
 		st->ship_station.Add(tile);
-		TileIndex flat_tile = tile + TileOffsByDiagDir(direction);
+		TileIndex flat_tile = tile + direction;
 		st->ship_station.Add(flat_tile);
 		st->AddFacility(FACIL_DOCK, tile);
 
@@ -2877,7 +2877,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 void RemoveDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = t + TileOffsByDiagDir(d);
+		TileIndex tile = t + d;
 		if (!IsValidTile(tile)) continue;
 
 		if (IsTileType(tile, MP_STATION)) {
@@ -2901,7 +2901,7 @@ void ClearDockingTilesCheckingNeighbours(TileIndex tile)
 
 	/* Clear and maybe re-set docking tile */
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex docking_tile = tile + TileOffsByDiagDir(d);
+		TileIndex docking_tile = tile + d;
 		if (!IsValidTile(docking_tile)) continue;
 
 		if (IsPossibleDockingTile(docking_tile)) {
@@ -2924,10 +2924,10 @@ static TileIndex FindDockLandPart(TileIndex t)
 	if (gfx < GFX_DOCK_BASE_WATER_PART) return t;
 
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = t + TileOffsByDiagDir(d);
+		TileIndex tile = t + d;
 		if (!IsValidTile(tile)) continue;
 		if (!IsDockTile(tile)) continue;
-		if (GetStationGfx(tile) < GFX_DOCK_BASE_WATER_PART && tile + TileOffsByDiagDir(GetDockDirection(tile)) == t) return tile;
+		if (GetStationGfx(tile) < GFX_DOCK_BASE_WATER_PART && tile + GetDockDirection(tile) == t) return tile;
 	}
 
 	return INVALID_TILE;
@@ -2949,7 +2949,7 @@ static CommandCost RemoveDock(TileIndex tile, DoCommandFlag flags)
 
 	TileIndex tile1 = FindDockLandPart(tile);
 	if (tile1 == INVALID_TILE) return CMD_ERROR;
-	TileIndex tile2 = tile1 + TileOffsByDiagDir(GetDockDirection(tile1));
+	TileIndex tile2 = tile1 + GetDockDirection(tile1);
 
 	ret = EnsureNoVehicleOnGround(tile1);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile2);
@@ -3252,7 +3252,7 @@ draw_default_foundation:
 			DrawWaterClassGround(ti);
 		} else {
 			assert(IsDock(ti->tile));
-			TileIndex water_tile = ti->tile + TileOffsByDiagDir(GetDockDirection(ti->tile));
+			TileIndex water_tile = ti->tile + GetDockDirection(ti->tile);
 			WaterClass wc = HasTileWaterClass(water_tile) ? GetWaterClass(water_tile) : WATER_CLASS_INVALID;
 			if (wc == WATER_CLASS_SEA) {
 				DrawShoreTile(ti->tileh);

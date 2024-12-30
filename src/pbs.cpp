@@ -57,7 +57,7 @@ TrackBits GetReservedTrackbits(TileIndex t)
 void SetRailStationPlatformReservation(TileIndex start, DiagDirection dir, bool b)
 {
 	TileIndex     tile = start;
-	TileIndexDiffC diff = TileOffsByDiagDir(dir);
+	TileIndexDiffC diff = TileIndexDiffCByDiagDir(dir);
 
 	assert(IsRailStationTile(start));
 	assert(GetRailStationAxis(start) == DiagDirToAxis(dir));
@@ -204,7 +204,7 @@ static PBSTileInfo FollowReservation(Owner o, RailTypes rts, TileIndex tile, Tra
 		if (reserved == TRACKDIR_BIT_NONE) {
 			if (ft.is_station) {
 				/* Check skipped station tiles as well, maybe our reservation ends inside the station. */
-				TileIndexDiffC diff = TileOffsByDiagDir(ft.exitdir);
+				TileIndexDiffC diff = TileIndexDiffCByDiagDir(ft.exitdir);
 				while (ft.tiles_skipped-- > 0) {
 					ft.new_tile -= diff;
 					if (HasStationReservation(ft.new_tile)) {
@@ -305,7 +305,7 @@ PBSTileInfo FollowTrainReservation(const Train *v, Vehicle **train_on_res)
 			 * has stopped on the last platform tile where we haven't
 			 * found a train. Also check all previous platform tiles
 			 * for a possible train. */
-			TileIndexDiffC diff = TileOffsByDiagDir(TrackdirToExitdir(ReverseTrackdir(ftoti.res.trackdir)));
+			TileIndexDiffC diff = TileIndexDiffCByDiagDir(TrackdirToExitdir(ReverseTrackdir(ftoti.res.trackdir)));
 			for (TileIndex st_tile = ftoti.res.tile + diff; *train_on_res == nullptr && IsCompatibleTrainStationTile(st_tile, ftoti.res.tile); st_tile += diff) {
 				FindVehicleOnPos(st_tile, &ftoti, FindTrainOnTrackEnum);
 				if (ftoti.best != nullptr) *train_on_res = ftoti.best->First();
@@ -350,7 +350,7 @@ Train *GetTrainForReservation(TileIndex tile, Track track)
 
 		/* Special case for stations: check the whole platform for a vehicle. */
 		if (IsRailStationTile(ftoti.res.tile)) {
-			TileIndexDiffC diff = TileOffsByDiagDir(TrackdirToExitdir(ReverseTrackdir(ftoti.res.trackdir)));
+			TileIndexDiffC diff = TileIndexDiffCByDiagDir(TrackdirToExitdir(ReverseTrackdir(ftoti.res.trackdir)));
 			for (TileIndex st_tile = ftoti.res.tile + diff; IsCompatibleTrainStationTile(st_tile, ftoti.res.tile); st_tile += diff) {
 				FindVehicleOnPos(st_tile, &ftoti, FindTrainOnTrackEnum);
 				if (ftoti.best != nullptr) return ftoti.best;

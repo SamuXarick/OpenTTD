@@ -681,7 +681,7 @@ static bool DisasterTick_Submarine(DisasterVehicle *v)
 
 	if (!HasBit(v->tick_counter, 0)) return true;
 
-	TileIndex tile = v->tile + TileOffsByDiagDir(DirToDiagDir(v->direction));
+	TileIndex tile = v->tile + DirToDiagDir(v->direction);
 	if (IsValidTile(tile)) {
 		TrackBits trackbits = TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_WATER, 0));
 		if (trackbits == TRACK_BIT_ALL && !Chance16(1, 90)) {
@@ -892,7 +892,7 @@ static void Disaster_CoalMine_Init()
 
 				{
 					TileIndex tile = i->location.tile;
-					TileIndexDiffC step = TileOffsByDiagDir((DiagDirection)GB(Random(), 0, 2));
+					TileIndexDiffC step = TileIndexDiffCByDiagDir((DiagDirection)GB(Random(), 0, 2));
 
 					for (uint n = 0; n < 30; n++) {
 						DisasterClearSquare(tile);

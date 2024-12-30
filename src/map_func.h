@@ -455,6 +455,11 @@ inline TileIndexDiffC TileIndexDiffCByDiagDir(DiagDirection dir)
 	return _tileoffs_by_diagdir[dir];
 }
 
+debug_inline TileIndex operator+(TileIndex &tile, DiagDirection diagdir) { return tile + TileIndexDiffCByDiagDir(diagdir); }
+debug_inline TileIndex operator+(const TileIndex &tile, DiagDirection diagdir) { return tile + TileIndexDiffCByDiagDir(diagdir); }
+debug_inline TileIndex operator-(TileIndex &tile, DiagDirection diagdir) { return tile - TileIndexDiffCByDiagDir(diagdir); }
+debug_inline TileIndex &operator+=(TileIndex &tile, DiagDirection diagdir) { tile = tile + diagdir; return tile; }
+
 /**
  * Returns the TileIndexDiffC offset from a Direction.
  *
@@ -510,21 +515,6 @@ inline TileIndexDiffC TileOffsByAxis(Axis axis)
 
 	assert(IsValidAxis(axis));
 	return _tileoffs_by_axis[axis];
-}
-
-/**
- * Convert a DiagDirection to a TileIndexDiffC
- *
- * @param dir The DiagDirection
- * @return The resulting TileIndexDiffC
- * @see TileIndexDiffCByDiagDir
- */
-inline TileIndexDiffC TileOffsByDiagDir(DiagDirection dir)
-{
-	extern const TileIndexDiffC _tileoffs_by_diagdir[DIAGDIR_END];
-
-	assert(IsValidDiagDirection(dir));
-	return _tileoffs_by_diagdir[dir];
 }
 
 /**

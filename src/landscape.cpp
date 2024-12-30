@@ -1033,7 +1033,7 @@ static bool MakeLake(TileIndex tile, void *user_data)
 	if (_settings_game.game_creation.landscape == LT_TROPIC && GetTropicZone(tile) == TROPICZONE_DESERT) return false;
 
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
+		TileIndex t2 = tile + d;
 		if (IsWaterTile(t2)) {
 			MakeRiverAndModifyDesertZoneAround(tile);
 			return false;
@@ -1082,7 +1082,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 		/* First, determine the desired slope based on adjacent river tiles. This doesn't necessarily match the origin tile for the CircularTileSearch. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex other_tile = tile + TileOffsByDiagDir(d);
+			TileIndex other_tile = tile + d;
 			Slope other_slope = GetTileSlope(other_tile);
 
 			/* Only consider river tiles. */
@@ -1113,7 +1113,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		if (desired_slope == SLOPE_FLAT && IsSlopeWithThreeCornersRaised(cur_slope)) {
 			/* Make sure we're not affecting an existing river slope tile. */
 			for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-				TileIndex other_tile = tile + TileOffsByDiagDir(d);
+				TileIndex other_tile = tile + d;
 				if (IsInclinedSlope(GetTileSlope(other_tile)) && IsWaterTile(other_tile)) return false;
 			}
 			Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, ComplementSlope(cur_slope), true);
@@ -1127,7 +1127,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
 				if (d == DIAGDIRDIFF_SAME || d == DIAGDIRDIFF_REVERSE) continue;
 
-				TileIndex other_tile = (tile + TileOffsByDiagDir(ChangeDiagDir(river_direction, d)));
+				TileIndex other_tile = (tile + ChangeDiagDir(river_direction, d));
 				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return false;
 			}
 
@@ -1155,8 +1155,8 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	if (IsInclinedSlope(cur_slope)) {
 		DiagDirection slope_direction = GetInclinedSlopeDirection(cur_slope);
 
-		TileIndex upstream_tile = tile + TileOffsByDiagDir(slope_direction);
-		TileIndex downstream_tile = tile + TileOffsByDiagDir(ReverseDiagDir(slope_direction));
+		TileIndex upstream_tile = tile + slope_direction;
+		TileIndex downstream_tile = tile + ReverseDiagDir(slope_direction);
 
 		/* Don't look outside the map. */
 		if (!IsValidTile(upstream_tile) || !IsValidTile(downstream_tile)) return false;
@@ -1241,7 +1241,7 @@ static void River_GetNeighbours(AyStar *aystar, PathNode *current)
 
 	aystar->neighbours.clear();
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-		TileIndex t2 = tile + TileOffsByDiagDir(d);
+		TileIndex t2 = tile + d;
 		if (IsValidTile(t2) && FlowsDown(tile, t2)) {
 			auto &neighbour = aystar->neighbours.emplace_back();
 			neighbour.tile = t2;
@@ -1351,7 +1351,7 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 		}
 
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex t2 = end + TileOffsByDiagDir(d);
+			TileIndex t2 = end + d;
 			if (IsValidTile(t2) && !IS_MARKED(t2) && FlowsDown(end, t2)) {
 				SET_MARK(t2);
 				count++;
@@ -1478,7 +1478,7 @@ static uint CalculateCoverageLine(uint coverage, uint edge_multiplier)
 		if (edge_multiplier != 0) {
 			/* Check if any of our neighbours is below us. */
 			for (auto dir : neighbour_dir) {
-				TileIndex neighbour_tile = tile + TileIndexDiffCByDiagDir(dir);
+				TileIndex neighbour_tile = tile + dir;
 				if (IsValidTile(neighbour_tile) && TileHeight(neighbour_tile) < h) {
 					edge_histogram[h]++;
 				}

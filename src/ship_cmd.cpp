@@ -398,9 +398,9 @@ static bool CheckShipLeaveDepot(Ship *v)
 	Axis axis = GetShipDepotAxis(tile);
 
 	DiagDirection north_dir = ReverseDiagDir(AxisToDiagDir(axis));
-	TileIndex north_neighbour = tile + TileOffsByDiagDir(north_dir);
+	TileIndex north_neighbour = tile + north_dir;
 	DiagDirection south_dir = AxisToDiagDir(axis);
-	TileIndex south_neighbour = tile + 2 * TileOffsByDiagDir(south_dir);
+	TileIndex south_neighbour = tile + 2 * TileIndexDiffCByDiagDir(south_dir);
 
 	TrackBits north_tracks = DiagdirReachesTracks(north_dir) & GetTileShipTrackStatus(north_neighbour);
 	TrackBits south_tracks = DiagdirReachesTracks(south_dir) & GetTileShipTrackStatus(south_neighbour);
@@ -649,7 +649,7 @@ bool IsShipDestinationTile(TileIndex tile, StationID station)
 	assert(IsDockingTile(tile));
 	/* Check each tile adjacent to docking tile. */
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex t = tile + TileOffsByDiagDir(d);
+		TileIndex t = tile + d;
 		if (!IsValidTile(t)) continue;
 		if (IsDockTile(t) && GetStationIndex(t) == station && IsDockWaterPart(t)) return true;
 		if (IsTileType(t, MP_INDUSTRY)) {
@@ -753,7 +753,7 @@ static void ShipController(Ship *v)
 						SetWindowWidgetDirty(WC_VEHICLE_VIEW, v->index, WID_VV_START_STOP);
 						/* Test if continuing forward would lead to a dead-end, moving into the dock. */
 						const DiagDirection exitdir = VehicleExitDir(v->direction, v->state);
-						const TileIndex tile = v->tile + TileOffsByDiagDir(exitdir);
+						const TileIndex tile = v->tile + exitdir;
 						if (TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_WATER, 0, exitdir)) == TRACK_BIT_NONE) return ReverseShip(v);
 					} else if (v->dest_tile != 0) {
 						/* We have a target, let's see if we reached it... */

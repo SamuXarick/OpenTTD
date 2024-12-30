@@ -285,7 +285,7 @@ static SigFlags ExploreSegment(Owner owner)
 					if (enterdir == INVALID_DIAGDIR) { // from 'inside' - train just entered or left the depot
 						if (!(flags & SF_TRAIN) && HasVehicleOnPos(tile, nullptr, &TrainOnTileEnum)) flags |= SF_TRAIN;
 						exitdir = GetRailDepotDirection(tile);
-						tile += TileOffsByDiagDir(exitdir);
+						tile += exitdir;
 						enterdir = ReverseDiagDir(exitdir);
 						break;
 					} else if (enterdir == GetRailDepotDirection(tile)) { // entered a depot
@@ -346,7 +346,7 @@ static SigFlags ExploreSegment(Owner owner)
 
 				for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) { // test all possible exit directions
 					if (dir != enterdir && (tracks & _enterdir_to_trackbits[dir])) { // any track incidating?
-						TileIndex newtile = tile + TileOffsByDiagDir(dir);  // new tile to check
+						TileIndex newtile = tile + dir;  // new tile to check
 						DiagDirection newdir = ReverseDiagDir(dir); // direction we are entering from
 						if (!MaybeAddToTodoSet(newtile, newdir, tile, dir)) return flags | SF_FULL;
 					}
@@ -362,7 +362,7 @@ static SigFlags ExploreSegment(Owner owner)
 				if (IsStationTileBlocked(tile)) continue; // 'eye-candy' station tile
 
 				if (!(flags & SF_TRAIN) && HasVehicleOnPos(tile, nullptr, &TrainOnTileEnum)) flags |= SF_TRAIN;
-				tile += TileOffsByDiagDir(exitdir);
+				tile += exitdir;
 				break;
 
 			case MP_ROAD:
@@ -371,7 +371,7 @@ static SigFlags ExploreSegment(Owner owner)
 				if (DiagDirToAxis(enterdir) == GetCrossingRoadAxis(tile)) continue; // different axis
 
 				if (!(flags & SF_TRAIN) && HasVehicleOnPos(tile, nullptr, &TrainOnTileEnum)) flags |= SF_TRAIN;
-				tile += TileOffsByDiagDir(exitdir);
+				tile += exitdir;
 				break;
 
 			case MP_TUNNELBRIDGE: {
@@ -383,7 +383,7 @@ static SigFlags ExploreSegment(Owner owner)
 					if (!(flags & SF_TRAIN) && HasVehicleOnPos(tile, nullptr, &TrainOnTileEnum)) flags |= SF_TRAIN;
 					enterdir = dir;
 					exitdir = ReverseDiagDir(dir);
-					tile += TileOffsByDiagDir(exitdir); // just skip to next tile
+					tile += exitdir; // just skip to next tile
 				} else { // NOT incoming from the wormhole!
 					if (ReverseDiagDir(enterdir) != dir) continue;
 					if (!(flags & SF_TRAIN) && HasVehicleOnPos(tile, nullptr, &TrainOnTileEnum)) flags |= SF_TRAIN;
@@ -521,14 +521,14 @@ static SigSegState UpdateSignalsInBuffer(Owner owner)
 				if ((TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_RAIL, 0)) & _enterdir_to_trackbits[dir]) != TRACK_BIT_NONE) {
 					/* only add to set when there is some 'interesting' track */
 					_tbdset.Add(tile, dir);
-					_tbdset.Add(tile + TileOffsByDiagDir(dir), ReverseDiagDir(dir));
+					_tbdset.Add(tile + dir, ReverseDiagDir(dir));
 					break;
 				}
 				[[fallthrough]];
 
 			default:
 				/* jump to next tile */
-				tile = tile + TileOffsByDiagDir(dir);
+				tile += dir;
 				dir = ReverseDiagDir(dir);
 				if ((TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_RAIL, 0)) & _enterdir_to_trackbits[dir]) != TRACK_BIT_NONE) {
 					_tbdset.Add(tile, dir);

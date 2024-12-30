@@ -949,7 +949,7 @@ do_clear:;
  */
 static bool CanConnectToRoad(TileIndex tile, RoadType rt, DiagDirection dir)
 {
-	tile += TileOffsByDiagDir(dir);
+	tile += dir;
 	if (!IsValidTile(tile) || !MayHaveRoad(tile)) return false;
 
 	RoadTramType rtt = GetRoadTramType(rt);
@@ -1055,7 +1055,7 @@ CommandCost CmdBuildLongRoad(DoCommandFlag flags, TileIndex end_tile, TileIndex 
 
 		if (tile == end_tile) break;
 
-		tile += TileOffsByDiagDir(dir);
+		tile += dir;
 	}
 
 	return had_success ? cost : last_error;
@@ -1391,7 +1391,7 @@ void DrawRoadTypeCatenary(const TileInfo *ti, RoadType rt, RoadBits rb)
 		RoadBits rb_new = ROAD_NONE;
 		for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
 			if (rb & DiagDirToRoadBits(dir)) {
-				TileIndex neighbour = ti->tile + TileOffsByDiagDir(dir);
+				TileIndex neighbour = ti->tile + dir;
 				if (MayHaveRoad(neighbour)) {
 					RoadType rt_road = GetRoadTypeRoad(neighbour);
 					RoadType rt_tram = GetRoadTypeTram(neighbour);
@@ -1770,7 +1770,7 @@ static void DrawTile_Road(TileInfo *ti)
 				const DiagDirection dir2 = ReverseDiagDir(dir1);
 				uint adjacent_diagdirs = 0;
 				for (DiagDirection dir : { dir1, dir2 }) {
-					const TileIndex t = ti->tile + TileOffsByDiagDir(dir);
+					const TileIndex t = ti->tile + dir;
 					if (t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis) {
 						SetBit(adjacent_diagdirs, dir);
 					}
@@ -2144,9 +2144,9 @@ static TrackStatus GetTileTrackStatus_Road(TileIndex tile, TransportType mode, u
 							if (IsLevelCrossingTile(t) && IsCrossingBarred(t)) red_signals &= mask;
 						};
 						/* Check for blocked adjacent crossing to south, keep only southbound red signal trackdirs, allow northbound traffic */
-						mask_red_signal_bits_if_crossing_barred(tile + TileOffsByDiagDir(AxisToDiagDir(axis)), TRACKDIR_BIT_X_SW | TRACKDIR_BIT_Y_SE);
+						mask_red_signal_bits_if_crossing_barred(tile + AxisToDiagDir(axis), TRACKDIR_BIT_X_SW | TRACKDIR_BIT_Y_SE);
 						/* Check for blocked adjacent crossing to north, keep only northbound red signal trackdirs, allow southbound traffic */
-						mask_red_signal_bits_if_crossing_barred(tile + TileOffsByDiagDir(ReverseDiagDir(AxisToDiagDir(axis))), TRACKDIR_BIT_X_NE | TRACKDIR_BIT_Y_NW);
+						mask_red_signal_bits_if_crossing_barred(tile + ReverseDiagDir(AxisToDiagDir(axis)), TRACKDIR_BIT_X_NE | TRACKDIR_BIT_Y_NW);
 					}
 					break;
 				}

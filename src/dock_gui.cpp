@@ -77,7 +77,7 @@ static TileIndex GetOtherAqueductEnd(TileIndex tile_from, TileIndex *tile_to = n
 	if (!IsValidDiagDirection(dir)) return tile_from + TileIndexDiffC(TileX(tile_from) > 2 ? -1 : 1, 0);
 
 	/* Direction the aqueduct is built to. */
-	TileIndexDiffC offset = TileOffsByDiagDir(ReverseDiagDir(dir));
+	TileIndexDiffC offset = TileIndexDiffCByDiagDir(ReverseDiagDir(dir));
 	/* The maximum length of the aqueduct. */
 	int max_length = std::min<int>(_settings_game.construction.max_bridge_length, DistanceFromEdgeDir(tile_from, ReverseDiagDir(dir)) - 1);
 
@@ -211,7 +211,7 @@ struct BuildDocksToolbarWindow : Window {
 			case WID_DT_STATION: { // Build station button
 				/* Determine the watery part of the dock. */
 				DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile));
-				TileIndex tile_to = (dir != INVALID_DIAGDIR ? tile + TileOffsByDiagDir(ReverseDiagDir(dir)) : tile);
+				TileIndex tile_to = (dir != INVALID_DIAGDIR ? tile + ReverseDiagDir(dir) : tile);
 
 				bool adjacent = _ctrl_pressed;
 				auto proc = [=](bool test, StationID to_join) -> bool {
@@ -288,9 +288,9 @@ struct BuildDocksToolbarWindow : Window {
 			DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile_from));
 			if (IsValidDiagDirection(dir)) {
 				/* Locks and docks always select the tile "down" the slope. */
-				tile_to = tile_from + TileOffsByDiagDir(ReverseDiagDir(dir));
+				tile_to = tile_from + ReverseDiagDir(dir);
 				/* Locks also select the tile "up" the slope. */
-				if (this->last_clicked_widget == WID_DT_LOCK) tile_from += TileOffsByDiagDir(dir);
+				if (this->last_clicked_widget == WID_DT_LOCK) tile_from += dir;
 			}
 		}
 

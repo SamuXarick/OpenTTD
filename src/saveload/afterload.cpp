@@ -110,7 +110,7 @@ void SetWaterClassDependingOnSurroundings(Tile t, bool include_invalid_water_cla
 	bool has_river = false;
 
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		Tile neighbour = t + TileOffsByDiagDir(dir);
+		Tile neighbour = t + dir;
 		switch (GetTileType(neighbour)) {
 			case MP_WATER:
 				/* clear water and shipdepots have already a WaterClass associated */
@@ -442,7 +442,7 @@ static void FixOwnerOfRailTrack(Tile t)
 
 	/* try to find any connected rail */
 	for (DiagDirection dd = DIAGDIR_BEGIN; dd < DIAGDIR_END; dd++) {
-		TileIndex tt{t + TileOffsByDiagDir(dd)};
+		TileIndex tt{t + dd};
 		if (GetTileTrackStatus(t, TRANSPORT_RAIL, 0, dd) != 0 &&
 				GetTileTrackStatus(tt, TRANSPORT_RAIL, 0, ReverseDiagDir(dd)) != 0 &&
 				Company::IsValidID(GetTileOwner(tt))) {

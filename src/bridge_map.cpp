@@ -21,7 +21,7 @@
  */
 static TileIndex GetBridgeEnd(TileIndex tile, DiagDirection dir)
 {
-	TileIndexDiffC delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
 
 	dir = ReverseDiagDir(dir);
 	do {

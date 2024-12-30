@@ -135,7 +135,7 @@ static TrackBits MaskWireBits(TileIndex t, TrackBits tracks)
 		 * from this tile, mark all trackdirs that can be reached from the neighbour tile
 		 * as needing no catenary. We make an exception for blocked station tiles with a matching
 		 * axis that still display wires to preserve visual continuity. */
-		TileIndex next_tile = t + TileOffsByDiagDir(d);
+		TileIndex next_tile = t + d;
 		RailType rt = GetTileRailType(next_tile);
 		if (rt == INVALID_RAILTYPE || !HasRailCatenary(rt) ||
 				((TrackStatusToTrackBits(GetTileTrackStatus(next_tile, TRANSPORT_RAIL, 0)) & DiagdirReachesTracks(d)) == TRACK_BIT_NONE &&
@@ -324,7 +324,7 @@ static void DrawRailCatenaryRailway(const TileInfo *ti)
 			1 << CORNER_N | 1 << CORNER_W, // DIAGDIR_NW
 		};
 		SpriteID pylon_base = (halftile_corner != CORNER_INVALID && HasBit(edge_corners[i], halftile_corner)) ? pylon_halftile : pylon_normal;
-		TileIndex neighbour = ti->tile + TileOffsByDiagDir(i);
+		TileIndex neighbour = ti->tile + i;
 		int elevation = GetPCPElevation(ti->tile, i);
 
 		/* Here's one of the main headaches. GetTileSlope does not correct for possibly

@@ -838,7 +838,7 @@ inline void MakeBuoy(Tile t, StationID sid, WaterClass wc)
 inline void MakeDock(Tile t, Owner o, StationID sid, DiagDirection d, WaterClass wc)
 {
 	MakeStation(t, o, sid, STATION_DOCK, d);
-	MakeStation(TileIndex(t) + TileOffsByDiagDir(d), o, sid, STATION_DOCK, GFX_DOCK_BASE_WATER_PART + DiagDirToAxis(d), wc);
+	MakeStation(TileIndex(t) + d, o, sid, STATION_DOCK, GFX_DOCK_BASE_WATER_PART + DiagDirToAxis(d), wc);
 }
 
 /**

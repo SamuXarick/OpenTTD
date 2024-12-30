@@ -71,7 +71,7 @@ private:
 	bool ReserveRailStationPlatform(TileIndex &tile, DiagDirection dir)
 	{
 		TileIndex     start = tile;
-		TileIndexDiffC diff = TileOffsByDiagDir(dir);
+		TileIndexDiffC diff = TileIndexDiffCByDiagDir(dir);
 
 		do {
 			if (HasStationReservation(tile)) return false;
@@ -119,7 +119,7 @@ private:
 	{
 		if (IsRailStationTile(tile)) {
 			TileIndex     start = tile;
-			TileIndexDiffC diff = TileOffsByDiagDir(TrackdirToExitdir(ReverseTrackdir(td)));
+			TileIndexDiffC diff = TileIndexDiffCByDiagDir(TrackdirToExitdir(ReverseTrackdir(td)));
 			while ((tile != this->res_fail_tile || td != this->res_fail_td) && IsCompatibleTrainStationTile(tile, start)) {
 				SetRailStationReservation(tile, false);
 				tile += diff;

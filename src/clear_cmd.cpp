@@ -146,7 +146,7 @@ static void UpdateFences(TileIndex tile)
 
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
 		if (GetFence(tile, dir) != 0) continue;
-		TileIndex neighbour = tile + TileOffsByDiagDir(dir);
+		TileIndex neighbour = tile + dir;
 		if (IsTileType(neighbour, MP_CLEAR) && IsClearGround(neighbour, CLEAR_FIELDS)) continue;
 		SetFence(tile, dir, 3);
 		dirty = true;
@@ -194,7 +194,7 @@ static void TileLoopClearAlps(TileIndex tile)
 static inline bool NeighbourIsNormal(TileIndex tile)
 {
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		TileIndex t = tile + TileOffsByDiagDir(dir);
+		TileIndex t = tile + dir;
 		if (!IsValidTile(t)) continue;
 		if (GetTropicZone(t) != TROPICZONE_DESERT) return true;
 		if (HasTileWaterClass(t) && GetWaterClass(t) == WATER_CLASS_SEA) return true;
@@ -313,7 +313,7 @@ void GenerateClearTile()
 				MarkTileDirtyByTile(tile);
 				do {
 					if (--j == 0) goto get_out;
-					tile_new = tile + TileOffsByDiagDir((DiagDirection)GB(Random(), 0, 2));
+					tile_new = tile + (DiagDirection)GB(Random(), 0, 2);
 				} while (!IsTileType(tile_new, MP_CLEAR) || IsClearGround(tile_new, CLEAR_DESERT));
 				tile = tile_new;
 			}

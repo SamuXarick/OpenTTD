@@ -195,7 +195,7 @@ bool IsPossibleDockingTile(Tile t)
 void CheckForDockingTile(TileIndex t)
 {
 	for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
-		TileIndex tile = t + TileOffsByDiagDir(d);
+		TileIndex tile = t + d;
 		if (!IsValidTile(tile)) continue;
 
 		if (IsDockTile(tile) && IsDockWaterPart(tile)) {
@@ -313,7 +313,7 @@ static CommandCost DoBuildLock(TileIndex tile, DiagDirection dir, DoCommandFlag 
 {
 	CommandCost cost(EXPENSES_CONSTRUCTION);
 
-	TileIndexDiffC delta = TileOffsByDiagDir(dir);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(dir);
 	CommandCost ret = EnsureNoVehicleOnGround(tile);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile + delta);
 	if (ret.Succeeded()) ret = EnsureNoVehicleOnGround(tile - delta);
@@ -394,7 +394,7 @@ static CommandCost RemoveLock(TileIndex tile, DoCommandFlag flags)
 		if (ret.Failed()) return ret;
 	}
 
-	TileIndexDiffC delta = TileOffsByDiagDir(GetLockDirection(tile));
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(GetLockDirection(tile));
 
 	/* make sure no vehicle is on the tile. */
 	CommandCost ret = EnsureNoVehicleOnGround(tile);

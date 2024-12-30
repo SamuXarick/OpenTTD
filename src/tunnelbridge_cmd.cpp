@@ -66,7 +66,7 @@ static const int BRIDGE_Z_START = 3;
  */
 void MarkBridgeDirty(TileIndex begin, TileIndex end, DiagDirection direction, uint bridge_height)
 {
-	TileIndexDiffC delta = TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
 	for (TileIndex t = begin; t != end; t += delta) {
 		MarkTileDirtyByTile(t, bridge_height - TileHeight(t));
 	}
@@ -668,7 +668,7 @@ CommandCost CmdBuildTunnel(DoCommandFlag flags, TileIndex start_tile, TransportT
 	 * cost before the loop will yield different costs depending on start-
 	 * position, because of increased-cost-by-length: 'cost += cost >> 3' */
 
-	TileIndexDiffC delta = TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
 	DiagDirection tunnel_in_way_dir;
 	if (DiagDirToAxis(direction) == AXIS_Y) {
 		tunnel_in_way_dir = (TileX(start_tile) < (Map::MaxX() / 2)) ? DIAGDIR_SW : DIAGDIR_NE;
@@ -934,7 +934,7 @@ static CommandCost DoClearBridge(TileIndex tile, DoCommandFlag flags)
 	if (ret.Failed()) return ret;
 
 	DiagDirection direction = GetTunnelBridgeDirection(tile);
-	TileIndexDiffC delta = TileOffsByDiagDir(direction);
+	TileIndexDiffC delta = TileIndexDiffCByDiagDir(direction);
 
 	Town *t = nullptr;
 	if (IsTileOwner(tile, OWNER_TOWN) && _game_mode != GM_EDITOR) {
@@ -1313,7 +1313,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 				if (road_rti->UsesOverlay()) {
 					SpriteID ground = GetCustomRoadSprite(road_rti, ti->tile, ROTSG_TUNNEL);
 					if (ground != 0) {
-						DrawGroundSprite(ground + tunnelbridge_direction, PAL_NONE);
+						DrawGroundSprite(ground + static_cast<int>(tunnelbridge_direction), PAL_NONE);
 						draw_underlay = false;
 					}
 				}
@@ -1321,7 +1321,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 				if (tram_rti->UsesOverlay()) {
 					SpriteID ground = GetCustomRoadSprite(tram_rti, ti->tile, ROTSG_TUNNEL);
 					if (ground != 0) {
-						DrawGroundSprite(ground + tunnelbridge_direction, PAL_NONE);
+						DrawGroundSprite(ground + static_cast<int>(tunnelbridge_direction), PAL_NONE);
 						draw_underlay = false;
 					}
 				}
@@ -1350,13 +1350,13 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 			if (catenary_sprite_base != 0) {
 				catenary = true;
 				StartSpriteCombine();
-				AddSortableSpriteToDraw(catenary_sprite_base + tunnelbridge_direction, PAL_NONE, ti->x, ti->y, BB_data[10], BB_data[11], TILE_HEIGHT, ti->z, IsTransparencySet(TO_CATENARY), BB_data[8], BB_data[9], BB_Z_SEPARATOR);
+				AddSortableSpriteToDraw(catenary_sprite_base + static_cast<int>(tunnelbridge_direction), PAL_NONE, ti->x, ti->y, BB_data[10], BB_data[11], TILE_HEIGHT, ti->z, IsTransparencySet(TO_CATENARY), BB_data[8], BB_data[9], BB_Z_SEPARATOR);
 			}
 		} else {
 			const RailTypeInfo *rti = GetRailTypeInfo(GetRailType(ti->tile));
 			if (rti->UsesOverlay()) {
 				SpriteID surface = GetCustomRailSprite(rti, ti->tile, RTSG_TUNNEL);
-				if (surface != 0) DrawGroundSprite(surface + tunnelbridge_direction, PAL_NONE);
+				if (surface != 0) DrawGroundSprite(surface + static_cast<int>(tunnelbridge_direction), PAL_NONE);
 			}
 
 			/* PBS debugging, draw reserved tracks darker */
@@ -1384,7 +1384,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 
 		AddSortableSpriteToDraw(image + 1, PAL_NONE, ti->x + TILE_SIZE - 1, ti->y + TILE_SIZE - 1, BB_data[0], BB_data[1], TILE_HEIGHT, ti->z, false, BB_data[2], BB_data[3], BB_Z_SEPARATOR);
 		/* Draw railtype tunnel portal overlay if defined. */
-		if (railtype_overlay != 0) AddSortableSpriteToDraw(railtype_overlay + tunnelbridge_direction, PAL_NONE, ti->x + TILE_SIZE - 1, ti->y + TILE_SIZE - 1, BB_data[0], BB_data[1], TILE_HEIGHT, ti->z, false, BB_data[2], BB_data[3], BB_Z_SEPARATOR);
+		if (railtype_overlay != 0) AddSortableSpriteToDraw(railtype_overlay + static_cast<int>(tunnelbridge_direction), PAL_NONE, ti->x + TILE_SIZE - 1, ti->y + TILE_SIZE - 1, BB_data[0], BB_data[1], TILE_HEIGHT, ti->z, false, BB_data[2], BB_data[3], BB_Z_SEPARATOR);
 
 		if (catenary || railtype_overlay != 0) EndSpriteCombine();
 
@@ -1422,7 +1422,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 		}
 
 		if (!ice) {
-			TileIndex next = ti->tile + TileOffsByDiagDir(tunnelbridge_direction);
+			TileIndex next = ti->tile + tunnelbridge_direction;
 			if (ti->tileh != SLOPE_FLAT && ti->z == 0 && HasTileWaterClass(next) && GetWaterClass(next) == WATER_CLASS_SEA) {
 				DrawShoreTile(ti->tileh);
 			} else {
@@ -1465,7 +1465,7 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 					if (HasBridgeFlatRamp(ti->tileh, DiagDirToAxis(tunnelbridge_direction))) {
 						AddSortableSpriteToDraw(surface + ((DiagDirToAxis(tunnelbridge_direction) == AXIS_X) ? RTBO_X : RTBO_Y), PAL_NONE, ti->x, ti->y, 16, 16, 0, ti->z + 8);
 					} else {
-						AddSortableSpriteToDraw(surface + RTBO_SLOPE + tunnelbridge_direction, PAL_NONE, ti->x, ti->y, 16, 16, 8, ti->z);
+						AddSortableSpriteToDraw(surface + RTBO_SLOPE + static_cast<int>(tunnelbridge_direction), PAL_NONE, ti->x, ti->y, 16, 16, 8, ti->z);
 					}
 				}
 				/* Don't fallback to non-overlay sprite -- the spec states that
@@ -1480,13 +1480,13 @@ static void DrawTile_TunnelBridge(TileInfo *ti)
 					if (HasBridgeFlatRamp(ti->tileh, DiagDirToAxis(tunnelbridge_direction))) {
 						AddSortableSpriteToDraw(overlay + RTO_X + DiagDirToAxis(tunnelbridge_direction), PALETTE_CRASH, ti->x, ti->y, 16, 16, 0, ti->z + 8);
 					} else {
-						AddSortableSpriteToDraw(overlay + RTO_SLOPE_NE + tunnelbridge_direction, PALETTE_CRASH, ti->x, ti->y, 16, 16, 8, ti->z);
+						AddSortableSpriteToDraw(overlay + RTO_SLOPE_NE + static_cast<int>(tunnelbridge_direction), PALETTE_CRASH, ti->x, ti->y, 16, 16, 8, ti->z);
 					}
 				} else {
 					if (HasBridgeFlatRamp(ti->tileh, DiagDirToAxis(tunnelbridge_direction))) {
 						AddSortableSpriteToDraw(DiagDirToAxis(tunnelbridge_direction) == AXIS_X ? rti->base_sprites.single_x : rti->base_sprites.single_y, PALETTE_CRASH, ti->x, ti->y, 16, 16, 0, ti->z + 8);
 					} else {
-						AddSortableSpriteToDraw(rti->base_sprites.single_sloped + tunnelbridge_direction, PALETTE_CRASH, ti->x, ti->y, 16, 16, 8, ti->z);
+						AddSortableSpriteToDraw(rti->base_sprites.single_sloped + static_cast<int>(tunnelbridge_direction), PALETTE_CRASH, ti->x, ti->y, 16, 16, 8, ti->z);
 					}
 				}
 			}

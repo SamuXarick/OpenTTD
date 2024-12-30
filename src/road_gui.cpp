@@ -161,7 +161,7 @@ void CcBuildRoadTunnel(Commands, const CommandCost &result, TileIndex start_tile
  */
 void ConnectRoadToStructure(TileIndex tile, DiagDirection direction)
 {
-	tile += TileOffsByDiagDir(direction);
+	tile += direction;
 	/* if there is a roadpiece just outside of the station entrance, build a connecting route */
 	if (IsNormalRoadTile(tile)) {
 		if (GetRoadBits(tile, GetRoadTramType(_cur_roadtype)) != ROAD_NONE) {
@@ -1120,7 +1120,7 @@ struct BuildRoadDepotWindow : public PickerWindowBase {
 			AutoRestoreBackup dpi_backup(_cur_dpi, &tmp_dpi);
 			int x = (ir.Width()  - ScaleSpriteTrad(64)) / 2 + ScaleSpriteTrad(31);
 			int y = (ir.Height() + ScaleSpriteTrad(48)) / 2 - ScaleSpriteTrad(31);
-			DrawRoadDepotSprite(x, y, (DiagDirection)(widget - WID_BROD_DEPOT_NE + DIAGDIR_NE), _cur_roadtype);
+			DrawRoadDepotSprite(x, y, (DiagDirection)(widget - WID_BROD_DEPOT_NE + static_cast<int>(DIAGDIR_NE)), _cur_roadtype);
 		}
 	}
 
