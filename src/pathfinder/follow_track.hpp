@@ -382,7 +382,7 @@ protected:
 			/* move to the platform end */
 			TileIndexDiffC diff = TileOffsByDiagDir(this->exitdir);
 			diff *= this->tiles_skipped;
-			this->new_tile = TileAdd(this->new_tile, diff);
+			this->new_tile += diff;
 			return true;
 		}
 

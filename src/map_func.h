@@ -457,22 +457,13 @@ inline TileIndexDiffC ToTileIndexDiffC(TileIndexDiffC tidc)
  * Adds a given offset to a tile.
  *
  * @param tile The tile to add an offset to.
- * @param offset The offset to add.
- * @return The resulting tile.
- */
-inline TileIndex TileAdd(TileIndex tile, TileIndexDiffC offset) { return tile + offset; }
-
-/**
- * Adds a given offset to a tile.
- *
- * @param tile The tile to add an offset to.
  * @param x The x offset to add to the tile.
  * @param y The y offset to add to the tile.
  * @return The resulting tile.
  */
 inline TileIndex TileAddXY(TileIndex tile, int x, int y)
 {
-	return TileAdd(tile, TileIndexDiffC(x, y));
+	return tile + TileIndexDiffC(x, y);
 }
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
@@ -601,7 +592,7 @@ inline TileIndexDiffC TileOffsByDir(Direction dir)
  */
 inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
 {
-	return TileAdd(tile, TileOffsByDir(dir));
+	return tile + TileOffsByDir(dir);
 }
 
 /**
@@ -613,7 +604,7 @@ inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
  */
 inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
 {
-	return TileAdd(tile, TileOffsByDiagDir(dir));
+	return tile + TileOffsByDiagDir(dir);
 }
 
 /**
