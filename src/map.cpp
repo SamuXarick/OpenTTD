@@ -236,7 +236,7 @@ bool CircularTileSearch(TileIndex *tile, uint size, TestTileOnSearchProc proc, v
 
 		/* If tile test is not successful, get one tile up,
 		 * ready for a test in first circle around center tile */
-		*tile = TileAddByDir(*tile, DIR_N);
+		*tile += TileOffsByDir(DIR_N);
 		return CircularTileSearch(tile, size / 2, 1, 1, proc, user_data);
 	} else {
 		return CircularTileSearch(tile, size / 2, 0, 0, proc, user_data);
