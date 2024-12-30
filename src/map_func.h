@@ -470,25 +470,6 @@ inline TileIndexDiffC TileIndexDiffCByDir(Direction dir)
 }
 
 /**
- * Add a TileIndexDiffC to a TileIndex and returns the new one.
- *
- * Returns tile + the diff given in diff. If the result tile would end up
- * outside of the map, INVALID_TILE is returned instead.
- *
- * @param tile The base tile to add the offset on
- * @param diff The offset to add on the tile
- * @return The resulting TileIndex
- */
-inline TileIndex AddTileIndexDiffCWrap(TileIndex tile, TileIndexDiffC diff)
-{
-	int x = TileX(tile) + diff.x;
-	int y = TileY(tile) + diff.y;
-	/* Negative value will become big positive value after cast */
-	if ((uint)x >= Map::SizeX() || (uint)y >= Map::SizeY()) return INVALID_TILE;
-	return TileXY(x, y);
-}
-
-/**
  * Returns the diff between two tiles
  *
  * @param tile_a from tile
