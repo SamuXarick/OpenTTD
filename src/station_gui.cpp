@@ -2272,7 +2272,7 @@ static const BaseStation *FindStationsNearby(TileArea ta, bool distant_join)
 	if (distant_join && std::min(ta.w, ta.h) >= _settings_game.station.station_spread) return nullptr;
 	uint max_dist = distant_join ? _settings_game.station.station_spread - std::min(ta.w, ta.h) : 1;
 
-	TileIndex tile = ctx.tile + TileOffsByDir(DIR_N);
+	TileIndex tile = ctx.tile + DIR_N;
 	CircularTileSearch(&tile, max_dist, ta.w, ta.h, AddNearbyStation<T>, &ctx);
 
 	return nullptr;

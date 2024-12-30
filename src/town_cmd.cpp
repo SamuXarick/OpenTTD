@@ -1651,16 +1651,16 @@ static void GrowTownInTile(TileIndex *tile_ptr, RoadBits cur_rb, DiagDirection t
 			 * position of the corner tile */
 			switch (cur_rb) {
 				case ROAD_N:
-					house_tile = tile + TileOffsByDir(DIR_S);
+					house_tile = tile + DIR_S;
 					break;
 				case ROAD_S:
-					house_tile = tile + TileOffsByDir(DIR_N);
+					house_tile = tile + DIR_N;
 					break;
 				case ROAD_E:
-					house_tile = tile + TileOffsByDir(DIR_W);
+					house_tile = tile + DIR_W;
 					break;
 				case ROAD_W:
-					house_tile = tile + TileOffsByDir(DIR_E);
+					house_tile = tile + DIR_E;
 					break;
 				default:
 					return;  // not a turn

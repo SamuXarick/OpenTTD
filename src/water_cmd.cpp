@@ -86,7 +86,7 @@ static inline void MarkTileDirtyIfCanalOrRiver(TileIndex tile)
 static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-		MarkTileDirtyIfCanalOrRiver(tile + TileOffsByDir(dir));
+		MarkTileDirtyIfCanalOrRiver(tile + dir);
 	}
 }
 
@@ -97,7 +97,7 @@ static void MarkCanalsAndRiversAroundDirty(TileIndex tile)
 void ClearNeighbourNonFloodingStates(TileIndex tile)
 {
 	for (Direction dir = DIR_BEGIN; dir != DIR_END; dir++) {
-		TileIndex dest = tile + TileOffsByDir(dir);
+		TileIndex dest = tile + dir;
 		if (IsValidTile(dest) && IsTileType(dest, MP_WATER)) SetNonFloodingWaterTile(dest, false);
 	}
 }
@@ -669,7 +669,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 			if (IsOilRig(tile)) {
 				/* Do not draw waterborders inside of industries.
 				 * Note: There is no easy way to detect the industry of an oilrig tile. */
-				TileIndex src_tile = tile + TileOffsByDir(from);
+				TileIndex src_tile = tile + from;
 				if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 				    (IsTileType(src_tile, MP_INDUSTRY))) return true;
 
@@ -680,7 +680,7 @@ bool IsWateredTile(TileIndex tile, Direction from)
 		case MP_INDUSTRY: {
 			/* Do not draw waterborders inside of industries.
 			 * Note: There is no easy way to detect the industry of an oilrig tile. */
-			TileIndex src_tile = tile + TileOffsByDir(from);
+			TileIndex src_tile = tile + from;
 			if ((IsTileType(src_tile, MP_STATION) && IsOilRig(src_tile)) ||
 			    (IsTileType(src_tile, MP_INDUSTRY) && GetIndustryIndex(src_tile) == GetIndustryIndex(tile))) return true;
 
@@ -1253,7 +1253,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_ACTIVE: {
 			bool continue_flooding = false;
 			for (Direction dir = DIR_BEGIN; dir < DIR_END; dir++) {
-				TileIndex dest = tile + TileIndexDiffCByDir(dir);
+				TileIndex dest = tile + dir;
 				/* Contrary to drying up, flooding does not consider MP_VOID tiles. */
 				if (!IsValidTile(dest)) continue;
 				/* do not try to flood water tiles - increases performance a lot */
@@ -1282,7 +1282,7 @@ void TileLoop_Water(TileIndex tile)
 		case FLOOD_DRYUP: {
 			Slope slope_here = std::get<0>(GetFoundationSlope(tile)) & ~SLOPE_HALFTILE_MASK & ~SLOPE_STEEP;
 			for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope_here])) {
-				TileIndex dest = tile + TileIndexDiffCByDir(dir);
+				TileIndex dest = tile + dir;
 				/* Contrary to flooding, drying up does consider MP_VOID tiles. */
 				if (dest == INVALID_TILE) continue;
 
@@ -1319,7 +1319,7 @@ void ConvertGroundTilesIntoWaterTiles()
 
 				default:
 					for (Direction dir : SetBitIterator<Direction>(_flood_from_dirs[slope & ~SLOPE_STEEP])) {
-						TileIndex dest = tile + TileOffsByDir(dir);
+						TileIndex dest = tile + dir;
 						Slope slope_dest = GetTileSlope(dest) & ~SLOPE_STEEP;
 						if (slope_dest == SLOPE_FLAT || IsSlopeWithOneCornerRaised(slope_dest) || IsTileType(dest, MP_VOID)) {
 							MakeShore(tile);

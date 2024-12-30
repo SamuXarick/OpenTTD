@@ -469,6 +469,10 @@ inline TileIndexDiffC TileIndexDiffCByDir(Direction dir)
 	return _tileoffs_by_dir[dir];
 }
 
+debug_inline TileIndex operator+(TileIndex &tile, Direction dir) { return tile + TileIndexDiffCByDir(dir); }
+debug_inline TileIndex operator+(const TileIndex &tile, Direction dir) { return tile + TileIndexDiffCByDir(dir); }
+debug_inline TileIndex &operator+=(TileIndex &tile, Direction dir) { tile = tile + dir; return tile; }
+
 /**
  * Returns the diff between two tiles
  *
@@ -521,20 +525,6 @@ inline TileIndexDiffC TileOffsByDiagDir(DiagDirection dir)
 
 	assert(IsValidDiagDirection(dir));
 	return _tileoffs_by_diagdir[dir];
-}
-
-/**
- * Convert a Direction to a TileIndexDiffC.
- *
- * @param dir The direction to convert from
- * @return The resulting TileIndexDiffC
- */
-inline TileIndexDiffC TileOffsByDir(Direction dir)
-{
-	extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
-
-	assert(IsValidDirection(dir));
-	return _tileoffs_by_dir[dir];
 }
 
 /**

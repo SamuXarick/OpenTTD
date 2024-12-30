@@ -145,7 +145,7 @@ void Ship::GetImage(Direction direction, EngineImageType image_type, VehicleSpri
 	}
 
 	assert(IsValidImageIndex<VEH_SHIP>(spritenum));
-	result->Set(_ship_sprites[spritenum] + direction);
+	result->Set(_ship_sprites[spritenum] + static_cast<int>(direction));
 }
 
 static const Depot *FindClosestShipDepot(const Vehicle *v, uint max_distance)
