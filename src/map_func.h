@@ -438,20 +438,6 @@ debug_inline TileIndexDiffC operator*(int amount, const TileIndexDiffC &offset) 
 debug_inline TileIndex &operator-=(TileIndex &tile, const TileIndexDiffC &offset) { tile = tile - offset; return tile; }
 debug_inline TileIndex &operator+=(TileIndex &tile, const TileIndexDiffC &offset) { tile = tile + offset; return tile; }
 
-/**
- * Return the offset between two tiles from a TileIndexDiffC struct.
- *
- * This function works like #TileIndexDiffC(int, int) and returns the
- * difference between two tiles.
- *
- * @param tidc The coordinate of the offset as TileIndexDiffC
- * @return The difference between two tiles.
- * @see TileIndexDiffC(int, int)
- */
-inline TileIndexDiffC ToTileIndexDiffC(TileIndexDiffC tidc)
-{
-	return TileIndexDiffC(tidc.x, tidc.y);
-}
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
@@ -538,7 +524,7 @@ inline TileIndexDiffC TileOffsByAxis(Axis axis)
 	extern const TileIndexDiffC _tileoffs_by_axis[];
 
 	assert(IsValidAxis(axis));
-	return ToTileIndexDiffC(_tileoffs_by_axis[axis]);
+	return _tileoffs_by_axis[axis];
 }
 
 /**
@@ -553,7 +539,7 @@ inline TileIndexDiffC TileOffsByDiagDir(DiagDirection dir)
 	extern const TileIndexDiffC _tileoffs_by_diagdir[DIAGDIR_END];
 
 	assert(IsValidDiagDirection(dir));
-	return ToTileIndexDiffC(_tileoffs_by_diagdir[dir]);
+	return _tileoffs_by_diagdir[dir];
 }
 
 /**
@@ -567,7 +553,7 @@ inline TileIndexDiffC TileOffsByDir(Direction dir)
 	extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
 
 	assert(IsValidDirection(dir));
-	return ToTileIndexDiffC(_tileoffs_by_dir[dir]);
+	return _tileoffs_by_dir[dir];
 }
 
 /**

@@ -613,7 +613,7 @@ static CommandCost ClearTile_Water(TileIndex tile, DoCommandFlag flags)
 			if (flags & DC_AUTO) return CommandCost(STR_ERROR_BUILDING_MUST_BE_DEMOLISHED);
 			if (_current_company == OWNER_WATER) return CMD_ERROR;
 			/* move to the middle tile.. */
-			return RemoveLock(tile + ToTileIndexDiffC(_lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)]), flags);
+			return RemoveLock(tile + _lock_tomiddle_offs[GetLockPart(tile)][GetLockDirection(tile)], flags);
 		}
 
 		case WATER_TILE_DEPOT:

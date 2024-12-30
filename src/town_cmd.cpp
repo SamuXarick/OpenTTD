@@ -1481,7 +1481,7 @@ static inline bool RoadTypesAllowHouseHere(TileIndex t)
 	bool allow = false;
 
 	for (const auto &ptr : tiles) {
-		TileIndex cur_tile = t + ToTileIndexDiffC(ptr);
+		TileIndex cur_tile = t + ptr;
 		if (!IsValidTile(cur_tile)) continue;
 
 		if (!(IsTileType(cur_tile, MP_ROAD) || IsAnyRoadStopTile(cur_tile))) continue;
@@ -1914,7 +1914,7 @@ static bool GrowTown(Town *t)
 			cur_company.Restore();
 			return success;
 		}
-		tile += ToTileIndexDiffC(ptr);
+		tile += ptr;
 	}
 
 	/* No road available, try to build a random road block by
@@ -1931,7 +1931,7 @@ static bool GrowTown(Town *t)
 					return true;
 				}
 			}
-			tile += ToTileIndexDiffC(ptr);
+			tile += ptr;
 		}
 	}
 

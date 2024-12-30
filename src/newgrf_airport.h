@@ -39,7 +39,7 @@ public:
 	 * @param att The TileTable we want to iterate over.
 	 * @param base_tile The basetile for all offsets.
 	 */
-	AirportTileTableIterator(const AirportTileTable *att, TileIndex base_tile) : TileIterator(base_tile + ToTileIndexDiffC(att->ti)), att(att), base_tile(base_tile)
+	AirportTileTableIterator(const AirportTileTable *att, TileIndex base_tile) : TileIterator(base_tile + att->ti), att(att), base_tile(base_tile)
 	{
 	}
 
@@ -49,7 +49,7 @@ public:
 		if (this->att->ti.x == -0x80) {
 			this->tile = INVALID_TILE;
 		} else {
-			this->tile = this->base_tile + ToTileIndexDiffC(this->att->ti);
+			this->tile = this->base_tile + this->att->ti;
 		}
 		return *this;
 	}

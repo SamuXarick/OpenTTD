@@ -337,7 +337,7 @@ struct Airport : public TileArea {
 	{
 		const AirportSpec *as = this->GetSpec();
 		switch (this->rotation) {
-			case DIR_N: return this->tile + ToTileIndexDiffC(tidc);
+			case DIR_N: return this->tile + tidc;
 
 			case DIR_E: return this->tile + TileIndexDiffC(tidc.y, as->size_x - 1 - tidc.x);
 

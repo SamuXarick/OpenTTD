@@ -2834,7 +2834,7 @@ CommandCost CmdBuildDock(DoCommandFlag flags, TileIndex tile, StationID station_
 		return CommandCost(STR_ERROR_SITE_UNSUITABLE);
 	}
 
-	TileArea dock_area = TileArea(tile + ToTileIndexDiffC(_dock_tileoffs_chkaround[direction]),
+	TileArea dock_area = TileArea(tile + _dock_tileoffs_chkaround[direction],
 			_dock_w_chk[direction], _dock_h_chk[direction]);
 
 	/* middle */

@@ -1933,7 +1933,7 @@ static void DoCreateNewIndustry(Industry *i, TileIndex tile, IndustryType type, 
 	/* Plant the tiles */
 
 	for (const IndustryTileLayoutTile &it : layout) {
-		TileIndex cur_tile = tile + ToTileIndexDiffC(it.ti);
+		TileIndex cur_tile = tile + it.ti;
 
 		if (it.gfx != GFX_WATERTILE_SPECIALCHECK) {
 			i->location.Add(cur_tile);
