@@ -110,7 +110,7 @@ void SetWaterClassDependingOnSurroundings(Tile t, bool include_invalid_water_cla
 	bool has_river = false;
 
 	for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
-		Tile neighbour = TileAddByDiagDir(t, dir);
+		Tile neighbour = t + TileOffsByDiagDir(dir);
 		switch (GetTileType(neighbour)) {
 			case MP_WATER:
 				/* clear water and shipdepots have already a WaterClass associated */
@@ -978,7 +978,7 @@ bool AfterLoadGame()
 						 * an oil rig which got shut down, but not completely removed from
 						 * the map
 						 */
-						TileIndex t1 = TileAddXY(t, 0, 1);
+						TileIndex t1 = t + TileOffset(0, 1);
 						if (!IsTileType(t1, MP_INDUSTRY) || GetIndustryGfx(t1) != GFX_OILRIG_1) {
 							DeleteOilRig(t);
 						}
@@ -2854,12 +2854,12 @@ bool AfterLoadGame()
 			if (!IsTileType(t, MP_CLEAR) && !IsTileType(t, MP_TREES)) continue;
 			if (IsTileType(t, MP_CLEAR) && IsClearGround(t, CLEAR_FIELDS)) continue;
 			uint fence = GB(t.m4(), 5, 3);
-			if (fence != 0 && IsTileType(TileAddXY(t, 1, 0), MP_CLEAR) && IsClearGround(TileAddXY(t, 1, 0), CLEAR_FIELDS)) {
-				SetFence(TileAddXY(t, 1, 0), DIAGDIR_NE, fence);
+			if (fence != 0 && IsTileType(t + TileOffset(1, 0), MP_CLEAR) && IsClearGround(t + TileOffset(1, 0), CLEAR_FIELDS)) {
+				SetFence(t + TileOffset(1, 0), DIAGDIR_NE, fence);
 			}
 			fence = GB(t.m4(), 2, 3);
-			if (fence != 0 && IsTileType(TileAddXY(t, 0, 1), MP_CLEAR) && IsClearGround(TileAddXY(t, 0, 1), CLEAR_FIELDS)) {
-				SetFence(TileAddXY(t, 0, 1), DIAGDIR_NW, fence);
+			if (fence != 0 && IsTileType(t + TileOffset(0, 1), MP_CLEAR) && IsClearGround(t + TileOffset(0, 1), CLEAR_FIELDS)) {
+				SetFence(t + TileOffset(0, 1), DIAGDIR_NW, fence);
 			}
 			SB(t.m4(), 2, 3, 0);
 			SB(t.m4(), 5, 3, 0);
@@ -3137,8 +3137,8 @@ bool AfterLoadGame()
 		/* Link oil rigs to their industry and back. */
 		for (Station *st : Station::Iterate()) {
 			if (IsTileType(st->xy, MP_STATION) && IsOilRig(st->xy)) {
-				/* Industry tile is always adjacent during construction by TileDiffXY(0, 1) */
-				st->industry = Industry::GetByTile(st->xy + TileDiffXY(0, 1));
+				/* Industry tile is always adjacent during construction by TileOffset(0, 1) */
+				st->industry = Industry::GetByTile(st->xy + TileOffset(0, 1));
 				st->industry->neutral_station = st;
 			}
 		}

@@ -452,7 +452,7 @@ static uint32_t GetDistanceFromNearbyHouse(uint8_t parameter, TileIndex tile, Ho
 			/* Extract tile offset. */
 			int8_t x_offs = GB(GetRegister(0x100), 0, 8);
 			int8_t y_offs = GB(GetRegister(0x100), 8, 8);
-			TileIndex testtile = Map::WrapToMap(this->tile + TileDiffXY(x_offs, y_offs));
+			TileIndex testtile = Map::WrapToMap(this->tile + TileOffset(x_offs, y_offs));
 
 			StationFinder stations(TileArea(testtile, 1, 1));
 
@@ -657,9 +657,9 @@ bool NewHouseTileLoop(TileIndex tile)
 			uint16_t random = GB(Random(), 0, 16);
 
 			if (hs->building_flags & BUILDING_HAS_1_TILE)  AnimationControl(tile, random);
-			if (hs->building_flags & BUILDING_2_TILES_Y)   AnimationControl(TileAddXY(tile, 0, 1), random);
-			if (hs->building_flags & BUILDING_2_TILES_X)   AnimationControl(TileAddXY(tile, 1, 0), random);
-			if (hs->building_flags & BUILDING_HAS_4_TILES) AnimationControl(TileAddXY(tile, 1, 1), random);
+			if (hs->building_flags & BUILDING_2_TILES_Y)   AnimationControl(tile + TileOffset(0, 1), random);
+			if (hs->building_flags & BUILDING_2_TILES_X)   AnimationControl(tile + TileOffset(1, 0), random);
+			if (hs->building_flags & BUILDING_HAS_4_TILES) AnimationControl(tile + TileOffset(1, 1), random);
 		} else {
 			AnimationControl(tile, 0);
 		}
@@ -719,9 +719,9 @@ static void DoTriggerHouse(TileIndex tile, HouseTrigger trigger, uint8_t base_ra
 				break;
 			}
 			/* Random value of first tile already set. */
-			if (hs->building_flags & BUILDING_2_TILES_Y)   DoTriggerHouse(TileAddXY(tile, 0, 1), trigger, random_bits, false);
-			if (hs->building_flags & BUILDING_2_TILES_X)   DoTriggerHouse(TileAddXY(tile, 1, 0), trigger, random_bits, false);
-			if (hs->building_flags & BUILDING_HAS_4_TILES) DoTriggerHouse(TileAddXY(tile, 1, 1), trigger, random_bits, false);
+			if (hs->building_flags & BUILDING_2_TILES_Y)   DoTriggerHouse(tile + TileOffset(0, 1), trigger, random_bits, false);
+			if (hs->building_flags & BUILDING_2_TILES_X)   DoTriggerHouse(tile + TileOffset(1, 0), trigger, random_bits, false);
+			if (hs->building_flags & BUILDING_HAS_4_TILES) DoTriggerHouse(tile + TileOffset(1, 1), trigger, random_bits, false);
 			break;
 	}
 }
@@ -740,7 +740,7 @@ void TriggerHouse(TileIndex t, HouseTrigger trigger)
  */
 void DoWatchedCargoCallback(TileIndex tile, TileIndex origin, CargoTypes trigger_cargoes, uint16_t random)
 {
-	TileIndexDiffC diff = TileIndexToTileIndexDiffC(origin, tile);
+	TileOffsetC diff = TileIndexToTileOffsetC(origin, tile);
 	uint32_t cb_info = random << 16 | (uint8_t)diff.y << 8 | (uint8_t)diff.x;
 	HouseAnimationBase::ChangeAnimationFrame(CBID_HOUSE_WATCHED_CARGO_ACCEPTED, HouseSpec::Get(GetHouseType(tile)), Town::GetByTile(tile), tile, 0, cb_info, trigger_cargoes);
 }
@@ -769,8 +769,8 @@ void WatchedCargoCallback(TileIndex tile, CargoTypes trigger_cargoes)
 	hs = HouseSpec::Get(id);
 
 	DoWatchedCargoCallback(north, tile, trigger_cargoes, r);
-	if (hs->building_flags & BUILDING_2_TILES_Y)   DoWatchedCargoCallback(TileAddXY(north, 0, 1), tile, trigger_cargoes, r);
-	if (hs->building_flags & BUILDING_2_TILES_X)   DoWatchedCargoCallback(TileAddXY(north, 1, 0), tile, trigger_cargoes, r);
-	if (hs->building_flags & BUILDING_HAS_4_TILES) DoWatchedCargoCallback(TileAddXY(north, 1, 1), tile, trigger_cargoes, r);
+	if (hs->building_flags & BUILDING_2_TILES_Y)   DoWatchedCargoCallback(north + TileOffset(0, 1), tile, trigger_cargoes, r);
+	if (hs->building_flags & BUILDING_2_TILES_X)   DoWatchedCargoCallback(north + TileOffset(1, 0), tile, trigger_cargoes, r);
+	if (hs->building_flags & BUILDING_HAS_4_TILES) DoWatchedCargoCallback(north + TileOffset(1, 1), tile, trigger_cargoes, r);
 }
 

@@ -804,7 +804,7 @@ bool FloodHalftile(TileIndex t)
 	return flooded;
 }
 
-static const TileIndexDiffC _trackdelta[] = {
+static const TileOffsetC _trackdelta[] = {
 	{ -1,  0 }, {  0,  1 }, { -1,  0 }, {  0,  1 }, {  1,  0 }, {  0,  1 },
 	{  0,  0 },
 	{  0,  0 },
@@ -906,7 +906,7 @@ static CommandCost CmdRailTrackHelper(DoCommandFlag flags, TileIndex tile, TileI
 
 		if (tile == end_tile) break;
 
-		tile += ToTileIndexDiff(_trackdelta[trackdir]);
+		tile += ToTileOffset(_trackdelta[trackdir]);
 
 		/* toggle railbit for the non-diagonal tracks */
 		if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
@@ -1201,7 +1201,7 @@ static bool AdvanceSignalAutoFill(TileIndex &tile, Trackdir &trackdir, bool remo
 	/* We only process starting tiles of tunnels or bridges so jump to the other end before moving further. */
 	if (IsTileType(tile, MP_TUNNELBRIDGE)) tile = GetOtherTunnelBridgeEnd(tile);
 
-	tile = AddTileIndexDiffCWrap(tile, _trackdelta[trackdir]);
+	tile += _trackdelta[trackdir];
 	if (tile == INVALID_TILE) return false;
 
 	/* Check for track bits on the new tile */
@@ -1417,7 +1417,7 @@ static CommandCost CmdSignalTrackHelper(DoCommandFlag flags, TileIndex tile, Til
 			signal_ctr += (IsDiagonalTrackdir(trackdir) ? TILE_AXIAL_DISTANCE : TILE_CORNER_DISTANCE);
 			/* toggle railbit for the non-diagonal tracks (|, -- tracks) */
 
-			tile += ToTileIndexDiff(_trackdelta[trackdir]);
+			tile += ToTileOffset(_trackdelta[trackdir]);
 			if (!IsDiagonalTrackdir(trackdir)) ToggleBit(trackdir, 0);
 		}
 	}
@@ -1484,7 +1484,7 @@ CommandCost CmdRemoveSingleSignal(DoCommandFlag flags, TileIndex tile, Track tra
 			for (int i = 0; v == nullptr && i < 2; i++, td = ReverseTrackdir(td)) {
 				/* Only test the active signal side. */
 				if (!HasSignalOnTrackdir(tile, ReverseTrackdir(td))) continue;
-				TileIndex next = TileAddByDiagDir(tile, TrackdirToExitdir(td));
+				TileIndex next = tile + TileOffsByDiagDir(TrackdirToExitdir(td));
 				TrackBits tracks = TrackdirBitsToTrackBits(TrackdirReachesTrackdirs(td));
 				if (HasReservedTracks(next, tracks)) {
 					v = GetTrainForReservation(next, TrackBitsToTrack(GetReservedTrackbits(next) & tracks));

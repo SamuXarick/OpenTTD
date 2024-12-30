@@ -62,32 +62,13 @@
 	AllocateWaterRegions();
 }
 
-
-#ifdef _DEBUG
-TileIndex TileAdd(TileIndex tile, TileIndexDiff offset)
-{
-	int dx = offset & Map::MaxX();
-	if (dx >= (int)Map::SizeX() / 2) dx -= Map::SizeX();
-	int dy = (offset - dx) / (int)Map::SizeX();
-
-	uint32_t x = TileX(tile) + dx;
-	uint32_t y = TileY(tile) + dy;
-
-	assert(x < Map::SizeX());
-	assert(y < Map::SizeY());
-	assert(TileXY(x, y) == Map::WrapToMap(tile + offset));
-
-	return TileXY(x, y);
-}
-#endif
-
 /**
  * This function checks if we add addx/addy to tile, if we
  * do wrap around the edges. For example, tile = (10,2) and
  * addx = +3 and addy = -4. This function will now return
  * INVALID_TILE, because the y is wrapped. This is needed in
  * for example, farmland. When the tile is not wrapped,
- * the result will be tile + TileDiffXY(addx, addy)
+ * the result will be tile + TileOffset(addx, addy)
  *
  * @param tile the 'starting' point of the adding
  * @param addx the amount of tiles in the X direction to add
@@ -109,13 +90,13 @@ TileIndex TileAddWrap(TileIndex tile, int addx, int addy)
 }
 
 /** 'Lookup table' for tile offsets given an Axis */
-extern const TileIndexDiffC _tileoffs_by_axis[] = {
+extern const TileOffsetC _tileoffs_by_axis[] = {
 	{ 1,  0}, ///< AXIS_X
 	{ 0,  1}, ///< AXIS_Y
 };
 
 /** 'Lookup table' for tile offsets given a DiagDirection */
-extern const TileIndexDiffC _tileoffs_by_diagdir[] = {
+extern const TileOffsetC _tileoffs_by_diagdir[] = {
 	{-1,  0}, ///< DIAGDIR_NE
 	{ 0,  1}, ///< DIAGDIR_SE
 	{ 1,  0}, ///< DIAGDIR_SW
@@ -123,7 +104,7 @@ extern const TileIndexDiffC _tileoffs_by_diagdir[] = {
 };
 
 /** 'Lookup table' for tile offsets given a Direction */
-extern const TileIndexDiffC _tileoffs_by_dir[] = {
+extern const TileOffsetC _tileoffs_by_dir[] = {
 	{-1, -1}, ///< DIR_N
 	{-1,  0}, ///< DIR_NE
 	{-1,  1}, ///< DIR_E
@@ -256,7 +237,7 @@ bool CircularTileSearch(TileIndex *tile, uint size, TestTileOnSearchProc proc, v
 
 		/* If tile test is not successful, get one tile up,
 		 * ready for a test in first circle around center tile */
-		*tile = TileAddByDir(*tile, DIR_N);
+		*tile += TileOffsByDir(DIR_N);
 		return CircularTileSearch(tile, size / 2, 1, 1, proc, user_data);
 	} else {
 		return CircularTileSearch(tile, size / 2, 0, 0, proc, user_data);

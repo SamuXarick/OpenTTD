@@ -85,14 +85,14 @@ struct CanalResolverObject : public ResolverObject {
 		 */
 		case 0x82: {
 			uint32_t connectivity =
-				  (!IsWateredTile(TileAddXY(tile, -1,  0), DIR_SW) << 0)  // NE
-				+ (!IsWateredTile(TileAddXY(tile,  0,  1), DIR_NW) << 1)  // SE
-				+ (!IsWateredTile(TileAddXY(tile,  1,  0), DIR_NE) << 2)  // SW
-				+ (!IsWateredTile(TileAddXY(tile,  0, -1), DIR_SE) << 3)  // NW
-				+ (!IsWateredTile(TileAddXY(tile, -1,  1), DIR_W)  << 4)  // E
-				+ (!IsWateredTile(TileAddXY(tile,  1,  1), DIR_N)  << 5)  // S
-				+ (!IsWateredTile(TileAddXY(tile,  1, -1), DIR_E)  << 6)  // W
-				+ (!IsWateredTile(TileAddXY(tile, -1, -1), DIR_S)  << 7); // N
+				  (!IsWateredTile(tile + TileOffset(-1,  0), DIR_SW) << 0)  // NE
+				+ (!IsWateredTile(tile + TileOffset( 0,  1), DIR_NW) << 1)  // SE
+				+ (!IsWateredTile(tile + TileOffset( 1,  0), DIR_NE) << 2)  // SW
+				+ (!IsWateredTile(tile + TileOffset( 0, -1), DIR_SE) << 3)  // NW
+				+ (!IsWateredTile(tile + TileOffset(-1,  1), DIR_W)  << 4)  // E
+				+ (!IsWateredTile(tile + TileOffset( 1,  1), DIR_N)  << 5)  // S
+				+ (!IsWateredTile(tile + TileOffset( 1, -1), DIR_E)  << 6)  // W
+				+ (!IsWateredTile(tile + TileOffset(-1, -1), DIR_S)  << 7); // N
 			return connectivity;
 		}
 

@@ -74,16 +74,16 @@ static TileIndex GetOtherAqueductEnd(TileIndex tile_from, TileIndex *tile_to = n
 	 * complains about the wrong slope instead of the ends not matching up.
 	 * Make sure the coordinate is always a valid tile within the map, so we
 	 * don't go "off" the map. That would cause the wrong error message. */
-	if (!IsValidDiagDirection(dir)) return TileAddXY(tile_from, TileX(tile_from) > 2 ? -1 : 1, 0);
+	if (!IsValidDiagDirection(dir)) return tile_from + TileOffset(TileX(tile_from) > 2 ? -1 : 1, 0);
 
 	/* Direction the aqueduct is built to. */
-	TileIndexDiff offset = TileOffsByDiagDir(ReverseDiagDir(dir));
+	TileOffset offset = TileOffsByDiagDir(ReverseDiagDir(dir));
 	/* The maximum length of the aqueduct. */
 	int max_length = std::min<int>(_settings_game.construction.max_bridge_length, DistanceFromEdgeDir(tile_from, ReverseDiagDir(dir)) - 1);
 
 	TileIndex endtile = tile_from;
 	for (int length = 0; IsValidTile(endtile) && TileX(endtile) != 0 && TileY(endtile) != 0; length++) {
-		endtile = TileAdd(endtile, offset);
+		endtile += offset;
 
 		if (length > max_length) break;
 
@@ -211,7 +211,7 @@ struct BuildDocksToolbarWindow : Window {
 			case WID_DT_STATION: { // Build station button
 				/* Determine the watery part of the dock. */
 				DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile));
-				TileIndex tile_to = (dir != INVALID_DIAGDIR ? TileAddByDiagDir(tile, ReverseDiagDir(dir)) : tile);
+				TileIndex tile_to = (dir != INVALID_DIAGDIR ? tile + TileOffsByDiagDir(ReverseDiagDir(dir)) : tile);
 
 				bool adjacent = _ctrl_pressed;
 				auto proc = [=](bool test, StationID to_join) -> bool {
@@ -288,9 +288,9 @@ struct BuildDocksToolbarWindow : Window {
 			DiagDirection dir = GetInclinedSlopeDirection(GetTileSlope(tile_from));
 			if (IsValidDiagDirection(dir)) {
 				/* Locks and docks always select the tile "down" the slope. */
-				tile_to = TileAddByDiagDir(tile_from, ReverseDiagDir(dir));
+				tile_to = tile_from + TileOffsByDiagDir(ReverseDiagDir(dir));
 				/* Locks also select the tile "up" the slope. */
-				if (this->last_clicked_widget == WID_DT_LOCK) tile_from = TileAddByDiagDir(tile_from, dir);
+				if (this->last_clicked_widget == WID_DT_LOCK) tile_from += TileOffsByDiagDir(dir);
 			}
 		}
 

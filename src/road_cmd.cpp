@@ -292,10 +292,10 @@ CommandCost CheckAllowRemoveRoad(TileIndex tile, RoadBits remove, Owner owner, R
 	/* Get a bitmask of which neighbouring roads has a tile */
 	RoadBits n = ROAD_NONE;
 	RoadBits present = GetAnyRoadBits(tile, rtt);
-	if ((present & ROAD_NE) && (GetAnyRoadBits(TileAddXY(tile, -1,  0), rtt) & ROAD_SW)) n |= ROAD_NE;
-	if ((present & ROAD_SE) && (GetAnyRoadBits(TileAddXY(tile,  0,  1), rtt) & ROAD_NW)) n |= ROAD_SE;
-	if ((present & ROAD_SW) && (GetAnyRoadBits(TileAddXY(tile,  1,  0), rtt) & ROAD_NE)) n |= ROAD_SW;
-	if ((present & ROAD_NW) && (GetAnyRoadBits(TileAddXY(tile,  0, -1), rtt) & ROAD_SE)) n |= ROAD_NW;
+	if ((present & ROAD_NE) && (GetAnyRoadBits(tile + TileOffset(-1,  0), rtt) & ROAD_SW)) n |= ROAD_NE;
+	if ((present & ROAD_SE) && (GetAnyRoadBits(tile + TileOffset( 0,  1), rtt) & ROAD_NW)) n |= ROAD_SE;
+	if ((present & ROAD_SW) && (GetAnyRoadBits(tile + TileOffset( 1,  0), rtt) & ROAD_NE)) n |= ROAD_SW;
+	if ((present & ROAD_NW) && (GetAnyRoadBits(tile + TileOffset( 0, -1), rtt) & ROAD_SE)) n |= ROAD_NW;
 
 	int rating_decrease = RATING_ROAD_DOWN_STEP_EDGE;
 	/* If 0 or 1 bits are set in n, or if no bits that match the bits to remove,
@@ -949,7 +949,7 @@ do_clear:;
  */
 static bool CanConnectToRoad(TileIndex tile, RoadType rt, DiagDirection dir)
 {
-	tile += TileOffsByDiagDir(dir);
+	tile += dir;
 	if (!IsValidTile(tile) || !MayHaveRoad(tile)) return false;
 
 	RoadTramType rtt = GetRoadTramType(rt);
@@ -1391,7 +1391,7 @@ void DrawRoadTypeCatenary(const TileInfo *ti, RoadType rt, RoadBits rb)
 		RoadBits rb_new = ROAD_NONE;
 		for (DiagDirection dir = DIAGDIR_BEGIN; dir < DIAGDIR_END; dir++) {
 			if (rb & DiagDirToRoadBits(dir)) {
-				TileIndex neighbour = TileAddByDiagDir(ti->tile, dir);
+				TileIndex neighbour = ti->tile + TileOffsByDiagDir(dir);
 				if (MayHaveRoad(neighbour)) {
 					RoadType rt_road = GetRoadTypeRoad(neighbour);
 					RoadType rt_tram = GetRoadTypeTram(neighbour);
@@ -1770,7 +1770,7 @@ static void DrawTile_Road(TileInfo *ti)
 				const DiagDirection dir2 = ReverseDiagDir(dir1);
 				uint adjacent_diagdirs = 0;
 				for (DiagDirection dir : { dir1, dir2 }) {
-					const TileIndex t = TileAddByDiagDir(ti->tile, dir);
+					const TileIndex t = ti->tile + TileOffsByDiagDir(dir);
 					if (t < Map::Size() && IsLevelCrossingTile(t) && GetCrossingRoadAxis(t) == road_axis) {
 						SetBit(adjacent_diagdirs, dir);
 					}
@@ -2144,9 +2144,9 @@ static TrackStatus GetTileTrackStatus_Road(TileIndex tile, TransportType mode, u
 							if (IsLevelCrossingTile(t) && IsCrossingBarred(t)) red_signals &= mask;
 						};
 						/* Check for blocked adjacent crossing to south, keep only southbound red signal trackdirs, allow northbound traffic */
-						mask_red_signal_bits_if_crossing_barred(TileAddByDiagDir(tile, AxisToDiagDir(axis)), TRACKDIR_BIT_X_SW | TRACKDIR_BIT_Y_SE);
+						mask_red_signal_bits_if_crossing_barred(tile + TileOffsByDiagDir(AxisToDiagDir(axis)), TRACKDIR_BIT_X_SW | TRACKDIR_BIT_Y_SE);
 						/* Check for blocked adjacent crossing to north, keep only northbound red signal trackdirs, allow southbound traffic */
-						mask_red_signal_bits_if_crossing_barred(TileAddByDiagDir(tile, ReverseDiagDir(AxisToDiagDir(axis))), TRACKDIR_BIT_X_NE | TRACKDIR_BIT_Y_NW);
+						mask_red_signal_bits_if_crossing_barred(tile + TileOffsByDiagDir(ReverseDiagDir(AxisToDiagDir(axis))), TRACKDIR_BIT_X_NE | TRACKDIR_BIT_Y_NW);
 					}
 					break;
 				}

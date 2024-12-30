@@ -88,7 +88,7 @@ DECLARE_ENUM_AS_BIT_SET(IndustryTileSpecialFlags)
 
 /** Definition of one tile in an industry tile layout */
 struct IndustryTileLayoutTile {
-	TileIndexDiffC ti;
+	TileOffsetC ti;
 	IndustryGfx gfx;
 };
 

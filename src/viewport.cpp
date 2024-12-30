@@ -2895,11 +2895,11 @@ static int CalcHeightdiff(HighLightStyle style, uint distance, TileIndex start_t
 			 * east by checking the X-coordinates of the tiles */
 			if (TileX(end_tile) > TileX(start_tile)) {
 				/* Dragging south does not need to change the start tile. */
-				end_tile = TileAddByDir(end_tile, DIR_S);
+				end_tile += TileOffsByDir(DIR_S);
 			} else {
 				/* Dragging east. */
-				start_tile = TileAddByDir(start_tile, DIR_SW);
-				end_tile = TileAddByDir(end_tile, DIR_SE);
+				start_tile += TileOffsByDir(DIR_SW);
+				end_tile += TileOffsByDir(DIR_SE);
 			}
 			[[fallthrough]];
 
@@ -2911,7 +2911,7 @@ static int CalcHeightdiff(HighLightStyle style, uint distance, TileIndex start_t
 			static const HighLightStyle flip_style_direction[] = {
 				HT_DIR_X, HT_DIR_Y, HT_DIR_HL, HT_DIR_HU, HT_DIR_VR, HT_DIR_VL
 			};
-			static const std::pair<TileIndexDiffC, TileIndexDiffC> start_heightdiff_line_by_dir[] = {
+			static const std::pair<TileOffsetC, TileOffsetC> start_heightdiff_line_by_dir[] = {
 				{ {1, 0}, {1, 1} }, // HT_DIR_X
 				{ {0, 1}, {1, 1} }, // HT_DIR_Y
 				{ {1, 0}, {0, 0} }, // HT_DIR_HU
@@ -2919,7 +2919,7 @@ static int CalcHeightdiff(HighLightStyle style, uint distance, TileIndex start_t
 				{ {1, 0}, {1, 1} }, // HT_DIR_VL
 				{ {0, 1}, {1, 1} }, // HT_DIR_VR
 			};
-			static const std::pair<TileIndexDiffC, TileIndexDiffC> end_heightdiff_line_by_dir[] = {
+			static const std::pair<TileOffsetC, TileOffsetC> end_heightdiff_line_by_dir[] = {
 				{ {0, 1}, {0, 0} }, // HT_DIR_X
 				{ {1, 0}, {0, 0} }, // HT_DIR_Y
 				{ {0, 1}, {0, 0} }, // HT_DIR_HU
@@ -2943,8 +2943,8 @@ static int CalcHeightdiff(HighLightStyle style, uint distance, TileIndex start_t
 			/* Lambda to help calculating the height at one side of the line. */
 			auto get_height = [](auto &tile, auto &heightdiffs) {
 				return std::max(
-					TileHeight(TileAdd(tile, ToTileIndexDiff(heightdiffs.first))),
-					TileHeight(TileAdd(tile, ToTileIndexDiff(heightdiffs.second))));
+					TileHeight(tile + ToTileOffset(heightdiffs.first)),
+					TileHeight(tile + ToTileOffset(heightdiffs.second)));
 			};
 
 			/* Use lookup table for start-tile based on HighLightStyle direction */

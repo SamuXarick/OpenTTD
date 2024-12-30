@@ -376,26 +376,6 @@ debug_inline static TileIndex TileXY(uint x, uint y)
 }
 
 /**
- * Calculates an offset for the given coordinate(-offset).
- *
- * This function calculate an offset value which can be added to a
- * #TileIndex. The coordinates can be negative.
- *
- * @param x The offset in x direction
- * @param y The offset in y direction
- * @return The resulting offset value of the given coordinate
- * @see ToTileIndexDiff(TileIndexDiffC)
- */
-inline TileIndexDiff TileDiffXY(int x, int y)
-{
-	/* Multiplication gives much better optimization on MSVC than shifting.
-	 * 0 << shift isn't optimized to 0 properly.
-	 * Typically x and y are constants, and then this doesn't result
-	 * in any actual multiplication in the assembly code.. */
-	return (y * Map::SizeX()) + x;
-}
-
-/**
  * Get a tile from the virtual XY-coordinate.
  * @param x The virtual x coordinate of the tile.
  * @param y The virtual y coordinate of the tile.
@@ -428,94 +408,251 @@ debug_inline static uint TileY(TileIndex tile)
 }
 
 /**
- * Return the offset between two tiles from a TileIndexDiffC struct.
+ * An offset value between two tiles.
  *
- * This function works like #TileDiffXY(int, int) and returns the
+ * This value is used for the difference between two tiles. It can be added to
+ * a TileIndex to get the resulting TileIndex of the start tile applied with
+ * this saved difference.
+ *
+ * When being built with debugging, the internal structure is different to be
+ * able to perform stringent overflow checks on the X and Y axes. However,
+ * that structure has negative performance impacts not warranted for releases.
+ *
+ * @see TileOffset(int, int)
+ */
+struct TileOffset {
+public:
+	debug_inline explicit TileOffset(int32_t x, int32_t y) : offset(GetOffset(x, y))
+#ifdef _DEBUG
+		, x(x), y(y)
+#endif /* _DEBUG */
+	{}
+
+	debug_inline explicit TileOffset(int32_t x, int32_t y, [[maybe_unused]] bool wrap) : x(x), y(y), wrap(true) {}
+	friend inline TileIndex operator-(const TileIndex &tile, const TileOffset &offset);
+	friend inline TileIndex operator+(const TileIndex &tile, const TileOffset &offset);
+	friend inline TileIndex operator+(const TileIndex &tile, const Direction dir);
+	friend inline TileIndex operator+(const TileIndex &tile, const DiagDirection diagdir);
+
+	debug_inline TileOffset operator*(int amount) const
+	{
+		if (this->wrap) {
+			TileOffset result = TileOffset(this->x * amount, this->y * amount);
+			return result;
+		} else {
+			int32_t new_offset = this->offset * amount;
+#ifdef _DEBUG
+			TileOffset result = TileOffset(this->x * amount, this->y * amount);
+			assert(result.offset == new_offset);
+			return result;
+#else
+			return TileOffset(new_offset);
+#endif /* _DEBUG */
+		}
+	}
+
+	debug_inline TileOffset& operator*=(int amount)
+	{
+		if (this->wrap) {
+			this->x *= amount;
+			this->y *= amount;
+		} else {
+			this->offset *= amount;
+#ifdef _DEBUG
+			this->x *= amount;
+			this->y *= amount;
+			assert(this->offset == GetOffset(this->x, this->y));
+#endif /* _DEBUG */
+		}
+		return *this;
+	}
+
+	debug_inline TileOffset& operator+=(const TileOffset &other)
+	{
+		if (this->wrap && other.wrap) {
+			this->x += other.x;
+			this->y += other.y;
+		} else if (!this->wrap && !other.wrap) {
+			this->offset += other.offset;
+#ifdef _DEBUG
+			this->x += other.x;
+			this->y += other.y;
+			assert(this->offset == GetOffset(this->x, this->y));
+#endif /* _DEBUG */
+		} else {
+			NOT_REACHED();
+		}
+		return *this;
+	}
+
+	debug_inline constexpr auto operator<=>(const TileOffset&) const = default;
+
+private:
+	int32_t offset;
+	int32_t x;
+	int32_t y;
+	bool wrap = false;
+
+#ifndef _DEBUG
+	debug_inline explicit TileOffset(int32_t offset) : offset(offset) {}
+#endif /* !_DEBUG */
+
+	debug_inline static int32_t GetOffset(int32_t x, int32_t y)
+	{
+		return (y << Map::LogX()) + x;
+	}
+};
+
+debug_inline TileIndex operator+(const TileIndex &tile, const TileOffset &offset)
+{
+	TileIndex result;
+	if (offset.wrap) {
+		uint x = TileX(tile) + offset.x;
+		uint y = TileY(tile) + offset.y;
+		if (x >= Map::SizeX() || y >= Map::SizeY()) {
+			result = INVALID_TILE;
+		} else {
+			result = TileXY(x, y);
+		}
+	} else {
+		result = tile + offset.offset;
+#ifdef _DEBUG
+		uint x = TileX(tile) + offset.x;
+		uint y = TileY(tile) + offset.y;
+		assert(x < Map::SizeX());
+		assert(y < Map::SizeY());
+		assert(result == TileXY(x, y));
+#endif /* _DEBUG */
+	}
+	return result;
+}
+
+debug_inline TileIndex operator-(const TileIndex &tile, const TileOffset &offset)
+{
+	TileIndex result;
+	if (offset.wrap) {
+		result = tile + TileOffset(-offset.x, -offset.y);
+	} else {
+		result = tile - offset.offset;
+#ifdef _DEBUG
+		assert(result == tile + TileOffset(-offset.x, -offset.y));
+#endif /* _DEBUG */
+	}
+	return result;
+}
+
+debug_inline TileOffset operator*(int amount, const TileOffset &offset) { return offset * amount; }
+debug_inline TileIndex& operator-=(TileIndex &tile, const TileOffset &offset) { tile = tile - offset; return tile; }
+debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffset &offset) { tile = tile + offset; return tile; }
+
+/**
+ * A pair-construct of a TileOffset.
+ *
+ * This can be used to save the difference between to
+ * tiles as a pair of x and y value.
+ */
+struct TileOffsetC {
+	int16_t x;        ///< The x value of the coordinate
+	int16_t y;        ///< The y value of the coordinate
+
+	friend inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset);
+
+	debug_inline constexpr TileOffsetC operator*(const int16_t &amount) const { return TileOffsetC(this->x * amount, this->y * amount); }
+	debug_inline constexpr TileOffsetC& operator+=(const TileOffsetC &other) { this->x += other.x; this->y += other.y; return *this; }
+};
+
+/**
+ * Return the offset between two tiles from a TileOffsetC struct.
+ *
+ * This function works like #TileOffset(int, int) and returns the
  * difference between two tiles.
  *
- * @param tidc The coordinate of the offset as TileIndexDiffC
+ * @param tidc The coordinate of the offset as TileOffsetC
  * @return The difference between two tiles.
- * @see TileDiffXY(int, int)
+ * @see TileOffset(int, int)
  */
-inline TileIndexDiff ToTileIndexDiff(TileIndexDiffC tidc)
+inline TileOffset ToTileOffset(TileOffsetC tidc, bool wrap = false)
 {
-	return TileDiffXY(tidc.x, tidc.y);
+	return wrap ? TileOffset(tidc.x, tidc.y, true) : TileOffset(tidc.x, tidc.y);
 }
 
-
 /**
- * Adds a given offset to a tile.
+ * Add a TileOffsetC to a TileIndex and returns the new one.
  *
- * @param tile The tile to add an offset to.
- * @param offset The offset to add.
- * @return The resulting tile.
- */
-#ifndef _DEBUG
-	constexpr TileIndex TileAdd(TileIndex tile, TileIndexDiff offset) { return tile + offset; }
-#else
-	TileIndex TileAdd(TileIndex tile, TileIndexDiff offset);
-#endif
-
-/**
- * Adds a given offset to a tile.
+ * Returns tile + the offset given in offset. If the result tile would end up
+ * outside of the map, INVALID_TILE is returned instead.
  *
- * @param tile The tile to add an offset to.
- * @param x The x offset to add to the tile.
- * @param y The y offset to add to the tile.
- * @return The resulting tile.
+ * @param tile The base tile to add the offset on
+ * @param offset The offset to add on the tile
+ * @return The resulting TileIndex
  */
-inline TileIndex TileAddXY(TileIndex tile, int x, int y)
+debug_inline TileIndex operator+(const TileIndex &tile, const TileOffsetC &offset)
 {
-	return TileAdd(tile, TileDiffXY(x, y));
+	uint x = TileX(tile) + offset.x;
+	uint y = TileY(tile) + offset.y;
+	if (x >= Map::SizeX()) return INVALID_TILE;
+	if (y >= Map::SizeY()) return INVALID_TILE;
+	return TileXY(x, y);
 }
+
+debug_inline TileIndex& operator+=(TileIndex &tile, const TileOffsetC &offset) { tile = tile + offset; return tile; }
+
+debug_inline TileIndex operator+(TileIndex &tile, Direction dir)
+{
+	extern const TileOffsetC _tileoffs_by_dir[];
+
+	assert(IsValidDirection(dir));
+	return tile + ToTileOffset(_tileoffs_by_dir[dir], true);
+}
+
+/**
+ * Adds a DiagDirection as a TileOffsetC offset to a TileIndex and returns the new tile.
+ *
+ * Returns tile + the offset given in offset. If the result tile would end up
+ * outside of the map, INVALID_TILE is returned instead.
+ *
+ * @param diagdir The given diagonal direction
+ * @return The resulting TileIndex
+ */
+debug_inline TileIndex operator+(TileIndex &tile, DiagDirection diagdir)
+{
+	extern const TileOffsetC _tileoffs_by_diagdir[];
+
+	assert(IsValidDiagDirection(diagdir));
+	return tile + ToTileOffset(_tileoffs_by_diagdir[diagdir], true);
+}
+
+debug_inline TileIndex operator+=(TileIndex &tile, DiagDirection diagdir) { tile = tile + diagdir; return tile; }
+
 
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
 /**
- * Returns the TileIndexDiffC offset from a DiagDirection.
+ * Returns the TileOffsetC offset from an Axis.
+ *
+ * @param axis The Axis
+ * @return The resulting TileOffsetC in southern direction (either SW or SE).
+ */
+inline TileOffsetC TileOffsCByAxis(Axis axis)
+{
+	extern const TileOffsetC _tileoffs_by_axis[];
+
+	assert(IsValidAxis(axis));
+	return _tileoffs_by_axis[axis];
+}
+
+/**
+ * Returns the TileOffsetC offset from a DiagDirection.
  *
  * @param dir The given direction
- * @return The offset as TileIndexDiffC value
+ * @return The offset as TileOffsetC value
  */
-inline TileIndexDiffC TileIndexDiffCByDiagDir(DiagDirection dir)
+inline TileOffsetC TileOffsCByDiagDir(DiagDirection dir)
 {
-	extern const TileIndexDiffC _tileoffs_by_diagdir[DIAGDIR_END];
+	extern const TileOffsetC _tileoffs_by_diagdir[DIAGDIR_END];
 
 	assert(IsValidDiagDirection(dir));
 	return _tileoffs_by_diagdir[dir];
-}
-
-/**
- * Returns the TileIndexDiffC offset from a Direction.
- *
- * @param dir The given direction
- * @return The offset as TileIndexDiffC value
- */
-inline TileIndexDiffC TileIndexDiffCByDir(Direction dir)
-{
-	extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
-
-	assert(IsValidDirection(dir));
-	return _tileoffs_by_dir[dir];
-}
-
-/**
- * Add a TileIndexDiffC to a TileIndex and returns the new one.
- *
- * Returns tile + the diff given in diff. If the result tile would end up
- * outside of the map, INVALID_TILE is returned instead.
- *
- * @param tile The base tile to add the offset on
- * @param diff The offset to add on the tile
- * @return The resulting TileIndex
- */
-inline TileIndex AddTileIndexDiffCWrap(TileIndex tile, TileIndexDiffC diff)
-{
-	int x = TileX(tile) + diff.x;
-	int y = TileY(tile) + diff.y;
-	/* Negative value will become big positive value after cast */
-	if ((uint)x >= Map::SizeX() || (uint)y >= Map::SizeY()) return INVALID_TILE;
-	return TileXY(x, y);
 }
 
 /**
@@ -525,9 +662,9 @@ inline TileIndex AddTileIndexDiffCWrap(TileIndex tile, TileIndexDiffC diff)
  * @param tile_b to tile
  * @return the difference between tila_a and tile_b
  */
-inline TileIndexDiffC TileIndexToTileIndexDiffC(TileIndex tile_a, TileIndex tile_b)
+inline TileOffsetC TileIndexToTileOffsetC(TileIndex tile_a, TileIndex tile_b)
 {
-	TileIndexDiffC difference;
+	TileOffsetC difference;
 
 	difference.x = TileX(tile_a) - TileX(tile_b);
 	difference.y = TileY(tile_a) - TileY(tile_b);
@@ -544,70 +681,46 @@ uint DistanceFromEdge(TileIndex); ///< shortest distance from any edge of the ma
 uint DistanceFromEdgeDir(TileIndex, DiagDirection); ///< distance from the map edge in given direction
 
 /**
- * Convert an Axis to a TileIndexDiff
+ * Convert an Axis to a TileOffset
  *
  * @param axis The Axis
- * @return The resulting TileIndexDiff in southern direction (either SW or SE).
+ * @return The resulting TileOffset in southern direction (either SW or SE).
  */
-inline TileIndexDiff TileOffsByAxis(Axis axis)
+inline TileOffset TileOffsByAxis(Axis axis)
 {
-	extern const TileIndexDiffC _tileoffs_by_axis[];
+	extern const TileOffsetC _tileoffs_by_axis[];
 
 	assert(IsValidAxis(axis));
-	return ToTileIndexDiff(_tileoffs_by_axis[axis]);
+	return ToTileOffset(_tileoffs_by_axis[axis]);
 }
 
 /**
- * Convert a DiagDirection to a TileIndexDiff
+ * Convert a DiagDirection to a TileOffset
  *
  * @param dir The DiagDirection
- * @return The resulting TileIndexDiff
- * @see TileIndexDiffCByDiagDir
+ * @return The resulting TileOffset
+ * @see TileOffsCByDiagDir
  */
-inline TileIndexDiff TileOffsByDiagDir(DiagDirection dir)
+inline TileOffset TileOffsByDiagDir(DiagDirection dir)
 {
-	extern const TileIndexDiffC _tileoffs_by_diagdir[DIAGDIR_END];
+	extern const TileOffsetC _tileoffs_by_diagdir[DIAGDIR_END];
 
 	assert(IsValidDiagDirection(dir));
-	return ToTileIndexDiff(_tileoffs_by_diagdir[dir]);
+	return ToTileOffset(_tileoffs_by_diagdir[dir]);
 }
 
 /**
- * Convert a Direction to a TileIndexDiff.
+ * Convert a Direction to a TileOffset.
  *
  * @param dir The direction to convert from
- * @return The resulting TileIndexDiff
+ * @return The resulting TileOffset
  */
-inline TileIndexDiff TileOffsByDir(Direction dir)
+inline TileOffset TileOffsByDir(Direction dir)
 {
-	extern const TileIndexDiffC _tileoffs_by_dir[DIR_END];
+	extern const TileOffsetC _tileoffs_by_dir[DIR_END];
 
 	assert(IsValidDirection(dir));
-	return ToTileIndexDiff(_tileoffs_by_dir[dir]);
-}
-
-/**
- * Adds a Direction to a tile.
- *
- * @param tile The current tile
- * @param dir The direction in which we want to step
- * @return the moved tile
- */
-inline TileIndex TileAddByDir(TileIndex tile, Direction dir)
-{
-	return TileAdd(tile, TileOffsByDir(dir));
-}
-
-/**
- * Adds a DiagDir to a tile.
- *
- * @param tile The current tile
- * @param dir The direction in which we want to step
- * @return the moved tile
- */
-inline TileIndex TileAddByDiagDir(TileIndex tile, DiagDirection dir)
-{
-	return TileAdd(tile, TileOffsByDiagDir(dir));
+	return ToTileOffset(_tileoffs_by_dir[dir]);
 }
 
 /**

@@ -174,7 +174,7 @@ struct CFollowTrackT
 
 		if (this->is_station) {
 			/* Check skipped station tiles as well. */
-			TileIndexDiff diff = TileOffsByDiagDir(this->exitdir);
+			TileOffset diff = TileOffsByDiagDir(this->exitdir);
 			for (TileIndex tile = this->new_tile - diff * this->tiles_skipped; tile != this->new_tile; tile += diff) {
 				if (HasStationReservation(tile)) {
 					this->new_td_bits = TRACKDIR_BIT_NONE;
@@ -226,7 +226,7 @@ protected:
 		}
 
 		/* normal or station tile, do one step */
-		this->new_tile = TileAddByDiagDir(this->old_tile, this->exitdir);
+		this->new_tile = this->old_tile + TileOffsByDiagDir(this->exitdir);
 
 		/* special handling for stations */
 		if (IsRailTT() && HasStationTileRail(this->new_tile)) {
@@ -380,9 +380,9 @@ protected:
 			/* how big step we must do to get to the last platform tile? */
 			this->tiles_skipped = length - 1;
 			/* move to the platform end */
-			TileIndexDiff diff = TileOffsByDiagDir(this->exitdir);
+			TileOffset diff = TileOffsByDiagDir(this->exitdir);
 			diff *= this->tiles_skipped;
-			this->new_tile = TileAdd(this->new_tile, diff);
+			this->new_tile += diff;
 			return true;
 		}
 

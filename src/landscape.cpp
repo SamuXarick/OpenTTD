@@ -394,7 +394,7 @@ bool HasFoundationNW(TileIndex tile, Slope slope_here, uint z_here)
 	int z_N_here = z_here;
 	GetSlopePixelZOnEdge(slope_here, DIAGDIR_NW, z_W_here, z_N_here);
 
-	auto [slope, z] = GetFoundationPixelSlope(TileAddXY(tile, 0, -1));
+	auto [slope, z] = GetFoundationPixelSlope(tile + TileOffset(0, -1));
 	int z_W = z;
 	int z_N = z;
 	GetSlopePixelZOnEdge(slope, DIAGDIR_SE, z_W, z_N);
@@ -409,7 +409,7 @@ bool HasFoundationNE(TileIndex tile, Slope slope_here, uint z_here)
 	int z_N_here = z_here;
 	GetSlopePixelZOnEdge(slope_here, DIAGDIR_NE, z_E_here, z_N_here);
 
-	auto [slope, z] = GetFoundationPixelSlope(TileAddXY(tile, -1, 0));
+	auto [slope, z] = GetFoundationPixelSlope(tile + TileOffset(-1, 0));
 	int z_E = z;
 	int z_N = z;
 	GetSlopePixelZOnEdge(slope, DIAGDIR_SW, z_E, z_N);
@@ -896,7 +896,7 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur++;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileOffset(0, 1);
 			} while (--h != 0);
 			break;
 
@@ -907,14 +907,14 @@ static void GenerateTerrain(int type, uint flag)
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur += TileDiffXY(0, 1);
+					tile_cur += TileOffset(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileOffset(1, 0);
 			} while (--w != 0);
 			break;
 
 		case DIAGDIR_SW:
-			tile += TileDiffXY(w - 1, 0);
+			tile += TileOffset(w - 1, 0);
 			do {
 				TileIndex tile_cur = tile;
 
@@ -923,21 +923,21 @@ static void GenerateTerrain(int type, uint flag)
 					p++;
 					tile_cur--;
 				}
-				tile += TileDiffXY(0, 1);
+				tile += TileOffset(0, 1);
 			} while (--h != 0);
 			break;
 
 		case DIAGDIR_NW:
-			tile += TileDiffXY(0, h - 1);
+			tile += TileOffset(0, h - 1);
 			do {
 				TileIndex tile_cur = tile;
 
 				for (uint h_cur = h; h_cur != 0; --h_cur) {
 					if (GB(*p, 0, 4) >= TileHeight(tile_cur)) SetTileHeight(tile_cur, GB(*p, 0, 4));
 					p++;
-					tile_cur -= TileDiffXY(0, 1);
+					tile_cur -= TileOffset(0, 1);
 				}
-				tile += TileDiffXY(1, 0);
+				tile += TileOffset(1, 0);
 			} while (--w != 0);
 			break;
 	}
@@ -956,7 +956,7 @@ static void CreateDesertOrRainForest(uint desert_tropic_line)
 		if (!IsValidTile(tile)) continue;
 
 		auto allows_desert = [tile, desert_tropic_line](auto &offset) {
-			TileIndex t = AddTileIndexDiffCWrap(tile, offset);
+			TileIndex t = tile + offset;
 			return t == INVALID_TILE || (TileHeight(t) < desert_tropic_line && !IsTileType(t, MP_WATER));
 		};
 		if (std::all_of(std::begin(_make_desert_or_rainforest_data), std::end(_make_desert_or_rainforest_data), allows_desert)) {
@@ -976,7 +976,7 @@ static void CreateDesertOrRainForest(uint desert_tropic_line)
 		if (!IsValidTile(tile)) continue;
 
 		auto allows_rainforest = [tile](auto &offset) {
-			TileIndex t = AddTileIndexDiffCWrap(tile, offset);
+			TileIndex t = tile + offset;
 			return t == INVALID_TILE || !IsTileType(t, MP_CLEAR) || !IsClearGround(t, CLEAR_DESERT);
 		};
 		if (std::all_of(std::begin(_make_desert_or_rainforest_data), std::end(_make_desert_or_rainforest_data), allows_rainforest)) {
@@ -1082,7 +1082,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 
 		/* First, determine the desired slope based on adjacent river tiles. This doesn't necessarily match the origin tile for the CircularTileSearch. */
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex other_tile = TileAddByDiagDir(tile, d);
+			TileIndex other_tile = tile + TileOffsByDiagDir(d);
 			Slope other_slope = GetTileSlope(other_tile);
 
 			/* Only consider river tiles. */
@@ -1113,7 +1113,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 		if (desired_slope == SLOPE_FLAT && IsSlopeWithThreeCornersRaised(cur_slope)) {
 			/* Make sure we're not affecting an existing river slope tile. */
 			for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-				TileIndex other_tile = TileAddByDiagDir(tile, d);
+				TileIndex other_tile = tile + TileOffsByDiagDir(d);
 				if (IsInclinedSlope(GetTileSlope(other_tile)) && IsWaterTile(other_tile)) return false;
 			}
 			Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, ComplementSlope(cur_slope), true);
@@ -1127,7 +1127,7 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 				/* We don't care about downstream or upstream tiles, just the riverbanks. */
 				if (d == DIAGDIRDIFF_SAME || d == DIAGDIRDIFF_REVERSE) continue;
 
-				TileIndex other_tile = (TileAddByDiagDir(tile, ChangeDiagDir(river_direction, d)));
+				TileIndex other_tile = (tile + TileOffsByDiagDir(ChangeDiagDir(river_direction, d)));
 				if (IsWaterTile(other_tile) && IsRiver(other_tile) && IsTileFlat(other_tile)) return false;
 			}
 
@@ -1155,8 +1155,8 @@ static bool RiverMakeWider(TileIndex tile, void *data)
 	if (IsInclinedSlope(cur_slope)) {
 		DiagDirection slope_direction = GetInclinedSlopeDirection(cur_slope);
 
-		TileIndex upstream_tile = TileAddByDiagDir(tile, slope_direction);
-		TileIndex downstream_tile = TileAddByDiagDir(tile, ReverseDiagDir(slope_direction));
+		TileIndex upstream_tile = tile + TileOffsByDiagDir(slope_direction);
+		TileIndex downstream_tile = tile + TileOffsByDiagDir(ReverseDiagDir(slope_direction));
 
 		/* Don't look outside the map. */
 		if (!IsValidTile(upstream_tile) || !IsValidTile(downstream_tile)) return false;
@@ -1478,7 +1478,7 @@ static uint CalculateCoverageLine(uint coverage, uint edge_multiplier)
 		if (edge_multiplier != 0) {
 			/* Check if any of our neighbours is below us. */
 			for (auto dir : neighbour_dir) {
-				TileIndex neighbour_tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(dir));
+				TileIndex neighbour_tile = tile + dir;
 				if (IsValidTile(neighbour_tile) && TileHeight(neighbour_tile) < h) {
 					edge_histogram[h]++;
 				}
