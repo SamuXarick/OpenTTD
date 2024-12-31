@@ -1015,7 +1015,7 @@ static bool IsSuitableForFarmField(TileIndex tile, bool allow_fields)
  */
 static void SetupFarmFieldFence(TileIndex tile, int size, uint8_t type, DiagDirection side)
 {
-	TileIndexDiffC diff = TileOffsByAxis(OtherAxis(DiagDirToAxis(side)));
+	TileIndexDiffC diff = TileIndexDiffCByAxis(OtherAxis(DiagDirToAxis(side)));
 	TileIndexDiffC neighbour_diff = TileIndexDiffCByDiagDir(side);
 
 	do {

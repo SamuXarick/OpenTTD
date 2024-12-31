@@ -442,6 +442,25 @@ debug_inline TileIndex &operator+=(TileIndex &tile, const TileIndexDiffC &offset
 TileIndex TileAddWrap(TileIndex tile, int addx, int addy);
 
 /**
+ * Returns the TileIndexDiffC offset from an Axis.
+ *
+ * @param axis The given axis
+ * @return The offset as TileIndexDiffC in southern direction (either SW or SE).
+ */
+inline TileIndexDiffC TileIndexDiffCByAxis(Axis axis)
+{
+	extern const TileIndexDiffC _tileoffs_by_axis[];
+
+	assert(IsValidAxis(axis));
+	return _tileoffs_by_axis[axis];
+}
+
+debug_inline TileIndex operator+(TileIndex &tile, Axis axis) { return tile + TileIndexDiffCByAxis(axis); }
+debug_inline TileIndex operator-(TileIndex &tile, Axis axis) { return tile - TileIndexDiffCByAxis(axis); }
+debug_inline TileIndex operator-(const TileIndex &tile, Axis axis) { return tile - TileIndexDiffCByAxis(axis); }
+debug_inline TileIndex &operator+=(TileIndex &tile, Axis axis) { tile = tile + axis; return tile; }
+
+/**
  * Returns the TileIndexDiffC offset from a DiagDirection.
  *
  * @param dir The given direction
@@ -502,20 +521,6 @@ uint DistanceMax(TileIndex, TileIndex); ///< also known as L-Infinity-Norm
 uint DistanceMaxPlusManhattan(TileIndex, TileIndex); ///< Max + Manhattan
 uint DistanceFromEdge(TileIndex); ///< shortest distance from any edge of the map
 uint DistanceFromEdgeDir(TileIndex, DiagDirection); ///< distance from the map edge in given direction
-
-/**
- * Convert an Axis to a TileIndexDiffC
- *
- * @param axis The Axis
- * @return The resulting TileIndexDiffC in southern direction (either SW or SE).
- */
-inline TileIndexDiffC TileOffsByAxis(Axis axis)
-{
-	extern const TileIndexDiffC _tileoffs_by_axis[];
-
-	assert(IsValidAxis(axis));
-	return _tileoffs_by_axis[axis];
-}
 
 /**
  * Determines the DiagDirection to get from one tile to another.

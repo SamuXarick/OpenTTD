@@ -1129,7 +1129,7 @@ std::tuple<CommandCost, Money> CmdRemoveLongRoad(DoCommandFlag flags, TileIndex 
 
 		if (tile == end_tile) break;
 
-		tile += TileOffsByAxis(axis);
+		tile += axis;
 	}
 
 	return { had_success ? cost : last_error, 0 };

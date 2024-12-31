@@ -264,7 +264,7 @@ void Station::MarkTilesDirty(bool cargo_change) const
 {
 	assert(this->TileBelongsToRailStation(tile));
 
-	TileIndexDiffC delta = TileOffsByAxis(GetRailStationAxis(tile));
+	TileIndexDiffC delta = TileIndexDiffCByAxis(GetRailStationAxis(tile));
 
 	TileIndex t = tile;
 	uint len = 0;

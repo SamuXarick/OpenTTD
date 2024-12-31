@@ -233,7 +233,7 @@ CommandCost CmdBuildRailWaypoint(DoCommandFlag flags, TileIndex start_tile, Axis
 	StationID est = INVALID_STATION;
 
 	/* Check whether the tiles we're building on are valid rail or not. */
-	TileIndexDiffC offset = TileOffsByAxis(OtherAxis(axis));
+	TileIndexDiffC offset = TileIndexDiffCByAxis(OtherAxis(axis));
 	for (int i = 0; i < count; i++) {
 		TileIndex tile = start_tile + i * offset;
 		CommandCost ret = IsValidTileForWaypoint(tile, axis, &est);
@@ -373,7 +373,7 @@ CommandCost CmdBuildRoadWaypoint(DoCommandFlag flags, TileIndex start_tile, Axis
 	if (ret.Failed()) return ret;
 
 	/* Check if there is an already existing, deleted, waypoint close to us that we can reuse. */
-	TileIndex center_tile = start_tile + (count / 2) * TileOffsByAxis(OtherAxis(axis));
+	TileIndex center_tile = start_tile + (count / 2) * TileIndexDiffCByAxis(OtherAxis(axis));
 	if (wp == nullptr && reuse) wp = FindDeletedWaypointCloseTo(center_tile, STR_SV_STNAME_WAYPOINT, _current_company, true);
 
 	if (wp != nullptr) {

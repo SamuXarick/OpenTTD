@@ -112,7 +112,7 @@ void ClearNeighbourNonFloodingStates(TileIndex tile)
 CommandCost CmdBuildShipDepot(DoCommandFlag flags, TileIndex tile, Axis axis)
 {
 	if (!IsValidAxis(axis)) return CMD_ERROR;
-	TileIndex tile2 = tile + TileOffsByAxis(axis);
+	TileIndex tile2 = tile + axis;
 
 	if (!HasTileWaterGround(tile) || !HasTileWaterGround(tile2)) {
 		return CommandCost(STR_ERROR_MUST_BE_BUILT_ON_WATER);

@@ -65,7 +65,7 @@ void RoadStop::MakeDriveThrough()
 
 	RoadStopType rst = GetRoadStopType(this->xy);
 	Axis axis = GetDriveThroughStopAxis(this->xy);
-	TileIndexDiffC offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileIndexDiffCByAxis(axis);
 
 	/* Information about the tile north of us */
 	TileIndex north_tile = this->xy - offset;
@@ -132,7 +132,7 @@ void RoadStop::ClearDriveThrough()
 
 	RoadStopType rst = GetRoadStopType(this->xy);
 	Axis axis = GetDriveThroughStopAxis(this->xy);
-	TileIndexDiffC offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileIndexDiffCByAxis(axis);
 
 	/* Information about the tile north of us */
 	TileIndex north_tile = this->xy - offset;
@@ -373,7 +373,7 @@ void RoadStop::Entry::Rebuild(const RoadStop *rs, int side)
 	rserh.dir = GetEntryDirection(side, axis);
 
 	this->length = 0;
-	TileIndexDiffC offset = TileOffsByAxis(axis);
+	TileIndexDiffC offset = TileIndexDiffCByAxis(axis);
 	for (TileIndex tile = rs->xy; IsDriveThroughRoadStopContinuation(rs->xy, tile); tile += offset) {
 		this->length += TILE_SIZE;
 		FindVehicleOnPos(tile, &rserh, FindVehiclesInRoadStop);
@@ -396,7 +396,7 @@ void RoadStop::Entry::CheckIntegrity(const RoadStop *rs) const
 
 	/* The tile 'before' the road stop must not be part of this 'line' */
 	assert(IsDriveThroughStopTile(rs->xy));
-	assert(!IsDriveThroughRoadStopContinuation(rs->xy, rs->xy - TileOffsByAxis(GetDriveThroughStopAxis(rs->xy))));
+	assert(!IsDriveThroughRoadStopContinuation(rs->xy, rs->xy - GetDriveThroughStopAxis(rs->xy)));
 
 	Entry temp;
 	temp.Rebuild(rs, rs->east == this);

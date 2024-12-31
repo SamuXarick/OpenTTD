@@ -440,7 +440,7 @@ CommandCost CmdBuildBridge(DoCommandFlag flags, TileIndex tile_end, TileIndex ti
 			}
 		}
 
-		TileIndexDiffC delta = TileOffsByAxis(direction);
+		TileIndexDiffC delta = TileIndexDiffCByAxis(direction);
 		for (TileIndex tile = tile_start + delta; tile != tile_end; tile += delta) {
 			if (GetTileMaxZ(tile) > z_start) return CommandCost(STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN);
 
