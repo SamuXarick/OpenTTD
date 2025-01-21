@@ -884,7 +884,8 @@ static double IntNoise(const long x, const long y, const int prime)
 	n = (n << 13) ^ n;
 
 	/* Pseudo-random number generator, using several large primes */
-	return 1.0 - static_cast<double>((n * (n * n * 15731 + 789221) + 1376312589) & INT_MAX) / 1073741824.0;
+	static_assert(1073741824.0 == 0x40000000p0);
+	return 1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 0x40000000p0;
 }
 
 
