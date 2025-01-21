@@ -298,9 +298,9 @@ static Amplitude GetAmplitude(int frequency)
 
 	/* We need to extrapolate the amplitude. */
 	double extrapolation_factor = extrapolation_factors[smoothness];
-	int height_range = I2H(16);
+	Height height_range = I2H(16);
 	do {
-		amplitude = (Amplitude)(extrapolation_factor * (double)amplitude);
+		amplitude *= extrapolation_factor;
 		height_range <<= 1;
 		index++;
 	} while (index < 0);
@@ -332,7 +332,7 @@ static inline bool AllocHeightMap()
 	_height_map.size_y = Map::SizeY();
 
 	/* Allocate memory block for height map row pointers */
-	size_t total_size = static_cast<size_t>(_height_map.size_x + 1) * (_height_map.size_y + 1);
+	int total_size = (_height_map.size_x + 1) * (_height_map.size_y + 1);
 	_height_map.dim_x = _height_map.size_x + 1;
 	_height_map.h.resize(total_size);
 
@@ -368,7 +368,7 @@ static void HeightMapGenerate()
 	/* Trying to apply noise to uninitialized height map */
 	assert(!_height_map.h.empty());
 
-	int start = std::max(MAX_TGP_FREQUENCIES - (int)std::min(Map::LogX(), Map::LogY()), 0);
+	int start = std::max(MAX_TGP_FREQUENCIES - std::min<int>(Map::LogX(), Map::LogY()), 0);
 	bool first = true;
 
 	for (int frequency = start; frequency < MAX_TGP_FREQUENCIES; frequency++) {
@@ -437,7 +437,7 @@ static void HeightMapGetMinMaxAvg(Height *min_ptr, Height *max_ptr, Height *avg_
 	}
 
 	/* Get average height */
-	h_avg = (Height)(h_accu / (_height_map.size_x * _height_map.size_y));
+	h_avg = h_accu / (_height_map.size_x * _height_map.size_y);
 
 	/* Return required results */
 	if (min_ptr != nullptr) *min_ptr = h_min;
@@ -468,7 +468,7 @@ static void HeightMapSineTransform(Height h_min, Height h_max)
 		if (h < h_min) continue;
 
 		/* Transform height into 0..1 space */
-		fheight = (double)(h - h_min) / (double)(h_max - h_min);
+		fheight = static_cast<double>(h - h_min) / (h_max - h_min);
 		/* Apply sine transform depending on landscape type */
 		switch (_settings_game.game_creation.landscape) {
 			case LT_TOYLAND:
@@ -528,7 +528,7 @@ static void HeightMapSineTransform(Height h_min, Height h_max)
 				break;
 		}
 		/* Transform it back into h_min..h_max space */
-		h = (Height)(fheight * (h_max - h_min) + h_min);
+		h = fheight * (h_max - h_min) + h_min;
 		if (h < 0) h = I2H(0);
 		if (h >= h_max) h = h_max - 1;
 	}
@@ -572,12 +572,12 @@ static void HeightMapCurves(uint level)
 	std::array<Height, std::size(curve_maps)> ht{};
 
 	/* Set up a grid to choose curve maps based on location; attempt to get a somewhat square grid */
-	float factor = sqrt((float)_height_map.size_x / (float)_height_map.size_y);
-	uint sx = Clamp((int)(((1 << level) * factor) + 0.5), 1, 128);
-	uint sy = Clamp((int)(((1 << level) / factor) + 0.5), 1, 128);
-	std::vector<uint8_t> c(static_cast<size_t>(sx) * sy);
+	float factor = sqrt(static_cast<float>(_height_map.size_x) / _height_map.size_y);
+	size_t sx = Clamp<size_t>(((1 << level) * factor) + 0.5, 1, 128);
+	size_t sy = Clamp<size_t>(((1 << level) / factor) + 0.5, 1, 128);
+	std::vector<uint8_t> c(sx * sy);
 
-	for (uint i = 0; i < sx * sy; i++) {
+	for (size_t i = 0; i < sx * sy; i++) {
 		c[i] = RandomRange(static_cast<uint32_t>(std::size(curve_maps)));
 	}
 
@@ -585,8 +585,8 @@ static void HeightMapCurves(uint level)
 	for (int x = 0; x < _height_map.size_x; x++) {
 
 		/* Get our X grid positions and bi-linear ratio */
-		float fx = (float)(sx * x) / _height_map.size_x + 1.0f;
-		uint x1 = (uint)fx;
+		float fx = static_cast<float>(sx * x) / _height_map.size_x + 1.0f;
+		uint x1 = fx;
 		uint x2 = x1;
 		float xr = 2.0f * (fx - x1) - 1.0f;
 		xr = sin(xr * M_PI_2);
@@ -602,8 +602,8 @@ static void HeightMapCurves(uint level)
 		for (int y = 0; y < _height_map.size_y; y++) {
 
 			/* Get our Y grid position and bi-linear ratio */
-			float fy = (float)(sy * y) / _height_map.size_y + 1.0f;
-			uint y1 = (uint)fy;
+			float fy = static_cast<float>(sy * y) / _height_map.size_y + 1.0f;
+			uint y1 = fy;
 			uint y2 = y1;
 			float yr = 2.0f * (fy - y1) - 1.0f;
 			yr = sin(yr * M_PI_2);
@@ -659,7 +659,7 @@ static void HeightMapCurves(uint level)
 			}
 
 			/* Apply interpolation of curve map results. */
-			*h = (Height)((ht[corner_a] * yri + ht[corner_b] * yr) * xri + (ht[corner_c] * yri + ht[corner_d] * yr) * xr);
+			*h = (ht[corner_a] * yri + ht[corner_b] * yr) * xri + (ht[corner_c] * yri + ht[corner_d] * yr) * xr;
 
 			/* Readd sea level */
 			*h += I2H(1);
@@ -698,7 +698,7 @@ static void HeightMapAdjustWaterLevel(int64_t water_percent, Height h_max_new)
 	 */
 	for (Height &h : _height_map.h) {
 		/* Transform height from range h_water_level..h_max into 0..h_max_new range */
-		h = (Height)(((int)h_max_new) * (h - h_water_level) / (h_max - h_water_level)) + I2H(1);
+		h = h_max_new * (h - h_water_level) / (h_max - h_water_level) + I2H(1);
 		/* Make sure all values are in the proper range (0..h_max_new) */
 		if (h < 0) h = I2H(0);
 		if (h >= h_max_new) h = h_max_new - 1;
@@ -813,7 +813,7 @@ static void HeightMapSmoothCoastInDirection(int org_x, int org_y, int dir_x, int
 	 * Soften the coast slope */
 	for (depth = 0; IsValidXY(x, y) && depth <= max_coast_smooth_depth; depth++, x += dir_x, y += dir_y) {
 		h = _height_map.height(x, y);
-		h = static_cast<Height>(std::min<uint>(h, h_prev + (4 + depth))); // coast softening formula
+		h = std::min<Height>(h, h_prev + (4 + depth)); // coast softening formula
 		_height_map.height(x, y) = h;
 		h_prev = h;
 	}
@@ -844,8 +844,8 @@ static void HeightMapSmoothCoasts(Borders water_borders)
  */
 static void HeightMapSmoothSlopes(Height dh_max)
 {
-	for (int y = 0; y <= (int)_height_map.size_y; y++) {
-		for (int x = 0; x <= (int)_height_map.size_x; x++) {
+	for (int y = 0; y <= _height_map.size_y; y++) {
+		for (int x = 0; x <= _height_map.size_x; x++) {
 			Height h_max = std::min(_height_map.height(x > 0 ? x - 1 : x, y), _height_map.height(x, y > 0 ? y - 1 : y)) + dh_max;
 			if (_height_map.height(x, y) > h_max) _height_map.height(x, y) = h_max;
 		}
@@ -905,7 +905,7 @@ static double int_noise(const long x, const long y, const int prime)
 	n = (n << 13) ^ n;
 
 	/* Pseudo-random number generator, using several large primes */
-	return 1.0 - (double)((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0;
+	return 1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0;
 }
 
 
@@ -924,11 +924,11 @@ static inline double linear_interpolate(const double a, const double b, const do
  */
 static double interpolated_noise(const double x, const double y, const int prime)
 {
-	const int integer_x = (int)x;
-	const int integer_y = (int)y;
+	const int integer_x = x;
+	const int integer_y = y;
 
-	const double fractional_x = x - (double)integer_x;
-	const double fractional_y = y - (double)integer_y;
+	const double fractional_x = x - integer_x;
+	const double fractional_y = y - integer_y;
 
 	const double v1 = int_noise(integer_x,     integer_y,     prime);
 	const double v2 = int_noise(integer_x + 1, integer_y,     prime);
@@ -953,8 +953,8 @@ static double perlin_coast_noise_2D(const double x, const double y, const double
 	double total = 0.0;
 
 	for (int i = 0; i < 6; i++) {
-		const double frequency = (double)(1 << i);
-		const double amplitude = pow(p, (double)i);
+		const double frequency = 1 << i;
+		const double amplitude = pow(p, i);
 
 		total += interpolated_noise((x * frequency) / 64.0, (y * frequency) / 64.0, prime) * amplitude;
 	}
