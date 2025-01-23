@@ -1025,7 +1025,8 @@ static bool MakeLake(TileIndex tile, void *user_data)
 	for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
 		TileIndex t = tile + TileOffsByDiagDir(d);
 		if (IsWaterTile(t)) {
-			MakeRiverAndModifyDesertZoneAround(tile);
+			MakeRiver(tile, Random());
+			MarkTileDirtyByTile(tile);
 			return false;
 		}
 	}
@@ -1170,7 +1171,8 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 			/* If the tile upstream isn't flat, don't bother. */
 			if (GetTileSlope(downstream_tile) != SLOPE_FLAT) return false;
 
-			MakeRiverAndModifyDesertZoneAround(downstream_tile);
+			MakeRiver(downstream_tile, Random());
+			MarkTileDirtyByTile(downstream_tile);
 		}
 
 		/* If upstream is dry and flat, try making it a river tile. */
@@ -1178,13 +1180,15 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 			/* If the tile upstream isn't flat, don't bother. */
 			if (GetTileSlope(upstream_tile) != SLOPE_FLAT) return false;
 
-			MakeRiverAndModifyDesertZoneAround(upstream_tile);
+			MakeRiver(upstream_tile, Random());
+			MarkTileDirtyByTile(upstream_tile);
 		}
 	}
 
 	/* If the tile slope matches the desired slope, add a river tile. */
 	if (cur_slope == desired_slope) {
-		MakeRiverAndModifyDesertZoneAround(tile);
+		MakeRiver(tile, Random());
+		MarkTileDirtyByTile(tile);
 	}
 
 	/* Always return false to keep searching. */
@@ -1372,13 +1376,10 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 	/* First, build the river without worrying about its width. */
 	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
 		TileIndex tile = path->GetTile();
+		if (IsWaterTile(tile)) continue;
 
-		/* Don't build on sea, but allow overbuilding on rivers to allow modifications
-		 * to the desert zone around them, as there was the possibility some river tiles
-		 * would not be present at the final stage in CreateRiver function. */
-		if (IsWaterTile(tile) && !IsRiver(tile)) continue;
-
-		MakeRiverAndModifyDesertZoneAround(tile);
+		MakeRiver(tile, Random());
+		MarkTileDirtyByTile(tile);
 		SetUnterraformableRiverState(tile, true);
 	}
 
@@ -1398,8 +1399,6 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 			Slope slope = GetTileSlope(tile);
 			if (slope != SLOPE_FLAT && !IsInclinedSlope(slope)) continue;
 
-			/* Use MakeRiver instead of MakeRiverAndModifyDesertZoneAround as
-			 * it is not yet certain this river tile will be present in the end. */
 			MakeRiver(tile, Random());
 			MarkTileDirtyByTile(tile);
 			SetUnterraformableRiverState(tile, true);
@@ -1523,7 +1522,8 @@ static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint
 				/* We only want a lake if the river is long enough. */
 				DistanceManhattan(spring, lake_centre) > min_river_length) {
 			end = lake_centre;
-			MakeRiverAndModifyDesertZoneAround(lake_centre);
+			MakeRiver(lake_centre, Random());
+			MarkTileDirtyByTile(lake_centre);
 			uint range = RandomRange(8) + 3;
 			CircularTileSearch(&lake_centre, range, MakeLake, &height_begin);
 			/* Call the search a second time so artefacts from going circular in one direction get (mostly) hidden. */
@@ -1597,10 +1597,23 @@ static void CreateRivers()
 		}
 	}
 
-	/* Run tile loop to update the ground density. */
-	for (uint i = 0; i != TILE_UPDATE_FREQUENCY; i++) {
-		if (i % 64 == 0) IncreaseGeneratingWorldProgress(GWP_RIVER);
-		RunTileLoop();
+	/* Search for unwanted pockets of river artifacts to clear them of water. */
+	for (const auto tile : Map::Iterate()) {
+		if (!IsTileType(tile, MP_WATER) || !IsRiver(tile)) continue;
+
+		bool has_neighbour = false;
+		for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
+			TileIndex other_tile = AddTileIndexDiffCWrap(tile, TileIndexDiffCByDiagDir(d));
+			if (other_tile == INVALID_TILE || !IsWaterTile(other_tile)) continue;
+
+			has_neighbour = true;
+			if (_settings_game.game_creation.landscape == LandscapeType::Tropic) ModifyDesertZoneAroundRiver(tile);
+			break;
+		}
+
+		if (!has_neighbour) {
+			DoClearSquare(tile);
+		}
 	}
 }
 
