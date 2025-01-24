@@ -1033,6 +1033,20 @@ static bool MakeLake(TileIndex tile, void *user_data)
 	return false;
 }
 
+bool _river_terraform = false;
+
+/**
+ * Terraform land around river.
+ * @param tile tile to terraform
+ * @param slope corners to terraform (SLOPE_xxx)
+ * @param dir_up direction; eg up (true) or down (false)
+ */
+static void RiverTerraform(TileIndex tile, Slope slope, bool dir_up)
+{
+	AutoRestoreBackup old_river_terraform(_river_terraform, true);
+	Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, slope, dir_up);
+}
+
 /**
  * Widen a river by expanding into adjacent tiles via circular tile search.
  * @param tile The tile to try expanding the river into.
@@ -1106,7 +1120,7 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 				TileIndex other_tile = TileAddByDiagDir(tile, d);
 				if (IsInclinedSlope(GetTileSlope(other_tile)) && IsWaterTile(other_tile)) return false;
 			}
-			Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, ComplementSlope(cur_slope), true);
+			RiverTerraform(tile, ComplementSlope(cur_slope), true);
 
 		/* If the river is descending and the adjacent tile has either one or three corners raised, we want to make it match the slope. */
 		} else if (IsInclinedSlope(desired_slope)) {
@@ -1127,14 +1141,14 @@ static bool RiverMakeWider(TileIndex tile, void *user_data)
 			/* Lower unwanted corners first. If only one corner is raised, no corners need lowering. */
 			if (!IsSlopeWithOneCornerRaised(cur_slope)) {
 				to_change = to_change & ComplementSlope(desired_slope);
-				Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, to_change, false);
+				RiverTerraform(tile, to_change, false);
 			}
 
 			/* Now check the match and raise any corners needed. */
 			cur_slope = GetTileSlope(tile);
 			if (cur_slope != desired_slope && IsSlopeWithOneCornerRaised(cur_slope)) {
 				to_change = cur_slope ^ desired_slope;
-				Command<CMD_TERRAFORM_LAND>::Do(DC_EXEC | DC_AUTO, tile, to_change, true);
+				RiverTerraform(tile, to_change, true);
 			}
 		}
 		/* Update cur_slope after possibly terraforming. */
@@ -1209,8 +1223,9 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 
 /** Parameters for river generation to pass as AyStar user data. */
 struct River_UserData {
-	TileIndex spring; ///< The current spring during river generation.
+	uint river_length; ///< The length of the river to generate.
 	bool main_river;  ///< Whether the current river is a big river that others flow into.
+	std::vector<TileIndex> *begin_end_points; ///< Stores all begin and end points for each flow segment of the entire river.
 };
 
 /* AyStar callback for checking whether we reached our destination. */
@@ -1255,23 +1270,44 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 	/* First, build the river without worrying about its width. */
 	for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
 		TileIndex tile = path->GetTile();
-		if (!IsWaterTile(tile)) {
-			MakeRiverAndModifyDesertZoneAround(tile);
-		}
+
+		/* Don't build on sea, but allow overbuilding on rivers to allow modifications
+		 * to the desert zone around them, as there was the possibility some river tiles
+		 * would not be present at the final stage in CreateRiver function. */
+		if (IsWaterTile(tile) && !IsRiver(tile)) continue;
+
+		MakeRiverAndModifyDesertZoneAround(tile);
+		SetUnterraformableRiverState(tile, true);
 	}
 
 	/* If the river is a main river, go back along the path to widen it.
 	 * Don't make wide rivers if we're using the original landscape generator.
 	 */
 	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && data->main_river) {
-		const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
+		/* Pre-mark river tiles at all begin and end points as unterraformable to prevent
+		 * RiverMakeWider from possibly disconnecting the river. */
+		for (TileIndex tile : *data->begin_end_points) {
+			if (IsWaterTile(tile)) {
+				if (IsRiver(tile) && IsUnterraformableRiver(tile)) break; // already marked all points
+
+				continue;
+			}
+
+			Slope slope = GetTileSlope(tile);
+			if (slope != SLOPE_FLAT && !IsInclinedSlope(slope)) continue;
+
+			/* Use MakeRiver instead of MakeRiverAndModifyDesertZoneAround as
+			 * it is not yet certain this river tile will be present in the end. */
+			MakeRiver(tile, Random());
+			SetUnterraformableRiverState(tile, true);
+		}
 
 		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
 			TileIndex tile = path->GetTile();
 
 			/* Check if we should widen river depending on how far we are away from the source. */
-			uint current_river_length = DistanceManhattan(data->spring, tile);
-			uint radius = std::min(3u, (current_river_length / (long_river_length / 3u)) + 1u);
+			uint current_river_length = DistanceManhattan(data->begin_end_points->front(), tile);
+			uint radius = std::min<uint>(3, 1 + 3 * current_river_length / data->river_length);
 
 			if (radius > 1) CircularTileSearch(&tile, radius, RiverMakeWider, &path->key.tile);
 		}
@@ -1282,12 +1318,18 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
  * Actually build the river between the begin and end tiles using AyStar.
  * @param begin The begin of the river.
  * @param end The end of the river.
- * @param spring The springing point of the river.
  * @param main_river Whether the current river is a big river that others flow into.
+ * @param begin_end_points Collection of all begin and end points for each flow segment of the entire river.
+ * @return true if the river is successfully built, otherwise false.
  */
-static void BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool main_river)
+static bool BuildRiver(TileIndex begin, TileIndex end, bool main_river, std::vector<TileIndex> &begin_end_points)
 {
-	River_UserData user_data = { spring, main_river };
+	assert(begin_end_points.size() >= 2);
+
+	River_UserData user_data;
+	user_data.river_length = DistanceManhattan(begin_end_points.front(), begin_end_points.back());
+	user_data.main_river = main_river;
+	user_data.begin_end_points = &begin_end_points;
 
 	AyStar finder = {};
 	finder.CalculateG = River_CalculateG;
@@ -1297,12 +1339,13 @@ static void BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
 	finder.FoundEndNode = River_FoundEndNode;
 	finder.user_target = &end;
 	finder.user_data = &user_data;
+	finder.max_search_nodes = 1000 * DistanceManhattan(begin, end);
 
 	AyStarNode start;
 	start.tile = begin;
 	start.td = INVALID_TRACKDIR;
 	finder.AddStartNode(&start, 0);
-	finder.Main();
+	return finder.Main() == AyStarStatus::FoundEndNode;
 }
 
 /**
@@ -1310,10 +1353,12 @@ static void BuildRiver(TileIndex begin, TileIndex end, TileIndex spring, bool ma
  * @param spring The springing point of the river.
  * @param begin  The begin point we are looking from; somewhere down hill from the spring.
  * @param min_river_length The minimum length for the river.
+ * @param begin_end_points Collection of all begin and end points for each flow segment of the entire river.
  * @return First element: True iff a river could/has been built, otherwise false; second element: River ends at sea.
  */
-static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint min_river_length)
+static std::tuple<bool, bool> FlowRiver(TileIndex &spring, TileIndex begin, uint min_river_length, std::vector<TileIndex> &begin_end_points)
 {
+	const TileIndex original_spring = spring;
 	uint height_begin = TileHeight(begin);
 
 	if (IsWaterTile(begin)) {
@@ -1352,8 +1397,11 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 
 	bool main_river = false;
 	if (found) {
+		if (begin_end_points.empty()) begin_end_points.push_back(begin);
+		begin_end_points.push_back(end);
+
 		/* Flow further down hill. */
-		std::tie(found, main_river) = FlowRiver(spring, end, min_river_length);
+		std::tie(found, main_river) = FlowRiver(spring, end, min_river_length, begin_end_points);
 	} else if (count > 32) {
 		/* Maybe we can make a lake. Find the Nth of the considered tiles. */
 		std::set<TileIndex>::const_iterator cit = marks.cbegin();
@@ -1379,12 +1427,38 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 			lake_centre = end;
 			CircularTileSearch(&lake_centre, range, MakeLake, &height_begin);
 			found = true;
+			if (begin_end_points.empty()) begin_end_points.push_back(begin);
+			begin_end_points.push_back(end);
 		}
 	}
 
 	marks.clear();
-	if (found) BuildRiver(begin, end, spring, main_river);
+	if (found && original_spring == spring) {
+		/* This may end being a partially built river. Update the spring location. */
+		if (!BuildRiver(begin, end, main_river, begin_end_points)) {
+			spring = end;
+		}
+	}
+
 	return { found, main_river };
+}
+
+static bool CreateRiver(TileIndex &spring, uint min_river_length)
+{
+	std::vector<TileIndex> begin_end_points;
+	auto [created, main_river] = FlowRiver(spring, spring, min_river_length, begin_end_points);
+
+	/* If a river is partially created, the unused marked river tiles at
+	 * finder.FoundEndNode callback must be converted back to cleared land. */
+	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
+		for (TileIndex tile : begin_end_points) {
+			if (tile == spring) break;
+			if (!IsTileType(tile, MP_WATER) || !IsRiver(tile)) continue;
+			DoClearSquare(tile);
+		}
+	}
+
+	return created;
 }
 
 /**
@@ -1405,7 +1479,7 @@ static void CreateRivers()
 		for (int tries = 0; tries < 512; tries++) {
 			TileIndex t = RandomTile();
 			if (!CircularTileSearch(&t, 8, FindSpring, nullptr)) continue;
-			if (std::get<0>(FlowRiver(t, t, _settings_game.game_creation.min_river_length * 4))) break;
+			if (CreateRiver(t, _settings_game.game_creation.min_river_length * 4)) break;
 		}
 	}
 
@@ -1415,7 +1489,7 @@ static void CreateRivers()
 		for (int tries = 0; tries < 128; tries++) {
 			TileIndex t = RandomTile();
 			if (!CircularTileSearch(&t, 8, FindSpring, nullptr)) continue;
-			if (std::get<0>(FlowRiver(t, t, _settings_game.game_creation.min_river_length))) break;
+			if (CreateRiver(t, _settings_game.game_creation.min_river_length)) break;
 		}
 	}
 
