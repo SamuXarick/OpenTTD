@@ -1221,6 +1221,111 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 	return slope_end == SLOPE_FLAT || slope_begin == SLOPE_FLAT;
 }
 
+/**
+ * TestRiverConnection - Check if there's a river connection between two tiles.
+ * @param begin - The starting tile index.
+ * @param end - The ending tile index.
+ * @return true if a connection exists, otherwise false.
+ */
+[[maybe_unused]] static bool TestRiverConnection(TileIndex begin, TileIndex end)
+{
+	AyStar finder = {};
+
+	/* Calculate G function - returns a constant value of 1 for every step. */
+	finder.CalculateG = [](AyStar *, AyStarNode *, PathNode *) {
+		return 1;
+	};
+
+	/* Calculate H function - estimates the distance using Manhattan Distance. */
+	finder.CalculateH = [](AyStar *aystar, AyStarNode *current, PathNode *) {
+		return static_cast<int32_t>(DistanceManhattan(*static_cast<TileIndex *>(aystar->user_target), current->tile));
+	};
+
+	/* GetNeighbours function - retrieves neighbouring tiles. */
+	finder.GetNeighbours = [](AyStar *aystar, PathNode *current) {
+		TileIndex src_tile = current->GetTile();
+		Trackdir src_trackdir = current->GetTrackdir();
+
+		aystar->neighbours.clear();
+
+		/* Adds neighboring tiles based on the direction and track. */
+		auto add_neighbours = [&src_tile, &aystar](DiagDirection src_exitdir, Trackdir src_trackdir) {
+			TileIndex dst_tile = AddTileIndexDiffCWrap(src_tile, TileIndexDiffCByDiagDir(src_exitdir));
+			if (dst_tile != INVALID_TILE) {
+				TrackdirBits trackdirbits = TrackStatusToTrackdirBits(GetTileTrackStatus(dst_tile, TRANSPORT_WATER, 0));
+
+				/* Simulate sloped rivers and shores having tracks for the purpose of testing river connections. */
+				if (trackdirbits == TRACKDIR_BIT_NONE && IsTileType(dst_tile, MP_WATER)) {
+					if (IsRiver(dst_tile)) {
+						trackdirbits = TrackBitsToTrackdirBits(AxisToTrackBits(DiagDirToAxis(GetInclinedSlopeDirection(GetTileSlope(dst_tile)))));
+					} else if (IsCoast(dst_tile)) {
+						Slope dst_slope = GetTileSlope(dst_tile);
+						if (IsInclinedSlope(dst_slope)) {
+							trackdirbits = TrackdirToTrackdirBits(DiagDirToDiagTrackdir(GetInclinedSlopeDirection(dst_slope)));
+						}
+					}
+				}
+
+				trackdirbits &= TrackdirReachesTrackdirs(src_trackdir);
+
+				while (trackdirbits != TRACKDIR_BIT_NONE) {
+					Trackdir dst_trackdir = RemoveFirstTrackdir(&trackdirbits);
+					auto &neighbour = aystar->neighbours.emplace_back();
+					neighbour.tile = dst_tile;
+					neighbour.td = dst_trackdir;
+				}
+			}
+		};
+
+		/* If no specific direction, consider all diagonal directions. */
+		if (src_trackdir == INVALID_TRACKDIR) {
+			for (DiagDirection d = DIAGDIR_BEGIN; d != DIAGDIR_END; d++) {
+				add_neighbours(d, DiagDirToDiagTrackdir(d));
+			}
+		} else {
+			add_neighbours(TrackdirToExitdir(src_trackdir), src_trackdir);
+		};
+	};
+
+	/* EndNodeCheck function - checks if the current tile is the target tile. */
+	finder.EndNodeCheck = [](const AyStar *aystar, const PathNode *current) {
+		TileIndex tile = current->GetTile();
+		if (tile != *static_cast<TileIndex *>(aystar->user_target)) {
+			return AyStarStatus::Done;
+		}
+		if (IsTileType(tile, MP_WATER)) {
+			if (IsWater(tile)) {
+				return AyStarStatus::FoundEndNode;
+			}
+			if (IsCoast(tile)) {
+				Slope slope = GetTileSlope(tile);
+				if (IsSlopeWithOneCornerRaised(slope)) {
+					return AyStarStatus::FoundEndNode;
+				}
+				if (IsInclinedSlope(slope)) {
+					return AyStarStatus::FoundEndNode;
+				}
+			}
+		}
+		return AyStarStatus::Done;
+	};
+
+	/* FoundEndNode function - placeholder as no specific action is needed. */
+	finder.FoundEndNode = [](AyStar *, PathNode *) {};
+
+	finder.user_target = &end;
+
+	/* Initialize the starting node. */
+	AyStarNode start;
+	start.tile = begin;
+	start.td = INVALID_TRACKDIR;
+	finder.AddStartNode(&start, 0);
+
+	/* Execute the pathfinding and return if the end node was found. */
+	finder.max_search_nodes = 0; // Avoid returning with no path prematurely.
+	return finder.Main() == AyStarStatus::FoundEndNode;
+}
+
 /** Parameters for river generation to pass as AyStar user data. */
 struct River_UserData {
 	uint river_length; ///< The length of the river to generate.
@@ -1458,6 +1563,7 @@ static bool CreateRiver(TileIndex &spring, uint min_river_length)
 			DoClearSquare(tile);
 		}
 	}
+	assert(!created || begin_end_points.empty() || spring == begin_end_points.back() || TestRiverConnection(spring, begin_end_points.back()));
 
 	return created;
 }
