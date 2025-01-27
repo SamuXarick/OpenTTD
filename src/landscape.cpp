@@ -1223,6 +1223,7 @@ static bool FlowsDown(TileIndex begin, TileIndex end)
 
 /** Parameters for river generation to pass as AyStar user data. */
 struct River_UserData {
+	uint river_length; ///< The length of the river to generate.
 	bool main_river;  ///< Whether the current river is a big river that others flow into.
 	std::vector<TileIndex> *begin_end_points; ///< Stores all begin and end points for each flow segment of the entire river.
 };
@@ -1302,14 +1303,12 @@ static void River_FoundEndNode(AyStar *aystar, PathNode *current)
 			SetUnterraformableRiverState(tile, true);
 		}
 
-		const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
-
 		for (PathNode *path = current->parent; path != nullptr; path = path->parent) {
 			TileIndex tile = path->GetTile();
 
 			/* Check if we should widen river depending on how far we are away from the source. */
 			uint current_river_length = DistanceManhattan(data->begin_end_points->front(), tile);
-			uint radius = std::min(3u, (current_river_length / (long_river_length / 3u)) + 1u);
+			uint radius = std::min<uint>(3, 1 + 3 * current_river_length / data->river_length);
 
 			if (radius > 1) CircularTileSearch(&tile, radius, RiverMakeWider, &path->key.tile);
 		}
@@ -1329,6 +1328,7 @@ static bool BuildRiver(TileIndex begin, TileIndex end, bool main_river, std::vec
 	assert(begin_end_points.size() >= 2);
 
 	River_UserData user_data;
+	user_data.river_length = DistanceManhattan(begin_end_points.front(), begin_end_points.back());
 	user_data.main_river = main_river;
 	user_data.begin_end_points = &begin_end_points;
 
