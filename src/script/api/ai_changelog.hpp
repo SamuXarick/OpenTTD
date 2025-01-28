@@ -22,6 +22,7 @@
  * \li AIEventCompanyRenamed
  * \li AIEventPresidentRenamed
  * \li AIBaseStation::GetBaseStationID
+ * \li AIWaypoint::WAYPOINT_ROAD
  *
  * Other changes:
  * \li AIBridge::GetBridgeID renamed to AIBridge::GetBridgeType

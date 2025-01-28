@@ -925,7 +925,7 @@ function Regression::Marine()
 	}
 	print("  HasWaypointType:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_RAIL) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_BUOY) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_ANY));
+		print("    " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_RAIL) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_ROAD) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_BUOY) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_ANY));
 	}
 	print("");
 
@@ -1929,12 +1929,34 @@ function Regression::Waypoint()
 {
 	print("");
 	print("--Waypoint--");
+	print("  HasWaypointType(2, BUOY):     " + AIWaypoint.HasWaypointType(2, AIWaypoint.WAYPOINT_BUOY));
+	print("  HasWaypointType(2, RAIL):     " + AIWaypoint.HasWaypointType(2, AIWaypoint.WAYPOINT_RAIL));
+	print("  HasWaypointType(2, ANY):      " + AIWaypoint.HasWaypointType(2, AIWaypoint.WAYPOINT_ANY));
+	print("  HasWaypointType(2, ROAD):     " + AIWaypoint.HasWaypointType(2, AIWaypoint.WAYPOINT_ROAD));
+
 	print("  GetWaypointID(32119):         " + AIWaypoint.GetWaypointID(32119));
 	print("  GetWaypointID(28481):         " + AIWaypoint.GetWaypointID(28481));
 	print("  GetWaypointID(12648):         " + AIWaypoint.GetWaypointID(12648));
 	print("  IsValidWaypoint(6):           " + AIWaypoint.IsValidWaypoint(6));
 	print("  IsValidWaypoint(5):           " + AIWaypoint.IsValidWaypoint(5));
 	print("  IsValidWaypoint(2):           " + AIWaypoint.IsValidWaypoint(2));
+}
+
+function Regression::WaypointList()
+{
+	local list = AIWaypointList(AIWaypoint.WAYPOINT_ANY);
+	print("");
+	print("--AIWaypointList(ANY)--");
+	print("  Count():             " + list.Count());
+	print("  Location ListDump:");
+	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
+		print("    " + AIWaypoint.GetLocation(i));
+	}
+	print("  HasWaypointType:");
+	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
+		print("    " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_RAIL) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_ROAD) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_BUOY) + "  " + AIWaypoint.HasWaypointType(i, AIWaypoint.WAYPOINT_ANY));
+	}
+	print("");
 }
 
 function Regression::BaseStation()
@@ -2062,6 +2084,7 @@ function Regression::Start()
 	/* Order has to be after Vehicle */
 	this.Order();
 	this.Waypoint();
+	this.WaypointList();
 	/* BaseStation requires stations to exist */
 	this.BaseStation();
 	print("");
