@@ -27,6 +27,19 @@
 	return st != nullptr && (st->owner == ScriptObject::GetCompany() || ScriptCompanyMode::IsDeity() || st->owner == OWNER_NONE);
 }
 
+/* static */ ScriptCompany::CompanyID ScriptBaseStation::GetOwner(StationID station_id)
+{
+	if (!IsValidBaseStation(station_id)) return ScriptCompany::COMPANY_INVALID;
+
+	return static_cast<ScriptCompany::CompanyID>((int)::Station::Get(station_id)->owner);
+}
+
+/* static */ StationID ScriptBaseStation::GetBaseStationID(TileIndex tile)
+{
+	if (!::IsValidTile(tile) || !::IsTileType(tile, MP_STATION) || ::BaseStation::GetByTile(tile) == nullptr) return INVALID_STATION;
+	return ::GetStationIndex(tile);
+}
+
 /* static */ std::optional<std::string> ScriptBaseStation::GetName(StationID station_id)
 {
 	if (!IsValidBaseStation(station_id)) return std::nullopt;

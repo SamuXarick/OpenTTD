@@ -11,8 +11,10 @@
 #define SCRIPT_WAYPOINT_HPP
 
 #include "script_basestation.hpp"
+#include "script_company.hpp"
 #include "script_error.hpp"
 #include "../../station_type.h"
+
 
 /**
  * Class that handles all waypoint related functions.
@@ -54,10 +56,19 @@ public:
 	static bool IsValidWaypoint(StationID waypoint_id);
 
 	/**
-	 * Get the StationID of a tile.
-	 * @param tile The tile to find the StationID of.
-	 * @pre ScriptRail::IsRailWaypointTile(tile).
+	 * Get the owner of a waypoint.
+	 * @param waypoint_id The waypoint to get the owner of.
+	 * @pre IsValidWaypoint(waypoint_id).
+	 * @return The owner the waypoint has.
+	 * @api -ai
+	 */
+	static ScriptCompany::CompanyID GetOwner(StationID waypoint_id);
+
+	/**
+	 * Get the StationID of a tile, if there is a waypoint.
+	 * @param tile The tile to find the StationID of
 	 * @return StationID of the waypoint.
+	 * @post Use IsValidWaypoint() to see if the waypoint is valid.
 	 */
 	static StationID GetWaypointID(TileIndex tile);
 

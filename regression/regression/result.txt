@@ -7555,7 +7555,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
     HasTransportType():            false
     HasTransportType():            true
     HasTransportType():            true
-    DemolishTile():                true
+    BuildRailWaypoint():           true
     DemolishTile():                true
 
 --RailTypeList--
@@ -7696,6 +7696,12 @@ ERROR: IsEnd() is invalid as Begin() is never called
   GetNearestTown():         15
   GetNearestTown():         65535
   GetNearestTown():         10
+  GetStationID(32119):      0
+  GetStationID(28481):      65535
+  GetStationID(12648):      65535
+  IsValidStation(6):        true
+  IsValidStation(5):        true
+  IsValidStation(2):        true
 
 --CargoWaiting--
   GetCargoWaiting(0, 0): 0
@@ -9700,6 +9706,37 @@ ERROR: IsEnd() is invalid as Begin() is never called
   foreach():
     20 => 23596
 
+--Waypoint--
+  GetWaypointID(32119):         65535
+  GetWaypointID(28481):         2
+  GetWaypointID(12648):         5
+  IsValidWaypoint(6):           false
+  IsValidWaypoint(5):           true
+  IsValidWaypoint(2):           true
+
+--BaseStation--
+  GetName(6):                   Little Frutford Woods
+  SetName(6):                   false
+  GetName(6):                   Little Frutford Woods
+  SetName(6):                   true
+  GetName(6):                   Look, another station
+  SetName(6):                   false
+  GetName(6):                   Look, another station
+  GetLocation(0):               32116
+  GetLocation(5):               12648
+  GetLocation(6):               33411
+  GetConstructionDate(1000):    -1
+  GetConstructionDate(0):       714004
+  GetConstructionDate(2):       714006
+  GetConstructionDate(5):       714008
+  GetConstructionDate(6):       714009
+  GetBaseStationID(32119):      0
+  GetBaseStationID(28481):      2
+  GetBaseStationID(12648):      5
+  IsValidBaseStation(6):        true
+  IsValidBaseStation(5):        true
+  IsValidBaseStation(2):        true
+
   First Subsidy Test
       --Subsidy (0) --
         IsValidSubsidy():      true
@@ -9763,9 +9800,9 @@ ERROR: IsEnd() is invalid as Begin() is never called
 --Valuate() with excessive CPU usage--
 Your script made an error: excessive CPU usage in valuator function
 
-*FUNCTION [unknown()] regression/main.nut line [2065]
+*FUNCTION [unknown()] regression/main.nut line [2115]
 *FUNCTION [Valuate()] NATIVE line [-1]
-*FUNCTION [Start()] regression/main.nut line [2066]
+*FUNCTION [Start()] regression/main.nut line [2116]
 
 [id] 0
 [this] TABLE
@@ -9774,7 +9811,7 @@ Your script made an error: excessive CPU usage in valuator function
 [this] INSTANCE
 Your script made an error: excessive CPU usage in valuator function
 
-*FUNCTION [Start()] regression/main.nut line [2066]
+*FUNCTION [Start()] regression/main.nut line [2116]
 
 [Infinite] CLOSURE
 [list] INSTANCE

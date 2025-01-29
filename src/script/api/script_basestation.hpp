@@ -12,6 +12,7 @@
 
 #include "script_text.hpp"
 #include "script_date.hpp"
+#include "script_company.hpp"
 #include "../../station_type.h"
 
 /**
@@ -31,6 +32,23 @@ public:
 	 * @note IsValidBaseStation == (IsValidStation || IsValidWaypoint).
 	 */
 	static bool IsValidBaseStation(StationID station_id);
+
+	/**
+	 * Get the owner of a basestation.
+	 * @param station_id The station to get the owner of.
+	 * @pre IsValidBaseStation(station_id).
+	 * @return The owner the station has.
+	 * @api -ai
+	 */
+	static ScriptCompany::CompanyID GetOwner(StationID station_id);
+
+	/**
+	 * Get the StationID of a tile, if there is a basestation.
+	 * @param tile The tile to find the StationID of
+	 * @return StationID of the basestation.
+	 * @post Use IsValidBaseStation() to see if the basestation is valid.
+	 */
+	static StationID GetBaseStationID(TileIndex tile);
 
 	/**
 	 * Get the name of a basestation.

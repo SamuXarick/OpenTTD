@@ -1161,7 +1161,7 @@ function Regression::Rail()
 	print("    HasTransportType():            " + AITile.HasTransportType(12646, AITile.TRANSPORT_RAIL));
 	print("    HasTransportType():            " + AITile.HasTransportType(12648, AITile.TRANSPORT_RAIL));
 	print("    HasTransportType():            " + AITile.HasTransportType(12650, AITile.TRANSPORT_RAIL));
-	print("    DemolishTile():                " + AITile.DemolishTile(12648));
+	print("    BuildRailWaypoint():           " + AIRail.BuildRailWaypoint(12648));
 	print("    DemolishTile():                " + AITile.DemolishTile(12650));
 }
 
@@ -1319,6 +1319,13 @@ function Regression::Station()
 	print("  GetNearestTown():         " + AIStation.GetNearestTown(0));
 	print("  GetNearestTown():         " + AIStation.GetNearestTown(10000));
 	print("  GetNearestTown():         " + AIStation.GetNearestTown(3));
+
+	print("  GetStationID(32119):      " + AIStation.GetStationID(32119));
+	print("  GetStationID(28481):      " + AIStation.GetStationID(28481));
+	print("  GetStationID(12648):      " + AIStation.GetStationID(12648));
+	print("  IsValidStation(6):        " + AIStation.IsValidBaseStation(6));
+	print("  IsValidStation(5):        " + AIStation.IsValidBaseStation(5));
+	print("  IsValidStation(2):        " + AIStation.IsValidBaseStation(2));
 
 	print("");
 	print("--CargoWaiting--");
@@ -1918,6 +1925,46 @@ function Regression::Vehicle()
 	}
 }
 
+function Regression::Waypoint()
+{
+	print("");
+	print("--Waypoint--");
+	print("  GetWaypointID(32119):         " + AIWaypoint.GetWaypointID(32119));
+	print("  GetWaypointID(28481):         " + AIWaypoint.GetWaypointID(28481));
+	print("  GetWaypointID(12648):         " + AIWaypoint.GetWaypointID(12648));
+	print("  IsValidWaypoint(6):           " + AIWaypoint.IsValidWaypoint(6));
+	print("  IsValidWaypoint(5):           " + AIWaypoint.IsValidWaypoint(5));
+	print("  IsValidWaypoint(2):           " + AIWaypoint.IsValidWaypoint(2));
+}
+
+function Regression::BaseStation()
+{
+	print("");
+	print("--BaseStation--");
+	print("  GetName(6):                   " + AIBaseStation.GetName(6));
+	print("  SetName(6):                   " + AIBaseStation.SetName(6, "Look, a station"));
+	print("  GetName(6):                   " + AIBaseStation.GetName(6));
+	print("  SetName(6):                   " + AIBaseStation.SetName(6, "Look, another station"));
+	print("  GetName(6):                   " + AIBaseStation.GetName(6));
+	print("  SetName(6):                   " + AIBaseStation.SetName(6, ""));
+	print("  GetName(6):                   " + AIBaseStation.GetName(6));
+	print("  GetLocation(0):               " + AIBaseStation.GetLocation(0));
+	print("  GetLocation(5):               " + AIBaseStation.GetLocation(5));
+	print("  GetLocation(6):               " + AIBaseStation.GetLocation(6));
+	print("  GetConstructionDate(1000):    " + AIBaseStation.GetConstructionDate(1000));
+	print("  GetConstructionDate(0):       " + AIBaseStation.GetConstructionDate(0));
+	print("  GetConstructionDate(2):       " + AIBaseStation.GetConstructionDate(2));
+	print("  GetConstructionDate(5):       " + AIBaseStation.GetConstructionDate(5));
+	print("  GetConstructionDate(6):       " + AIBaseStation.GetConstructionDate(6));
+
+	print("  GetBaseStationID(32119):      " + AIBaseStation.GetBaseStationID(32119));
+	print("  GetBaseStationID(28481):      " + AIBaseStation.GetBaseStationID(28481));
+	print("  GetBaseStationID(12648):      " + AIBaseStation.GetBaseStationID(12648));
+	print("  IsValidBaseStation(6):        " + AIBaseStation.IsValidBaseStation(6));
+	print("  IsValidBaseStation(5):        " + AIBaseStation.IsValidBaseStation(5));
+	print("  IsValidBaseStation(2):        " + AIBaseStation.IsValidBaseStation(2));
+}
+
 function Regression::PrintSubsidy(subsidy_id)
 {
 	print("      --Subsidy (" + subsidy_id + ") --");
@@ -2014,6 +2061,9 @@ function Regression::Start()
 	this.Vehicle();
 	/* Order has to be after Vehicle */
 	this.Order();
+	this.Waypoint();
+	/* BaseStation requires stations to exist */
+	this.BaseStation();
 	print("");
 	print("  First Subsidy Test");
 	PrintSubsidy(0);

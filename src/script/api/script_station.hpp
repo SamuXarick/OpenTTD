@@ -70,7 +70,7 @@ public:
 
 	/**
 	 * Get the StationID of a tile, if there is a station.
-	 * @param tile The tile to find the stationID of
+	 * @param tile The tile to find the StationID of
 	 * @return StationID of the station.
 	 * @post Use IsValidStation() to see if the station is valid.
 	 */

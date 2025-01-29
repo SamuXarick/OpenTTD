@@ -21,9 +21,14 @@
  * \li GSEventVehicleCrashed::GetVictims
  * \li GSEventCompanyRenamed
  * \li GSEventPresidentRenamed
+ * \li GSWaypoint::GetOwner
+ * \li GSBaseStation::GetOwner
+ * \li GSBaseStation::GetBaseStationID
  *
  * Other changes:
  * \li GSBridge::GetBridgeID renamed to GSBridge::GetBridgeType
+ * \li GSStation::GetStationID can no longer return the StationID of waypoints
+ * \li GSWaypoint::GetWaypointID now returns the StationID of any type of waypoint
  *
  * \b 14.0
  *

@@ -22,10 +22,16 @@
 	return wp != nullptr && (wp->owner == ScriptObject::GetCompany() || ScriptCompanyMode::IsDeity() || wp->owner == OWNER_NONE);
 }
 
+/* static */ ScriptCompany::CompanyID ScriptWaypoint::GetOwner(StationID waypoint_id)
+{
+	if (!IsValidWaypoint(waypoint_id)) return ScriptCompany::COMPANY_INVALID;
+
+	return static_cast<ScriptCompany::CompanyID>((int)::Waypoint::Get(waypoint_id)->owner);
+}
+
 /* static */ StationID ScriptWaypoint::GetWaypointID(TileIndex tile)
 {
-	if (!ScriptRail::IsRailWaypointTile(tile) && !ScriptMarine::IsBuoyTile(tile)) return STATION_INVALID;
-
+	if (!::IsValidTile(tile) || !::IsTileType(tile, MP_STATION) || ::Waypoint::GetByTile(tile) == nullptr) return INVALID_STATION;
 	return ::GetStationIndex(tile);
 }
 
