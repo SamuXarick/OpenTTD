@@ -192,8 +192,11 @@ struct AIConfigWindow : public Window {
 	 */
 	std::string GetSlotText(CompanyID cid) const
 	{
-		if (const AIInfo *info = AIConfig::GetConfig(cid)->GetInfo(); info != nullptr) return info->GetName();
-		return GetString(STR_AI_CONFIG_RANDOM_AI);
+		const AIConfig *config = AIConfig::GetConfig(cid);
+		const AIInfo *info = config->GetInfo();
+		if (info == nullptr) return GetString(STR_AI_CONFIG_RANDOM_AI);
+		if (config->GetForceExactMatch()) return GetString(STR_AI_CONFIG_NAME_VERSION, info->GetName(), info->GetVersion());
+		return info->GetName();
 	}
 
 	void DrawWidget(const Rect &r, WidgetID widget) const override
