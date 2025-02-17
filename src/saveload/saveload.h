@@ -404,6 +404,7 @@ enum SaveLoadVersion : uint16_t {
 	SLV_ORDERS_OWNED_BY_ORDERLIST,          ///< 354  PR#13948 Orders stored in OrderList, pool removed.
 
 	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 355  PR#7459 Self-adjusting AI/GS max opcodes.
+	SLV_SCRIPT_FORCE_EXACT_MATCH,           ///< 356  PR#13565 Store script force exact match in savegames.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
