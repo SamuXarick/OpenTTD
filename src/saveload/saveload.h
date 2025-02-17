@@ -403,6 +403,8 @@ enum SaveLoadVersion : uint16_t {
 	SLV_FIX_SCC_ENCODED_NEGATIVE,           ///< 353  PR#14049 Fix encoding of negative parameters.
 	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 354  PR#7459 Self-adjusting AI/GS max opcodes.
 
+	SLV_SCRIPT_FORCE_EXACT_MATCH,           ///< 355  PR#13565 Store script force exact match in savegames.
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 
