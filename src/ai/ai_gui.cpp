@@ -222,13 +222,13 @@ struct AIConfigWindow : public Window {
 
 		int max_slot = GetGameSettings().difficulty.max_no_competitors - GetCurrentNoAIs();
 		for (CompanyID cid = CompanyID::Begin(); cid < max_slot && cid < MAX_COMPANIES; ++cid) {
-			if (Company::IsValidID(cid)) max_slot++;
+			if (Company::IsValidID(cid) && (_game_mode != GM_MENU || !_settings_client.gui.start_spectator)) max_slot++;
 		}
 
 		for (CompanyID cid = CompanyID::Begin(); cid < MAX_COMPANIES; ++cid) {
-			if (cid < max_slot && (_game_mode != GM_MENU || cid != CompanyID::Begin()) && (_game_mode == GM_MENU || !Company::IsValidID(cid))) {
+			if (cid < max_slot && (_game_mode != GM_MENU || cid != CompanyID::Begin() || _settings_client.gui.start_spectator) && (_game_mode == GM_MENU || !Company::IsValidID(cid))) {
 				DrawSprite(SPR_SCRIPT_ELIGIBLE, PAL_NONE, icon_rect.left + eligible_x_offset, tr.top);
-			} else if (Company::IsValidHumanID(cid)) {
+			} else if (Company::IsValidHumanID(cid) && (_game_mode != GM_MENU || cid != CompanyID::Begin() || !_settings_client.gui.start_spectator)) {
 				DrawSprite(SPR_SCRIPT_HUMAN, PAL_NONE, icon_rect.left + human_x_offset, tr.top);
 			} else if (Company::IsValidAiID(cid)) {
 				if (!IsConsideredDead(cid)) {
