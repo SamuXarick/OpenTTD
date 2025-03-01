@@ -399,6 +399,7 @@ enum SaveLoadVersion : uint16_t {
 
 	SLV_ENCODED_STRING_FORMAT,              ///< 350  PR#13499 Encoded String format changed.
 	SLV_PROTECT_PLACED_HOUSES,              ///< 351  PR#13270 Houses individually placed by players can be protected from town/AI removal.
+	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 352  PR#7459 Self-adjusting AI/GS max opcodes.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
