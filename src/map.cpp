@@ -25,6 +25,7 @@
 
 /* static */ std::unique_ptr<Tile::TileBase[]> Tile::base_tiles; ///< Base tiles of the map
 /* static */ std::unique_ptr<Tile::TileExtended[]> Tile::extended_tiles; ///< Extended tiles of the map
+/* static */ std::unique_ptr<Vehicle *[]> Tile::vehicle_tile_hash; ///< Vehicle tile hash of the map
 
 
 /**
@@ -54,6 +55,7 @@
 
 	Tile::base_tiles = std::make_unique<Tile::TileBase[]>(Map::size);
 	Tile::extended_tiles = std::make_unique<Tile::TileExtended[]>(Map::size);
+	Tile::vehicle_tile_hash = std::make_unique<Vehicle *[]>(Map::size);
 
 	AllocateWaterRegions();
 }
