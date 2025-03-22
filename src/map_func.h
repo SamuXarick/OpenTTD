@@ -14,6 +14,7 @@
 #include "tile_type.h"
 #include "map_type.h"
 #include "direction_func.h"
+#include "vehicle_type.h"
 
 /**
  * Wrapper class to abstract away the way the tiles are stored. It is
@@ -53,6 +54,7 @@ private:
 
 	static std::unique_ptr<TileBase[]> base_tiles; ///< Pointer to the tile-array.
 	static std::unique_ptr<TileExtended[]> extended_tiles; ///< Pointer to the extended tile-array.
+	static std::unique_ptr<Vehicle *[]> vehicle_tile_hash; ///< Pointer to the vehicle tile hash-array.
 
 	TileIndex tile; ///< The tile to access the map data for.
 
@@ -197,6 +199,11 @@ public:
 	debug_inline uint16_t &m8()
 	{
 		return extended_tiles[this->tile.base()].m8;
+	}
+
+	debug_inline Vehicle *&veh()
+	{
+		return vehicle_tile_hash[this->tile.base()];
 	}
 };
 
