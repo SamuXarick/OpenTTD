@@ -112,13 +112,22 @@
 	Backup<CompanyID> cur_company(_current_company, company);
 	Company *c = Company::Get(company);
 
+	AIConfig *current_config = c->ai_config.get();
+	if (current_config != nullptr) {
+		auto &new_config = GetGameSettings().script_config.ai[company];
+		if (new_config != nullptr && new_config->GetInfo() != nullptr) {
+			new_config = std::make_unique<AIConfig>(*current_config);
+		}
+	}
+
 	c->ai_instance.reset();
 	c->ai_info = nullptr;
 	c->ai_config.reset();
 
 	cur_company.Restore();
 
-	InvalidateWindowClassesData(WC_SCRIPT_DEBUG, -1);
+	InvalidateWindowData(WC_SCRIPT_DEBUG, 0, -1);
+	InvalidateWindowData(WC_SCRIPT_SETTINGS, company);
 }
 
 /* static */ void AI::Pause(CompanyID company)
