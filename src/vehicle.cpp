@@ -369,32 +369,13 @@ Vehicle::Vehicle(VehicleType type)
 	this->last_loading_station = StationID::Invalid();
 }
 
-/* Size of the hash, 6 = 64 x 64, 7 = 128 x 128. Larger sizes will (in theory) reduce hash
- * lookup times at the expense of memory usage. */
-const int HASH_BITS = 7;
-const int HASH_SIZE = 1 << HASH_BITS;
-const int HASH_MASK = HASH_SIZE - 1;
-const int TOTAL_HASH_SIZE = 1 << (HASH_BITS * 2);
-const int TOTAL_HASH_MASK = TOTAL_HASH_SIZE - 1;
-
-/* Resolution of the hash, 0 = 1*1 tile, 1 = 2*2 tiles, 2 = 4*4 tiles, etc.
- * Profiling results show that 0 is fastest. */
-const int HASH_RES = 0;
-
-static std::array<Vehicle *, TOTAL_HASH_SIZE> _vehicle_tile_hash{};
-
-static Vehicle *VehicleFromTileHash(int xl, int yl, int xu, int yu, void *data, VehicleFromPosProc *proc, bool find_first)
+static Vehicle *VehicleFromTileHash(TileIndex l, TileIndex u, void *data, VehicleFromPosProc *proc, bool find_first)
 {
-	for (int y = yl; ; y = (y + (1 << HASH_BITS)) & (HASH_MASK << HASH_BITS)) {
-		for (int x = xl; ; x = (x + 1) & HASH_MASK) {
-			Vehicle *v = _vehicle_tile_hash[(x + y) & TOTAL_HASH_MASK];
-			for (; v != nullptr; v = v->hash_tile_next) {
-				Vehicle *a = proc(v, data);
-				if (find_first && a != nullptr) return a;
-			}
-			if (x == xu) break;
+	for (const auto &tile : TileArea(l, u)) {
+		for (Vehicle *v = Tile(tile).veh(); v != nullptr; v = v->hash_tile_next) {
+			Vehicle *a = proc(v, data);
+			if (find_first && a != nullptr) return a;
 		}
-		if (y == yu) break;
 	}
 
 	return nullptr;
@@ -417,12 +398,20 @@ static Vehicle *VehicleFromPosXY(int x, int y, void *data, VehicleFromPosProc *p
 	const int COLL_DIST = 6;
 
 	/* Hash area to scan is from xl,yl to xu,yu */
-	int xl = GB((x - COLL_DIST) / TILE_SIZE, HASH_RES, HASH_BITS);
-	int xu = GB((x + COLL_DIST) / TILE_SIZE, HASH_RES, HASH_BITS);
-	int yl = GB((y - COLL_DIST) / TILE_SIZE, HASH_RES, HASH_BITS) << HASH_BITS;
-	int yu = GB((y + COLL_DIST) / TILE_SIZE, HASH_RES, HASH_BITS) << HASH_BITS;
+	int xl = (x - COLL_DIST) / TILE_SIZE;
+	int xu = (x + COLL_DIST) / TILE_SIZE;
+	int yl = (y - COLL_DIST) / TILE_SIZE;
+	int yu = (y + COLL_DIST) / TILE_SIZE;
 
-	return VehicleFromTileHash(xl, yl, xu, yu, data, proc, find_first);
+	assert(IsInsideMM(xl, 0, Map::SizeX()));
+	assert(IsInsideMM(xu, 0, Map::SizeX()));
+	assert(IsInsideMM(yl, 0, Map::SizeY()));
+	assert(IsInsideMM(yu, 0, Map::SizeY()));
+
+	TileIndex l = TileXY(xl, yl);
+	TileIndex u = TileXY(xu, yu);
+
+	return VehicleFromTileHash(l, u, data, proc, find_first);
 }
 
 /**
@@ -472,11 +461,7 @@ bool HasVehicleOnPosXY(int x, int y, void *data, VehicleFromPosProc *proc)
  */
 static Vehicle *VehicleFromPos(TileIndex tile, void *data, VehicleFromPosProc *proc, bool find_first)
 {
-	int x = GB(TileX(tile), HASH_RES, HASH_BITS);
-	int y = GB(TileY(tile), HASH_RES, HASH_BITS) << HASH_BITS;
-
-	Vehicle *v = _vehicle_tile_hash[(x + y) & TOTAL_HASH_MASK];
-	for (; v != nullptr; v = v->hash_tile_next) {
+	for (Vehicle *v = Tile(Map::WrapToMap(tile)).veh(); v != nullptr; v = v->hash_tile_next) {
 		if (v->tile != tile) continue;
 
 		Vehicle *a = proc(v, data);
@@ -621,9 +606,7 @@ static void UpdateVehicleTileHash(Vehicle *v, bool remove)
 	if (remove) {
 		new_hash = nullptr;
 	} else {
-		int x = GB(TileX(v->tile), HASH_RES, HASH_BITS);
-		int y = GB(TileY(v->tile), HASH_RES, HASH_BITS) << HASH_BITS;
-		new_hash = &_vehicle_tile_hash[(x + y) & TOTAL_HASH_MASK];
+		new_hash = &Tile(Map::WrapToMap(v->tile)).veh();
 	}
 
 	if (old_hash == new_hash) return;
@@ -676,7 +659,7 @@ void ResetVehicleHash()
 {
 	for (Vehicle *v : Vehicle::Iterate()) { v->hash_tile_current = nullptr; }
 	_vehicle_viewport_hash.fill(nullptr);
-	_vehicle_tile_hash.fill(nullptr);
+	for (auto tile : Map::Iterate()) { tile.veh() = nullptr; }
 }
 
 void ResetVehicleColourMap()
