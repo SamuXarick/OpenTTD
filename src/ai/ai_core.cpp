@@ -26,6 +26,7 @@
 /* static */ uint AI::frame_counter = 0;
 /* static */ std::unique_ptr<AIScannerInfo> AI::scanner_info = nullptr;
 /* static */ std::unique_ptr<AIScannerLibrary> AI::scanner_library = nullptr;
+/* static */ std::array<uint, MAX_COMPANIES> AI::max_opcodes{};
 
 /* static */ bool AI::CanStartNew()
 {
@@ -60,6 +61,7 @@
 
 	c->ai_info = info;
 	assert(c->ai_instance == nullptr);
+	AI::SetMaxOpCodes(company, _settings_game.script.script_max_opcode_till_suspend);
 	c->ai_instance = std::make_unique<AIInstance>();
 	c->ai_instance->Initialize(info);
 	c->ai_instance->LoadOnStack(config->GetToLoadData());
@@ -112,13 +114,22 @@
 	Backup<CompanyID> cur_company(_current_company, company);
 	Company *c = Company::Get(company);
 
+	AIConfig *current_config = c->ai_config.get();
+	if (current_config != nullptr) {
+		auto &new_config = GetGameSettings().script_config.ai[company];
+		if (new_config != nullptr && new_config->GetInfo() != nullptr) {
+			new_config = std::make_unique<AIConfig>(*current_config);
+		}
+	}
+
 	c->ai_instance.reset();
 	c->ai_info = nullptr;
 	c->ai_config.reset();
 
 	cur_company.Restore();
 
-	InvalidateWindowClassesData(WC_SCRIPT_DEBUG, -1);
+	InvalidateWindowData(WC_SCRIPT_DEBUG, 0, -1);
+	InvalidateWindowData(WC_SCRIPT_SETTINGS, company);
 }
 
 /* static */ void AI::Pause(CompanyID company)
@@ -203,21 +214,21 @@
 	for (CompanyID c = CompanyID::Begin(); c < MAX_COMPANIES; ++c) {
 		if (_settings_game.script_config.ai[c] != nullptr && _settings_game.script_config.ai[c]->HasScript()) {
 			if (!_settings_game.script_config.ai[c]->ResetInfo(true)) {
-				Debug(script, 0, "After a reload, the AI by the name '{}' was no longer found, and removed from the list.", _settings_game.script_config.ai[c]->GetName());
+				Debug(script, 0, "After a reload, the AI by the name '{}' with version {} was no longer found, and removed from the list.", _settings_game.script_config.ai[c]->GetName(), _settings_game.script_config.ai[c]->GetVersion());
 				_settings_game.script_config.ai[c]->Change(std::nullopt);
 			}
 		}
 
 		if (_settings_newgame.script_config.ai[c] != nullptr && _settings_newgame.script_config.ai[c]->HasScript()) {
-			if (!_settings_newgame.script_config.ai[c]->ResetInfo(false)) {
-				Debug(script, 0, "After a reload, the AI by the name '{}' was no longer found, and removed from the list.", _settings_newgame.script_config.ai[c]->GetName());
+			if (!_settings_newgame.script_config.ai[c]->ResetInfo(_settings_newgame.script_config.ai[c]->GetForceExactMatch())) {
+				Debug(script, 0, "After a reload, the AI by the name '{}' with version {} was no longer found, and removed from the list.", _settings_newgame.script_config.ai[c]->GetName(), _settings_game.script_config.ai[c]->GetVersion());
 				_settings_newgame.script_config.ai[c]->Change(std::nullopt);
 			}
 		}
 
 		if (Company::IsValidAiID(c) && Company::Get(c)->ai_config != nullptr) {
 			AIConfig *config = Company::Get(c)->ai_config.get();
-			if (!config->ResetInfo(true)) {
+			if (!config->ResetInfo(_settings_newgame.script_config.ai[c]->GetForceExactMatch())) {
 				/* The code belonging to an already running AI was deleted. We can only do
 				 * one thing here to keep everything sane and that is kill the AI. After
 				 * killing the offending AI we start a random other one in it's place, just
@@ -283,6 +294,16 @@
 	}
 
 	AIInstance::SaveEmpty();
+}
+
+/* static */ uint AI::GetMaxOpCodes(CompanyID company)
+{
+	return AI::max_opcodes[company.base()];
+}
+
+/* static */ void AI::SetMaxOpCodes(CompanyID company, uint max_opcodes)
+{
+	AI::max_opcodes[company.base()] = max_opcodes;
 }
 
 /* static */ void AI::GetConsoleList(std::back_insert_iterator<std::string> &output_iterator, bool newest_only)
