@@ -3278,6 +3278,11 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_SELF_REGULATE_MAX_OPCODE)) {
+		/* Disable self-regulate script max opcode calls. */
+		_settings_game.script.self_regulate_max_opcode = false;
+	}
+
 	/* Compute station catchment areas. This is needed here in case UpdateStationAcceptance is called below. */
 	Station::RecomputeCatchmentForAll();
 
@@ -3375,11 +3380,10 @@ bool AfterLoadGame()
 	 * starting a new company. */
 	StartScripts();
 
-	/* If Load Scenario / New (Scenario) Game is used,
-	 *  a company does not exist yet. So create one here.
-	 * 1 exception: network-games. Those can have 0 companies
-	 *   But this exception is not true for non-dedicated network servers! */
-	if (!_networking || (_networking && _network_server && !_network_dedicated)) {
+	/* If Load Scenario / New (Scenario) Game is used, a company does not exist yet.
+	 * Create one here whenever start_spectator is disabled.
+	 * 1 exception: dedicated network servers. Those can have 0 companies. */
+	if ((!_settings_client.gui.start_spectator && !_networking) || (_networking && _network_server && !_network_dedicated)) {
 		CompanyID first_human_company = GetFirstPlayableCompanyID();
 		if (!Company::IsValidID(first_human_company)) {
 			Company *c = DoStartupNewCompany(false, first_human_company);
