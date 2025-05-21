@@ -9498,7 +9498,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
     GetAgeLeft():        5489
     GetCurrentSpeed():   7
     GetRunningCost():    421
-    GetProfitThisYear(): -1
+    GetProfitThisYear(): 0
     GetProfitLastYear(): 0
     GetCurrentValue():   5947
     GetVehicleType():    1
@@ -9583,11 +9583,11 @@ ERROR: IsEnd() is invalid as Begin() is never called
     14 => 1
     12 => 1
   Age ListDump:
-    13 => 1
     12 => 1
     17 => 0
     16 => 0
     14 => 0
+    13 => 0
   MaxAge ListDump:
     16 => 10980
     14 => 10980
@@ -9598,7 +9598,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
     16 => 10980
     14 => 10980
     17 => 7320
-    13 => 5489
+    13 => 5490
     12 => 5489
   CurrentSpeed ListDump:
     12 => 27
@@ -9617,7 +9617,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
     16 => 0
     14 => 0
     13 => 0
-    12 => -1
+    12 => 0
   ProfitLastYear ListDump:
     17 => 0
     16 => 0
@@ -9791,5 +9791,5 @@ ERROR: IsEnd() is invalid as Begin() is never called
   -1          >  2147483647:   false
   -2147483648 >  2147483647:   false
    13725      > -2147483648:   true
-  Regression completed in 187 ticks and 1041 ops
+  Regression completed in 174 ticks and 889 ops
 --Valuate() with excessive CPU usage--
