@@ -2074,6 +2074,8 @@ function Regression::PriorityQueue()
 
 function Regression::Start()
 {
+	local tick = this.GetTick();
+	local ops = this.GetOpsTillSuspend();
 	this.TestInit();
 	this.Std();
 	this.Base();
@@ -2170,6 +2172,7 @@ function Regression::Start()
 
 	this.Math();
 	this.PriorityQueue();
+	print("  Regression completed in " + (this.GetTick() - tick) + " ticks and " + (ops - this.GetOpsTillSuspend()) + " ops");
 
 	/* Check Valuate() is actually limited, MUST BE THE LAST TEST. */
 	print("--Valuate() with excessive CPU usage--")
