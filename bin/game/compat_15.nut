@@ -59,26 +59,20 @@ GSWaypointList.Valuate <-
 GSWaypointList_Vehicle.Valuate <-
 function(valuator_function, ...)
 {
-	local copy_list = GSList();
-	copy_list.AddList(this);
-	copy_list.Sort(GSList.SORT_BY_ITEM, GSList.SORT_ASCENDING);
+	local list = GSList();
 
-	for (local item = copy_list.Begin(); !copy_list.IsEnd(); item = copy_list.Next()) {
-		local i = 0;
-		if (vargc == 0) copy_list.SetValue(item, valuator_function(item).tointeger());
-		if (vargc == 1) copy_list.SetValue(item, valuator_function(item, vargv[i++]).tointeger());
-		if (vargc == 2) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 3) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 4) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 5) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 6) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 7) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 8) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 9) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc == 10) copy_list.SetValue(item, valuator_function(item, vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++], vargv[i++]).tointeger());
-		if (vargc >= 11) throw "Too many arguments in valuator_function";
+	switch (vargc) {
+		case 0: foreach (item, _ in this) list[item] = valuator_function(item).tointeger(); this.AddList(list); return;
+		case 1: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0]).tointeger(); this.AddList(list); return;
+		case 2: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1]).tointeger(); this.AddList(list); return;
+		case 3: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]).tointeger(); this.AddList(list); return;
+		case 4: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]).tointeger(); this.AddList(list); return;
+		case 5: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]).tointeger(); this.AddList(list); return;
+		case 6: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]).tointeger(); this.AddList(list); return;
+		case 7: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]).tointeger(); this.AddList(list); return;
+		case 8: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]).tointeger(); this.AddList(list); return;
+		case 9: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]).tointeger(); this.AddList(list); return;
+		case 10: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]).tointeger(); this.AddList(list); return;
+		default: throw "Too many arguments in valuator_function";
 	}
-
-	this.Clear();
-	this.AddList(copy_list);
 }
