@@ -28,6 +28,7 @@
  * \li AICargo::CC_POTABLE
  * \li AICargo::CC_NON_POTABLE
  * \li AIVehicleList_Waypoint
+ * \li AIVehicleList_Primary
  *
  * Other changes:
  * \li AIBridge::GetBridgeID renamed to AIBridge::GetBridgeType
