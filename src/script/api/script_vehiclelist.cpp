@@ -21,6 +21,8 @@
 
 ScriptVehicleList::ScriptVehicleList(HSQUIRRELVM vm)
 {
+	static TicToc::State state("ScriptVehicleList", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceDeityOrCompanyModeValid_Void();
 
 	bool is_deity = ScriptCompanyMode::IsDeity();
@@ -35,6 +37,8 @@ ScriptVehicleList::ScriptVehicleList(HSQUIRRELVM vm)
 
 ScriptVehicleList_Primary::ScriptVehicleList_Primary(HSQUIRRELVM vm)
 {
+	static TicToc::State state("ScriptVehicleList_Primary", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceDeityOrCompanyModeValid_Void();
 
 	bool is_deity = ScriptCompanyMode::IsDeity();
@@ -119,6 +123,8 @@ ScriptVehicleList_Primary::ScriptVehicleList_Primary(HSQUIRRELVM vm)
 
 ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 {
+	static TicToc::State state("ScriptVehicleList_Station", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceDeityOrCompanyModeValid_Void();
 
 	int nparam = sq_gettop(vm) - 1;
@@ -163,6 +169,8 @@ ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 
 ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 {
+	static TicToc::State state("ScriptVehicleList_Waypoint", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceDeityOrCompanyModeValid_Void();
 	if (!ScriptWaypoint::IsValidWaypoint(waypoint_id)) return;
 
@@ -186,6 +194,8 @@ ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 
 ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 {
+	static TicToc::State state("ScriptVehicleList_Depot", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceDeityOrCompanyModeValid_Void();
 	if (!ScriptMap::IsValidTile(tile)) return;
 
@@ -239,6 +249,8 @@ ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 
 ScriptVehicleList_SharedOrders::ScriptVehicleList_SharedOrders(VehicleID vehicle_id)
 {
+	static TicToc::State state("ScriptVehicleList_SharedOrders", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	if (!ScriptVehicle::IsPrimaryVehicle(vehicle_id)) return;
 
 	for (const Vehicle *v = Vehicle::Get(vehicle_id)->FirstShared(); v != nullptr; v = v->NextShared()) {
@@ -248,6 +260,8 @@ ScriptVehicleList_SharedOrders::ScriptVehicleList_SharedOrders(VehicleID vehicle
 
 ScriptVehicleList_Group::ScriptVehicleList_Group(GroupID group_id)
 {
+	static TicToc::State state("ScriptVehicleList_Group", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceCompanyModeValid_Void();
 	if (!ScriptGroup::IsValidGroup(group_id)) return;
 
@@ -258,6 +272,8 @@ ScriptVehicleList_Group::ScriptVehicleList_Group(GroupID group_id)
 
 ScriptVehicleList_DefaultGroup::ScriptVehicleList_DefaultGroup(ScriptVehicle::VehicleType vehicle_type)
 {
+	static TicToc::State state("ScriptVehicleList_DefaultGroup", Ticks::DAY_TICKS, true);
+	TicToc tt(state);
 	EnforceCompanyModeValid_Void();
 	if (vehicle_type < ScriptVehicle::VT_RAIL || vehicle_type > ScriptVehicle::VT_AIR) return;
 
