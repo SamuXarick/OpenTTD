@@ -14,7 +14,7 @@
 #include "script_vehicle.hpp"
 
 /**
- * Creates a list of vehicles of which you are the owner.
+ * Creates a list of vehicles of which you are the owner, including free wagons.
  * @api ai game
  * @ingroup ScriptList
  */
@@ -48,6 +48,44 @@ public:
 	 * The constructor wrapper from Squirrel.
 	 */
 	ScriptVehicleList(HSQUIRRELVM vm);
+#endif /* DOXYGEN_API */
+};
+
+/**
+ * Creates a list of primary vehicles of which you are the owner, excluding free wagons.
+ * @api ai game
+ * @ingroup ScriptList
+ */
+class ScriptVehicleList_Primary : public ScriptList {
+public:
+#ifdef DOXYGEN_API
+	ScriptVehicleList_Primary();
+
+	/**
+	 * Apply a filter when building the list.
+	 * @param filter_function The function which will be doing the filtering.
+	 * @param ... The params to give to the filters (minus the first param,
+	 *  which is always the index-value).
+	 * @note You can write your own filters and use them. Just remember that
+	 *  the first parameter should be the index-value, and it should return
+	 *  a bool.
+	 * @note Example:
+	 * @code
+	 *  local vehs_in_depot = ScriptVehicleList_Primary(ScriptVehicle.IsInDepot);
+	 *
+	 *  function IsType(vehicle_id, type)
+	 *  {
+	 *    return ScriptVehicle.GetVehicleType(vehicle_id) == type;
+	 *  }
+	 *  local road_vehs = ScriptVehicleList_Primary(IsType, ScriptVehicle.VT_ROAD);
+	 * @endcode
+	 */
+	ScriptVehicleList_Primary(function filter_function, ...);
+#else
+	/**
+	 * The constructor wrapper from Squirrel.
+	 */
+	ScriptVehicleList_Primary(HSQUIRRELVM vm);
 #endif /* DOXYGEN_API */
 };
 
