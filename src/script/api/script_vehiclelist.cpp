@@ -11,11 +11,8 @@
 #include "script_vehiclelist.hpp"
 #include "script_group.hpp"
 #include "script_map.hpp"
-#include "script_station.hpp"
 #include "script_waypoint.hpp"
-#include "../../depot_map.h"
-#include "../../vehicle_base.h"
-#include "../../train.h"
+#include "../../vehiclelist_func.h"
 
 #include "../../safeguards.h"
 
@@ -26,10 +23,9 @@ ScriptVehicleList::ScriptVehicleList(HSQUIRRELVM vm)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	ScriptList::FillList<Vehicle>(vm, this,
-		[is_deity, owner](const Vehicle *v) {
-			return (is_deity || v->owner == owner) && (v->IsPrimaryVehicle() || (v->type == VEH_TRAIN && ::Train::From(v)->IsFreeWagon()));
-		}
+	FindVehiclesAndFreeWagons(vm, this,
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[is_deity, owner](const Depot *d) { return (is_deity || ::GetTileOwner(d->xy) == owner) && ::IsTileType(d->xy, MP_RAILWAY); }
 	);
 }
 
@@ -61,20 +57,12 @@ ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 		type = static_cast<::VehicleType>(sqtype);
 	}
 
-	for (const Company *c : Company::Iterate()) {
-		if (c->index != owner && !is_deity) continue;
-		for (VehicleType vtype = VEH_BEGIN; vtype < VEH_COMPANY_END; vtype++) {
-			if (type != VEH_INVALID && vtype != type) continue;
-			for (const Vehicle *v : c->group_all[vtype].vehicle_list) {
-				for (const Order &order : v->Orders()) {
-					if ((order.IsType(OT_GOTO_STATION) || order.IsType(OT_GOTO_WAYPOINT)) && order.GetDestination() == station_id) {
-						this->AddItem(v->index.base());
-						break;
-					}
-				}
-			}
-		}
-	}
+	FindVehiclesWithOrder(
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[type](VehicleType vtype) { return type == VEH_INVALID || vtype == type; },
+		[station_id](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT)) && order->GetDestination() == station_id; },
+		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+	);
 }
 
 ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
@@ -85,19 +73,11 @@ ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	for (const Company *c : Company::Iterate()) {
-		if (c->index != owner && !is_deity) continue;
-		for (VehicleType vtype = VEH_BEGIN; vtype < VEH_AIRCRAFT; vtype++) { // There are no aircraft waypoints in the game
-			for (const Vehicle *v : c->group_all[vtype].vehicle_list) {
-				for (const Order &order : v->Orders()) {
-					if (order.IsType(OT_GOTO_WAYPOINT) && order.GetDestination() == waypoint_id) {
-						this->AddItem(v->index.base());
-						break;
-					}
-				}
-			}
-		}
-	}
+	FindVehiclesWithOrder(
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[waypoint_id](const Order *order) { return order->IsType(OT_GOTO_WAYPOINT) && order->GetDestination() == waypoint_id; },
+		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+	);
 }
 
 ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
@@ -140,17 +120,11 @@ ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	for (const Company *c : Company::Iterate()) {
-		if (c->index != owner && !is_deity) continue;
-		for (const Vehicle *v : c->group_all[type].vehicle_list) {
-			for (const Order &order : v->Orders()) {
-				if (order.IsType(OT_GOTO_DEPOT) && order.GetDestination() == dest) {
-					this->AddItem(v->index.base());
-					break;
-				}
-			}
-		}
-	}
+	FindVehiclesWithOrder(
+		[is_deity, owner](const Company *c) { return is_deity || c->index == owner; },
+		[dest](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && order->GetDestination() == dest; },
+		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+	);
 }
 
 ScriptVehicleList_SharedOrders::ScriptVehicleList_SharedOrders(VehicleID vehicle_id)

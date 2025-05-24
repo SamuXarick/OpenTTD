@@ -11,6 +11,7 @@
 #include "train.h"
 #include "vehicle_func.h"
 #include "vehiclelist.h"
+#include "vehiclelist_func.h"
 #include "group.h"
 
 #include "safeguards.h"
@@ -72,19 +73,11 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 
 	switch (vli.type) {
 		case VL_STATION_LIST:
-			for (const Company *c : Company::Iterate()) {
-				/* Only iterate over all companies in the case of neutral Oil Rig stations */
-				if (vli.company != c->index && vli.company != OWNER_NONE) continue;
-				for (const Vehicle *v : c->group_all[vli.vtype].vehicle_list) {
-					for (const Order &order : v->Orders()) {
-						if ((order.IsType(OT_GOTO_STATION) || order.IsType(OT_GOTO_WAYPOINT) || order.IsType(OT_IMPLICIT))
-								&& order.GetDestination() == vli.ToStationID()) {
-							list->push_back(v);
-							break;
-						}
-					}
-				}
-			}
+			FindVehiclesWithOrder(
+				[&vli](const Company *c) { return vli.company == OWNER_NONE || c->index == vli.company; },
+				[&vli](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT) || order->IsType(OT_IMPLICIT)) && order->GetDestination() == vli.ToStationID(); },
+				[&list](const Vehicle *v) { list->push_back(v); }
+			);
 			break;
 
 		case VL_SHARED_ORDERS: {
@@ -126,14 +119,12 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 			break;
 
 		case VL_DEPOT_LIST:
-			for (const Vehicle *v : Company::Get(vli.company)->group_all[vli.vtype].vehicle_list) {
-				for (const Order &order : v->Orders()) {
-					if (order.IsType(OT_GOTO_DEPOT) && !(order.GetDepotActionType() & ODATFB_NEAREST_DEPOT) && order.GetDestination() == vli.ToDestinationID()) {
-						list->push_back(v);
-						break;
-					}
-				}
-			}
+			FindVehiclesWithOrder(
+				[&vli](const Company *c) { return c->index == vli.company; },
+				[&vli](VehicleType type) { return type == vli.vtype; },
+				[&vli](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && !(order->GetDepotActionType() & ODATFB_NEAREST_DEPOT) && order->GetDestination() == vli.ToDestinationID(); },
+				[&list](const Vehicle *v) { list->push_back(v); }
+			);
 			break;
 
 		default: return false;
