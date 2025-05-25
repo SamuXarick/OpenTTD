@@ -428,6 +428,7 @@ struct ScriptSettings {
 	bool   self_regulate_max_opcode;         ///< self-adjust max opcode calls based on frametime
 	uint32_t script_max_opcode_till_suspend;   ///< max opcode calls till scripts will suspend
 	uint32_t script_max_memory_megabytes;      ///< limit on memory a single script instance may have allocated
+	bool slow_valuate; ///< prevent scripts from crashing due to excessive CPU usage
 };
 
 /** Settings related to the yet another pathfinder. */

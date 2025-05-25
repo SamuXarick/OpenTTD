@@ -1839,6 +1839,9 @@ STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Allow AI comput
 STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES             :Self-regulate #opcodes for scripts: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_SELF_REGULATE_MAX_OPCODES_HELPTEXT    :Permit playable framerate with many scripts running. Based on the performance data measured, the maximum number of computation steps that a script can take in one turn is increased or decreased
 
+STR_CONFIG_SETTING_SCRIPT_SLOW_VALUATE                          :Scripts use slow valuators: {STRING2}
+STR_CONFIG_SETTING_SCRIPT_SLOW_VALUATE_HELPTEXT                 :Prevents scripts from crashing due to excessive CPU usage in valuator and filter functions
+
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :#opcodes before scripts are suspended: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximum number of computation steps that a script can take in one turn
 STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY                            :Max memory usage per script: {STRING2}
