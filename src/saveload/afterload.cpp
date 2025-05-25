@@ -3302,6 +3302,11 @@ bool AfterLoadGame()
 		_settings_game.script.self_regulate_max_opcode = false;
 	}
 
+	if (IsSavegameVersionBefore(SLV_SLOW_VALUATE)) {
+		/* Disable slow valuate. */
+		_settings_game.script.slow_valuate = false;
+	}
+
 	/* Compute station catchment areas. This is needed here in case UpdateStationAcceptance is called below. */
 	Station::RecomputeCatchmentForAll();
 
