@@ -403,6 +403,8 @@ enum SaveLoadVersion : uint16_t {
 	SLV_FIX_SCC_ENCODED_NEGATIVE,           ///< 353  PR#14049 Fix encoding of negative parameters.
 	SLV_ORDERS_OWNED_BY_ORDERLIST,          ///< 354  PR#13948 Orders stored in OrderList, pool removed.
 
+	SLV_SLOW_VALUATE,                       ///< 355           Add setting which prevents excessive cpu usage errors from scripts.
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 
