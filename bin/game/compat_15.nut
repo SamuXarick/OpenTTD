@@ -5,6 +5,59 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
  */
 
+GSList.ValuateCompat15 <- GSList.Valuate
+GSBridgeList.ValuateCompat15 <- GSBridgeList.Valuate
+GSBridgeList_Length.ValuateCompat15 <- GSBridgeList_Length.Valuate
+GSCargoList.ValuateCompat15 <- GSCargoList.Valuate
+GSCargoList_IndustryAccepting.ValuateCompat15 <- GSCargoList_IndustryAccepting.Valuate
+GSCargoList_IndustryProducing.ValuateCompat15 <- GSCargoList_IndustryProducing.Valuate
+GSCargoList_StationAccepting.ValuateCompat15 <- GSCargoList_StationAccepting.Valuate
+GSClientList.ValuateCompat15 <- GSClientList.Valuate
+GSClientList_Company.ValuateCompat15 <- GSClientList_Company.Valuate
+GSDepotList.ValuateCompat15 <- GSDepotList.Valuate
+GSEngineList.ValuateCompat15 <- GSEngineList.Valuate
+GSGroupList.ValuateCompat15 <- GSGroupList.Valuate
+GSIndustryList.ValuateCompat15 <- GSIndustryList.Valuate
+GSIndustryList_CargoAccepting.ValuateCompat15 <- GSIndustryList_CargoAccepting.Valuate
+GSIndustryList_CargoProducing.ValuateCompat15 <- GSIndustryList_CargoProducing.Valuate
+GSIndustryTypeList.ValuateCompat15 <- GSIndustryTypeList.Valuate
+GSNewGRFList.ValuateCompat15 <- GSNewGRFList.Valuate
+GSObjectTypeList.ValuateCompat15 <- GSObjectTypeList.Valuate
+GSRailTypeList.ValuateCompat15 <- GSRailTypeList.Valuate
+GSRoadTypeList.ValuateCompat15 <- GSRoadTypeList.Valuate
+GSSignList.ValuateCompat15 <- GSSignList.Valuate
+GSStationList.ValuateCompat15 <- GSStationList.Valuate
+GSStationList_Cargo.ValuateCompat15 <- GSStationList_Cargo.Valuate
+GSStationList_CargoPlanned.ValuateCompat15 <- GSStationList_CargoPlanned.Valuate
+GSStationList_CargoWaiting.ValuateCompat15 <- GSStationList_CargoWaiting.Valuate
+GSStationList_CargoWaitingByFrom.ValuateCompat15 <- GSStationList_CargoWaitingByFrom.Valuate
+GSStationList_CargoWaitingViaByFrom.ValuateCompat15 <- GSStationList_CargoWaitingViaByFrom.Valuate
+GSStationList_CargoWaitingByVia.ValuateCompat15 <- GSStationList_CargoWaitingByVia.Valuate
+GSStationList_CargoWaitingFromByVia.ValuateCompat15 <- GSStationList_CargoWaitingFromByVia.Valuate
+GSStationList_CargoPlannedByFrom.ValuateCompat15 <- GSStationList_CargoPlannedByFrom.Valuate
+GSStationList_CargoPlannedViaByFrom.ValuateCompat15 <- GSStationList_CargoPlannedViaByFrom.Valuate
+GSStationList_CargoPlannedByVia.ValuateCompat15 <- GSStationList_CargoPlannedByVia.Valuate
+GSStationList_CargoPlannedFromByVia.ValuateCompat15 <- GSStationList_CargoPlannedFromByVia.Valuate
+GSStationList_Vehicle.ValuateCompat15 <- GSStationList_Vehicle.Valuate
+GSStoryPageElementList.ValuateCompat15 <- GSStoryPageElementList.Valuate
+GSStoryPageList.ValuateCompat15 <- GSStoryPageList.Valuate
+GSSubsidyList.ValuateCompat15 <- GSSubsidyList.Valuate
+GSTileList.ValuateCompat15 <- GSTileList.Valuate
+GSTileList_IndustryAccepting.ValuateCompat15 <- GSTileList_IndustryAccepting.Valuate
+GSTileList_IndustryProducing.ValuateCompat15 <- GSTileList_IndustryProducing.Valuate
+GSTileList_StationType.ValuateCompat15 <- GSTileList_StationType.Valuate
+GSTileList_StationCoverage.ValuateCompat15 <- GSTileList_StationCoverage.Valuate
+GSTownList.ValuateCompat15 <- GSTownList.Valuate
+GSTownEffectList.ValuateCompat15 <- GSTownEffectList.Valuate
+GSVehicleList.ValuateCompat15 <- GSVehicleList.Valuate
+GSVehicleList_Station.ValuateCompat15 <- GSVehicleList_Station.Valuate
+GSVehicleList_Depot.ValuateCompat15 <- GSVehicleList_Depot.Valuate
+GSVehicleList_SharedOrders.ValuateCompat15 <- GSVehicleList_SharedOrders.Valuate
+GSVehicleList_Group.ValuateCompat15 <- GSVehicleList_Group.Valuate
+GSVehicleList_DefaultGroup.ValuateCompat15 <- GSVehicleList_DefaultGroup.Valuate
+GSWaypointList.ValuateCompat15 <- GSWaypointList.Valuate
+GSWaypointList_Vehicle.ValuateCompat15 <- GSWaypointList_Vehicle.Valuate
+
 GSList.Valuate <-
 GSBridgeList.Valuate <-
 GSBridgeList_Length.Valuate <-
@@ -59,20 +112,37 @@ GSWaypointList.Valuate <-
 GSWaypointList_Vehicle.Valuate <-
 function(valuator_function, ...)
 {
-	local list = GSList();
+	if (GSGameSettings.GetValue("script.slow_valuate")) {
+		local list = GSList();
 
-	switch (vargc) {
-		case 0: foreach (item, _ in this) list[item] = valuator_function(item).tointeger(); this.AddList(list); return;
-		case 1: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0]).tointeger(); this.AddList(list); return;
-		case 2: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1]).tointeger(); this.AddList(list); return;
-		case 3: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]).tointeger(); this.AddList(list); return;
-		case 4: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]).tointeger(); this.AddList(list); return;
-		case 5: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]).tointeger(); this.AddList(list); return;
-		case 6: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]).tointeger(); this.AddList(list); return;
-		case 7: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]).tointeger(); this.AddList(list); return;
-		case 8: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]).tointeger(); this.AddList(list); return;
-		case 9: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]).tointeger(); this.AddList(list); return;
-		case 10: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]).tointeger(); this.AddList(list); return;
-		default: throw "Too many arguments in valuator_function";
+		switch (vargc) {
+			case 0: foreach (item, _ in this) list[item] = valuator_function(item).tointeger(); this.AddList(list); return;
+			case 1: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0]).tointeger(); this.AddList(list); return;
+			case 2: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1]).tointeger(); this.AddList(list); return;
+			case 3: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]).tointeger(); this.AddList(list); return;
+			case 4: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]).tointeger(); this.AddList(list); return;
+			case 5: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]).tointeger(); this.AddList(list); return;
+			case 6: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]).tointeger(); this.AddList(list); return;
+			case 7: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]).tointeger(); this.AddList(list); return;
+			case 8: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]).tointeger(); this.AddList(list); return;
+			case 9: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]).tointeger(); this.AddList(list); return;
+			case 10: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]).tointeger(); this.AddList(list); return;
+			default: throw "Too many arguments in valuator_function";
+		}
+	} else {
+		switch (vargc) {
+			case 0: this.ValuateCompat15(valuator_function); return;
+			case 1: this.ValuateCompat15(valuator_function, vargv[0]); return;
+			case 2: this.ValuateCompat15(valuator_function, vargv[0], vargv[1]); return;
+			case 3: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2]); return;
+			case 4: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3]); return;
+			case 5: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]); return;
+			case 6: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]); return;
+			case 7: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]); return;
+			case 8: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]); return;
+			case 9: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]); return;
+			case 10: this.ValuateCompat15(valuator_function, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]); return;
+			default: throw "Too many arguments in valuator_function";
+		}
 	}
 }
