@@ -230,6 +230,7 @@ struct GUISettings {
 	bool   show_date_in_logs;                ///< whether to show dates in console logs
 	bool   newgrf_developer_tools;           ///< activate NewGRF developer tools and allow modifying NewGRFs in an existing game
 	bool   ai_developer_tools;               ///< activate AI/GS developer tools
+	bool   start_spectator;                  ///< activate a spectator slot in single player and initiate games as a spectator
 	bool   scenario_developer;               ///< activate scenario developer: allow modifying NewGRFs in an existing game
 	uint8_t  settings_restriction_mode;        ///< selected restriction mode in adv. settings GUI. @see RestrictionMode
 	bool   newgrf_show_old_versions;         ///< whether to show old versions in the NewGRF list
@@ -424,8 +425,10 @@ struct AISettings {
 
 /** Settings related to scripts. */
 struct ScriptSettings {
+	bool   self_regulate_max_opcode;         ///< self-adjust max opcode calls based on frametime
 	uint32_t script_max_opcode_till_suspend;   ///< max opcode calls till scripts will suspend
 	uint32_t script_max_memory_megabytes;      ///< limit on memory a single script instance may have allocated
+	bool slow_valuate; ///< prevent scripts from crashing due to excessive CPU usage
 };
 
 /** Settings related to the yet another pathfinder. */

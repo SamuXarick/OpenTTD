@@ -673,15 +673,22 @@ static CommandCost CmdBuildRailWagon(DoCommandFlags flags, TileIndex tile, const
 		CheckConsistencyOfArticulatedVehicle(v);
 
 		/* Try to connect the vehicle to one of free chains of wagons. */
-		for (Train *w : Train::Iterate()) {
-			if (w->tile == tile &&              ///< Same depot
-					w->IsFreeWagon() &&             ///< A free wagon chain
+		std::vector<VehicleID> freewagons;
+		for (Vehicle *u : VehiclesOnTile(tile)) {
+			if (u->type != VEH_TRAIN) continue;
+
+			Train *w = Train::From(u);
+			if (w->IsFreeWagon() &&             ///< A free wagon chain
 					w->engine_type == e->index &&   ///< Same type
 					w->First() != v &&              ///< Don't connect to ourself
 					!w->vehstatus.Test(VehState::Crashed)) { ///< Not crashed/flooded
-				if (Command<CMD_MOVE_RAIL_VEHICLE>::Do(DoCommandFlag::Execute, v->index, w->Last()->index, true).Succeeded()) {
-					break;
-				}
+				freewagons.push_back(w->Last()->index);
+			}
+		}
+		std::ranges::sort(freewagons);
+		for (VehicleID veh_id : freewagons) {
+			if (Command<CMD_MOVE_RAIL_VEHICLE>::Do(DoCommandFlag::Execute, v->index, veh_id, true).Succeeded()) {
+				break;
 			}
 		}
 	}
@@ -693,12 +700,19 @@ static CommandCost CmdBuildRailWagon(DoCommandFlags flags, TileIndex tile, const
 void NormalizeTrainVehInDepot(const Train *u)
 {
 	assert(u->IsEngine());
-	for (const Train *v : Train::Iterate()) {
-		if (v->IsFreeWagon() && v->tile == u->tile &&
-				v->track == TRACK_BIT_DEPOT) {
-			if (Command<CMD_MOVE_RAIL_VEHICLE>::Do(DoCommandFlag::Execute, v->index, u->index, true).Failed()) {
-				break;
-			}
+	std::vector<VehicleID> freewagons;
+	for (const Vehicle *w : VehiclesOnTile(u->tile)) {
+		if (w->type != VEH_TRAIN) continue;
+
+		const Train *v = Train::From(w);
+		if (v->IsFreeWagon() && v->track == TRACK_BIT_DEPOT) {
+			freewagons.push_back(v->index);
+		}
+	}
+	std::ranges::sort(freewagons);
+	for (VehicleID veh_id : freewagons) {
+		if (Command<CMD_MOVE_RAIL_VEHICLE>::Do(DoCommandFlag::Execute, veh_id, u->index, true).Failed()) {
+			break;
 		}
 	}
 }
@@ -830,18 +844,25 @@ static Train *FindGoodVehiclePos(const Train *src)
 	EngineID eng = src->engine_type;
 	TileIndex tile = src->tile;
 
-	for (Train *dst : Train::Iterate()) {
-		if (dst->IsFreeWagon() && dst->tile == tile && !dst->vehstatus.Test(VehState::Crashed)) {
+	Train *pos = nullptr;
+	for (Vehicle *v : VehiclesOnTile(tile)) {
+		if (v->type != VEH_TRAIN) continue;
+
+		Train *dst = Train::From(v);
+		if (dst->IsFreeWagon() && !dst->vehstatus.Test(VehState::Crashed)) {
 			/* check so all vehicles in the line have the same engine. */
 			Train *t = dst;
 			while (t->engine_type == eng) {
 				t = t->Next();
-				if (t == nullptr) return dst;
+				if (t == nullptr && (pos == nullptr || pos->index > dst->index)) {
+					pos = dst;
+					break;
+				}
 			}
 		}
 	}
 
-	return nullptr;
+	return pos;
 }
 
 /** Helper type for lists/vectors of trains */
