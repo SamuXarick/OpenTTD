@@ -9812,5 +9812,5 @@ ERROR: IsEnd() is invalid as Begin() is never called
   -1          >  2147483647:   false
   -2147483648 >  2147483647:   false
    13725      > -2147483648:   true
-  Regression completed in 174 ticks and 895 ops
+  Regression completed in 174 ticks and 910 ops
 --Valuate() with excessive CPU usage--
