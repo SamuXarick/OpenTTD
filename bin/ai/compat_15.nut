@@ -56,20 +56,21 @@ AIWaypointList.Valuate <-
 AIWaypointList_Vehicle.Valuate <-
 function(valuator_function, ...)
 {
-	local list = AIList();
+	local sorter_type = this.GetSorterType();
+	this.Sort(1, this.GetSorterDirection());
 
 	switch (vargc) {
-		case 0: foreach (item, _ in this) list[item] = valuator_function(item); this.Clear(); this.AddList(list); return;
-		case 1: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0]); this.Clear(); this.AddList(list); return;
-		case 2: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1]); this.Clear(); this.AddList(list); return;
-		case 3: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]); this.Clear(); this.AddList(list); return;
-		case 4: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]); this.Clear(); this.AddList(list); return;
-		case 5: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]); this.Clear(); this.AddList(list); return;
-		case 6: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]); this.Clear(); this.AddList(list); return;
-		case 7: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]); this.Clear(); this.AddList(list); return;
-		case 8: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]); this.Clear(); this.AddList(list); return;
-		case 9: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]); this.Clear(); this.AddList(list); return;
-		case 10: foreach (item, _ in this) list[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]); this.Clear(); this.AddList(list); return;
+		case 0: foreach (item, _ in this) this[item] = valuator_function(item); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 1: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 2: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 3: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 4: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 5: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 6: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 7: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 8: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 9: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 10: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]); this.Sort(sorter_type, this.GetSorterDirection()); return;
 		default: throw "Too many arguments in valuator function";
 	}
 }
