@@ -847,6 +847,11 @@ bool ScriptList::GetSorterDirection()
 	return this->sort_ascending;
 }
 
+bool ScriptList::IsSlowValuateEnabled()
+{
+	return _settings_game.script.slow_valuate;
+}
+
 SQInteger ScriptList::_get(HSQUIRRELVM vm)
 {
 	if (sq_gettype(vm, 2) != OT_INTEGER) return SQ_ERROR;

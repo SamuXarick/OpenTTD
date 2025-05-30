@@ -183,6 +183,9 @@ function Regression::TestInit()
 		print("   " + idx);
 	}
 
+	print("");
+	print(" IsSlowValuateEnabled(): " + list.IsSlowValuateEnabled());
+
 	print(" Ops:      " + this.GetOpsTillSuspend());
 }
 
