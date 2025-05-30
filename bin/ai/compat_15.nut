@@ -60,17 +60,17 @@ function(valuator_function, ...)
 	this.Sort(1, this.GetSorterDirection());
 
 	switch (vargc) {
-		case 0: foreach (item, _ in this) this[item] = valuator_function(item).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 1: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 2: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 3: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 4: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 5: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 6: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 7: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 8: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 9: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
-		case 10: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]).tointeger(); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 0: foreach (item, _ in this) this[item] = valuator_function(item); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 1: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 2: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 3: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 4: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 5: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 6: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 7: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 8: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 9: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]); this.Sort(sorter_type, this.GetSorterDirection()); return;
+		case 10: foreach (item, _ in this) this[item] = valuator_function(item, vargv[0], vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]); this.Sort(sorter_type, this.GetSorterDirection()); return;
 		default: throw "Too many arguments in valuator function";
 	}
 }
