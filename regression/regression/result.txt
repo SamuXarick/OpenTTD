@@ -93,7 +93,9 @@
    20
    30
    40
- Ops:      8601
+
+ IsSlowValuateEnabled(): false
+ Ops:      8592
 
 --Std--
  abs(-21): 21
@@ -9805,7 +9807,7 @@ constructor failed with: excessive CPU usage in list filter function
 Your script made an error: excessive CPU usage in valuator function
 
 *FUNCTION [unknown()] compat_15.nut line [127]
-*FUNCTION [Start()] regression/main.nut line [2135]
+*FUNCTION [Start()] regression/main.nut line [2138]
 
 [valuator_function] CLOSURE
 [this] INSTANCE

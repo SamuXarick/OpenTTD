@@ -31,6 +31,7 @@
  * \li GSBaseStation::GetOwner
  * \li GSList::GetSorterType
  * \li GSList::GetSorterDirection
+ * \li GSList::IsSlowValuateEnabled
  *
  * Other changes:
  * \li GSBridge::GetBridgeID renamed to GSBridge::GetBridgeType
