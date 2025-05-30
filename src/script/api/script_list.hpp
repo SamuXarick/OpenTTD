@@ -370,6 +370,12 @@ public:
 	 */
 	bool GetSorterDirection();
 
+	/**
+	 * Is the slow valuate game setting enabled?
+	 * @return True iff slow valuate game setting is enabled.
+	 */
+	bool IsSlowValuateEnabled();
+
 #ifndef DOXYGEN_API
 	/**
 	 * Used for 'foreach()' and [] get from Squirrel.
