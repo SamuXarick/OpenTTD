@@ -112,7 +112,7 @@ GSWaypointList.Valuate <-
 GSWaypointList_Vehicle.Valuate <-
 function(valuator_function, ...)
 {
-	if (GSGameSettings.GetValue("slow_valuate")) {
+	if (this.IsSlowValuateEnabled()) {
 		local sorter_type = this.GetSorterType();
 		this.Sort(1, this.GetSorterDirection());
 
@@ -177,7 +177,7 @@ function(...)
 {
 	this.constructorCompat15();
 	if (!vargc) return;
-	if (GSGameSettings.GetValue("slow_valuate")) {
+	if (this.IsSlowValuateEnabled()) {
 		if (typeof(vargv[0]) != "function") throw "parameter 1 has an invalid type (expected function)";
 		switch (vargc) {
 			case 1: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item))) this[item] = null; return;
