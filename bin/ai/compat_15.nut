@@ -105,7 +105,7 @@ AIWaypointList.Valuate <-
 AIWaypointList_Vehicle.Valuate <-
 function(valuator_function, ...)
 {
-	if (AIGameSettings.GetValue("slow_valuate")) {
+	if (this.IsSlowValuateEnabled()) {
 		local sorter_type = this.GetSorterType();
 		this.Sort(1, this.GetSorterDirection());
 
@@ -158,7 +158,7 @@ function(...)
 {
 	this.constructorCompat15();
 	if (!vargc) return;
-	if (AIGameSettings.GetValue("slow_valuate")) {
+	if (this.IsSlowValuateEnabled()) {
 		switch (vargc) {
 			case 1: foreach (item, _ in this) if (!vargv[0](item)) this[item] = null; return;
 			case 2: foreach (item, _ in this) if (!vargv[0](item, vargv[1])) this[item] = null; return;
