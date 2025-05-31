@@ -9806,4 +9806,3 @@ ERROR: IsEnd() is invalid as Begin() is never called
    13725      > -2147483648:   true
   Regression completed in 174 ticks and 895 ops
 --Valuate() with excessive CPU usage--
-constructor failed with: excessive CPU usage in list filter function
