@@ -72,3 +72,49 @@ function(valuator_function, ...)
 		default: throw "Too many arguments in valuator_function";
 	}
 }
+
+AITownList.constructorCompat15 <- AITownList.constructor
+AIVehicleList.constructorCompat15 <- AIVehicleList.constructor
+AISubsidyList.constructorCompat15 <- AISubsidyList.constructor
+AISignList.constructorCompat15 <- AISignList.constructor
+AIIndustryList.constructorCompat15 <- AIIndustryList.constructor
+AIGroupList.constructorCompat15 <- AIGroupList.constructor
+
+AITownList.checkCompat15 <-
+AIVehicleList.checkCompat15 <-
+AISubsidyList.checkCompat15 <-
+AISignList.checkCompat15 <-
+AIIndustryList.checkCompat15 <-
+AIGroupList.checkCompat15 <-
+function(filter_function_return)
+{
+	if (typeof(filter_function_return) == "bool") return filter_function_return;
+	throw "return value of filter is not valid (not bool)";
+}
+
+AITownList.constructor <-
+AIVehicleList.constructor <-
+AISubsidyList.constructor <-
+AISignList.constructor <-
+AIIndustryList.constructor <-
+AIGroupList.constructor <-
+function(...)
+{
+	this.constructorCompat15();
+	if (!vargc) return;
+	if (typeof(vargv[0]) != "function") throw "parameter 1 has an invalid type (expected function)";
+	switch (vargc) {
+		case 1: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item))) this[item] = null; return;
+		case 2: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1]))) this[item] = null; return;
+		case 3: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2]))) this[item] = null; return;
+		case 4: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3]))) this[item] = null; return;
+		case 5: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4]))) this[item] = null; return;
+		case 6: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5]))) this[item] = null; return;
+		case 7: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6]))) this[item] = null; return;
+		case 8: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7]))) this[item] = null; return;
+		case 9: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8]))) this[item] = null; return;
+		case 10: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9]))) this[item] = null; return;
+		case 11: foreach (item, _ in this) if (!this.checkCompat15(vargv[0](item, vargv[1], vargv[2], vargv[3], vargv[4], vargv[5], vargv[6], vargv[7], vargv[8], vargv[9], vargv[10]))) this[item] = null; return;
+		default: throw "Too many arguments in filter_function";
+	}
+}
