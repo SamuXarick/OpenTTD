@@ -116,7 +116,7 @@ ScriptTileList_IndustryAccepting::ScriptTileList_IndustryAccepting(IndustryID in
 		CargoArray acceptance = ::GetAcceptanceAroundTiles(cur_tile, 1, 1, radius);
 		if (std::none_of(std::begin(i->accepted), std::end(i->accepted), [&acceptance](const auto &a) { return ::IsValidCargoType(a.cargo) && acceptance[a.cargo] != 0; })) continue;
 
-		this->AddTile(cur_tile);
+		this->AddItemUnchecked(cur_tile.base());
 	}
 }
 
@@ -139,7 +139,7 @@ ScriptTileList_IndustryProducing::ScriptTileList_IndustryProducing(IndustryID in
 
 	BitmapTileIterator it(bta);
 	for (TileIndex cur_tile = it; cur_tile != INVALID_TILE; cur_tile = ++it) {
-		this->AddTile(cur_tile);
+		this->AddItemUnchecked(cur_tile.base());
 	}
 }
 
@@ -163,7 +163,7 @@ ScriptTileList_StationType::ScriptTileList_StationType(StationID station_id, Scr
 		if (!::IsTileType(cur_tile, MP_STATION)) continue;
 		if (::GetStationIndex(cur_tile) != station_id) continue;
 		if (!station_types.Test(::GetStationType(cur_tile))) continue;
-		this->AddTile(cur_tile);
+		this->AddItemUnchecked(cur_tile.base());
 	}
 }
 
@@ -176,6 +176,6 @@ ScriptTileList_StationCoverage::ScriptTileList_StationCoverage(StationID station
 
 	BitmapTileIterator it(ta);
 	for (TileIndex tile = it; tile != INVALID_TILE; tile = ++it) {
-		this->AddTile(tile);
+		this->AddItemUnchecked(tile.base());
 	}
 }

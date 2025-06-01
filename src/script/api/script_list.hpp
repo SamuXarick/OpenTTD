@@ -55,7 +55,7 @@ protected:
 		for (const T *item : T::Iterate()) {
 			if (!item_valid(item)) continue;
 			if (!item_filter(item)) continue;
-			list->AddItem(GetRawIndex(item->index));
+			list->AddItemUnchecked(GetRawIndex(item->index));
 		}
 	}
 
