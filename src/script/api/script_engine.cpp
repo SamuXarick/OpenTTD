@@ -255,7 +255,7 @@
 
 	ScriptList *list = new ScriptList();
 	for (::RailType railtype : ::RailVehInfo(engine_id)->railtypes) {
-		list->AddItem(railtype);
+		list->AddItemUnchecked(railtype);
 	}
 
 	return list;

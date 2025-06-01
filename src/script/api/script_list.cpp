@@ -441,7 +441,7 @@ bool ScriptList::LoadObject(HSQUIRRELVM vm)
 		SQInteger key, value;
 		sq_getinteger(vm, -2, &key);
 		sq_getinteger(vm, -1, &value);
-		this->AddItem(key, value);
+		this->AddItemUnchecked(key, value);
 		sq_pop(vm, 2);
 	}
 	sq_pop(vm, 3);
@@ -891,7 +891,7 @@ SQInteger ScriptList::_set(HSQUIRRELVM vm)
 	}
 
 	if (!this->HasItem(idx)) {
-		this->AddItem(idx, val);
+		this->AddItemUnchecked(idx, val);
 		return 0;
 	}
 

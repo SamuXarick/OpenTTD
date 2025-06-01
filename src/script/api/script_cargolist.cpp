@@ -20,7 +20,7 @@
 ScriptCargoList::ScriptCargoList()
 {
 	for (const CargoSpec *cs : CargoSpec::Iterate()) {
-		this->AddItem(cs->Index());
+		this->AddItemUnchecked(cs->Index());
 	}
 }
 
@@ -31,7 +31,7 @@ ScriptCargoList_IndustryAccepting::ScriptCargoList_IndustryAccepting(IndustryID 
 	const Industry *ind = ::Industry::Get(industry_id);
 	for (const auto &a : ind->accepted) {
 		if (::IsValidCargoType(a.cargo)) {
-			this->AddItem(a.cargo);
+			this->AddItemUnchecked(a.cargo);
 		}
 	}
 }
@@ -43,7 +43,7 @@ ScriptCargoList_IndustryProducing::ScriptCargoList_IndustryProducing(IndustryID 
 	const Industry *ind = ::Industry::Get(industry_id);
 	for (const auto &p : ind->produced) {
 		if (::IsValidCargoType(p.cargo)) {
-			this->AddItem(p.cargo);
+			this->AddItemUnchecked(p.cargo);
 		}
 	}
 }
@@ -54,6 +54,6 @@ ScriptCargoList_StationAccepting::ScriptCargoList_StationAccepting(StationID sta
 
 	const Station *st = ::Station::Get(station_id);
 	for (CargoType cargo = 0; cargo < NUM_CARGO; ++cargo) {
-		if (st->goods[cargo].status.Test(GoodsEntry::State::Acceptance)) this->AddItem(cargo);
+		if (st->goods[cargo].status.Test(GoodsEntry::State::Acceptance)) this->AddItemUnchecked(cargo);
 	}
 }
