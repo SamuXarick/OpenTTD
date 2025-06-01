@@ -503,6 +503,16 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 	this->buckets[value].insert(item);
 }
 
+void ScriptList::AddItemUnchecked(SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	assert(!this->HasItem(item));
+
+	this->items[item] = value;
+	this->buckets[value].insert(item);
+}
+
 void ScriptList::RemoveItem(SQInteger item)
 {
 	this->modifications++;
