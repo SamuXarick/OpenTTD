@@ -173,6 +173,15 @@ public:
 	void AddItem(SQInteger item, SQInteger value);
 #else
 	void AddItem(SQInteger item, SQInteger value = 0);
+
+	/**
+	 * Adds a single item to the list without verifying its existence.
+	 * @param item The item to add.
+	 * @param value The value to assign.
+	 * @note For performance reasons, use this method only when certain that the item is not already in the list.
+	 * @api -all
+	 */
+	void AddItemUnchecked(SQInteger item, SQInteger value = 0);
 #endif /* DOXYGEN_API */
 
 	/**
