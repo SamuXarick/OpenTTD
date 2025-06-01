@@ -36,7 +36,11 @@ void ScriptTileList::AddRectangle(TileIndex t1, TileIndex t2)
 	if (!::IsValidTile(t2)) return;
 
 	TileArea ta(t1, t2);
-	for (TileIndex t : ta) this->AddItem(t.base());
+	if (this->IsEmpty()) {
+		for (TileIndex t : ta) this->AddItemUnchecked(t.base());
+	} else {
+		for (TileIndex t : ta) this->AddItem(t.base());
+	}
 }
 
 void ScriptTileList::AddTile(TileIndex tile)
