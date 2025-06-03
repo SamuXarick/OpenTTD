@@ -12,6 +12,8 @@
 #define SCRIPT_LIST_HPP
 
 #include "script_object.hpp"
+#include "../../3rdparty/cpp-btree/safe_btree_set.h"
+#include "../../3rdparty/cpp-btree/safe_btree_map.h"
 
 /** Maximum number of operations allowed for valuating a list. */
 static const int MAX_VALUATE_OPS = 1000000;
@@ -35,13 +37,27 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
+	/**
+	 * The safe btree variants ars used because these automatically manage refreshing iterators
+	 * which have been invalidated by adding/removing items.
+	 */
+	using ScriptListSet = btree::safe_btree_set<std::pair<SQInteger, SQInteger>>; ///< List per value
+	using ScriptListMap = btree::safe_btree_map<SQInteger, SQInteger>; ///< List per item
+
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
 	SorterType sorter_type;       ///< Sorting type
 	bool sort_ascending;          ///< Whether to sort ascending or descending
 	bool initialized;             ///< Whether an iteration has been started
+	bool values_inited;           ///< Whether the 'values' field has been initialised
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
-	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
+	std::optional<ScriptListMap::iterator> resume_iter; ///< Iteration to use on valuation start.
+
+	void InitValues();
+	void InitSorter();
+	void SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value);
+	ScriptListMap::iterator RemoveMapIter(ScriptListMap::iterator item_iter);
+	ScriptListSet::iterator RemoveSetIter(ScriptListSet::iterator value_iter);
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -161,14 +177,11 @@ protected:
 
 		for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
 			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second)) this->RemoveItem(iter->first);
+			if (value_filter(iter->first, iter->second)) this->RemoveMapIter(iter);
 		}
 	}
 
 public:
-	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>>; ///< List per value
-	using ScriptListMap = std::map<SQInteger, SQInteger>; ///< List per item
-
 	ScriptListMap items;           ///< The items in the list
 	ScriptListSet values; ///< The items in the list, sorted by value
 
@@ -185,6 +198,16 @@ public:
 #else
 	void AddItem(SQInteger item, SQInteger value = 0);
 #endif /* DOXYGEN_API */
+
+	/**
+	 * @api -all
+	 */
+	void AddOrSetItem(SQInteger item, SQInteger value);
+
+	/**
+	 * @api -all
+	 */
+	void AddToItemValue(SQInteger item, SQInteger value_to_add);
 
 	/**
 	 * Remove a single item from the list.
