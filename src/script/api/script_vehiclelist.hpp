@@ -12,6 +12,9 @@
 
 #include "script_list.hpp"
 #include "script_vehicle.hpp"
+#include "../../depot_base.h"
+#include "../../train.h"
+#include "../../vehicle_func.h"
 
 /**
  * Creates a list of vehicles of which you are the owner.
@@ -49,6 +52,101 @@ public:
 	 */
 	ScriptVehicleList(HSQUIRRELVM vm);
 #endif /* DOXYGEN_API */
+protected:
+	template <class CompanyPredicate, class DepotPredicate, class VehicleFilter>
+	static void FindVehiclesAndFreeWagons(ScriptVehicleList *list, CompanyPredicate company_pred, DepotPredicate depot_pred, VehicleFilter veh_filter)
+	{
+		FindVehicles(company_pred,
+			[&list, &veh_filter](const Vehicle *v) { if (veh_filter(v)) list->AddItem(v->index.base()); }
+		);
+
+		for (const Depot *d : Depot::Iterate()) {
+			if (!depot_pred(d)) continue;
+
+			for (const Vehicle *v : VehiclesOnTile(d->xy)) {
+				if (v->type != VEH_TRAIN || !v->IsInDepot()) continue;
+
+				const Train *t = Train::From(v);
+				if (t->IsArticulatedPart() || t->IsRearDualheaded() || !t->IsFreeWagon()) continue;
+
+				if (!veh_filter(t)) continue;
+
+				list->AddItem(v->index.base());
+			}
+		}
+	}
+
+	template <class CompanyPredicate, class DepotPredicate>
+	static void FindVehiclesAndFreeWagons(ScriptVehicleList *list, CompanyPredicate company_pred, DepotPredicate depot_pred)
+	{
+		ScriptVehicleList::FindVehiclesAndFreeWagons(list, company_pred, depot_pred, [](const Vehicle *) { return true; });
+	}
+
+	template <class CompanyPredicate, class DepotPredicate>
+	static void FindVehiclesAndFreeWagons(HSQUIRRELVM vm, ScriptVehicleList *list, CompanyPredicate company_pred, DepotPredicate depot_pred)
+	{
+		int nparam = sq_gettop(vm) - 1;
+		if (nparam >= 1) {
+			/* Make sure the filter function is really a function, and not any
+			 * other type. It's parameter 2 for us, but for the user it's the
+			 * first parameter they give. */
+			SQObjectType valuator_type = sq_gettype(vm, 2);
+			if (valuator_type != OT_CLOSURE && valuator_type != OT_NATIVECLOSURE) {
+				throw sq_throwerror(vm, "parameter 1 has an invalid type (expected function)");
+			}
+
+			/* Push the function to call */
+			sq_push(vm, 2);
+		}
+
+		/* Don't allow docommand from a filter, as we can't resume in
+		 * mid C++-code. */
+		ScriptObject::DisableDoCommandScope disabler{};
+
+		if (nparam < 1) {
+			ScriptVehicleList::FindVehiclesAndFreeWagons(list, company_pred, depot_pred);
+		} else {
+			/* Limit the total number of ops that can be consumed by a filter operation, if a filter function is present */
+			SQOpsLimiter limiter(vm, MAX_VALUATE_OPS, "list filter function");
+
+			ScriptVehicleList::FindVehiclesAndFreeWagons(list, company_pred, depot_pred,
+				[vm, nparam](const Vehicle *v) {
+					/* Push the root table as instance object, this is what squirrel does for meta-functions. */
+					sq_pushroottable(vm);
+					/* Push all arguments for the valuator function. */
+					sq_pushinteger(vm, GetRawIndex(v->index));
+					for (int i = 0; i < nparam - 1; i++) {
+						sq_push(vm, i + 3);
+					}
+
+					/* Call the function. Squirrel pops all parameters and pushes the return value. */
+					if (SQ_FAILED(sq_call(vm, nparam + 1, SQTrue, SQFalse))) {
+						throw static_cast<SQInteger>(SQ_ERROR);
+					}
+
+					SQBool add = SQFalse;
+
+					/* Retrieve the return value */
+					switch (sq_gettype(vm, -1)) {
+						case OT_BOOL:
+							sq_getbool(vm, -1, &add);
+							break;
+
+						default:
+							throw sq_throwerror(vm, "return value of filter is not valid (not bool)");
+					}
+
+					/* Pop the return value. */
+					sq_poptop(vm);
+
+					return add;
+				}
+			);
+
+			/* Pop the filter function */
+			sq_poptop(vm);
+		}
+	}
 };
 
 /**
