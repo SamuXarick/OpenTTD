@@ -70,5 +70,6 @@ typedef std::vector<const Vehicle *> VehicleList;
 bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &identifier);
 void BuildDepotVehicleList(VehicleType type, TileIndex tile, VehicleList *engine_list, VehicleList *wagon_list, bool individual_wagons = false);
 uint GetUnitNumberDigits(VehicleList &vehicles);
+void CountFreeWagon(const Vehicle *v, int delta);
 
 #endif /* VEHICLELIST_H */

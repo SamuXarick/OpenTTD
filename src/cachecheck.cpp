@@ -20,7 +20,8 @@
 #include "subsidy_func.h"
 #include "town.h"
 #include "train.h"
-#include "vehicle_base.h"
+#include "vehicle_func.h"
+#include "depot_base.h"
 
 #include "safeguards.h"
 
@@ -308,4 +309,46 @@ void CheckCaches()
 		}
 	}
 
+	/* Check free_wagons caches. */
+	for (const Company *c : Company::Iterate()) {
+		for (const Depot *d : Depot::Iterate()) {
+			if (!IsTileType(d->xy, MP_RAILWAY)) continue;
+			for (const Vehicle *v : VehiclesOnTile(d->xy)) {
+				if (v->type != VEH_TRAIN || !v->IsInDepot()) continue;
+				const Train *t = Train::From(v);
+				if (t->IsArticulatedPart() || t->IsRearDualheaded() || !t->IsFreeWagon()) continue;
+				if (v->owner == c->index) {
+					if (std::ranges::find(c->free_wagons, v) == std::end(c->free_wagons)) {
+						Debug(desync, 2, "warning: free wagons list mismatch, vehicle_id {} missing in free_wagons of company {}", v->index, c->index);
+					}
+				}
+			}
+			for (const Vehicle *v : c->free_wagons) {
+				if (v == nullptr) {
+					Debug(desync, 2, "warning: vehicle in free wagons list mismatch: free_wagons of company {} has vehicle_id {} which does not exist", c->index, v->index);
+					continue;
+				}
+				for (const Company *c2 : Company::Iterate()) {
+					if (c2->index == c->index) continue;
+					if (std::ranges::find(c2->free_wagons, v) != std::end(c2->free_wagons)) {
+						Debug(desync, 2, "warning: vehicle in free wagons list mismatch: free_wagons of company {} has vehicle_id {}, but vehicle is also in free_wagons of company {}", c->index, v->index, c2->index);
+					}
+				}
+			}
+		}
+	}
+	for (const Company *c : Company::Iterate()) {
+		for (const Vehicle *v : c->free_wagons) {
+			if (v == nullptr) {
+				Debug(desync, 2, "warning: vehicle in company free wagons list mismatch: company {} has vehicle_id {} which does not exist", c->index, v->index);
+				continue;
+			}
+			for (const Company *c2 : Company::Iterate()) {
+				if (c2->index == c->index) continue;
+				if (std::ranges::find(c2->free_wagons, v) != std::end(c2->free_wagons)) {
+					Debug(desync, 2, "warning: vehicle in company free wagons list mismatch: company {} has vehicle_id {}, but vehicle is also in company {}", c->index, v->index, c2->index);
+				}
+			}
+		}
+	}
 }
