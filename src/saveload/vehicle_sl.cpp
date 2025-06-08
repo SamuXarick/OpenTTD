@@ -489,8 +489,10 @@ void AfterLoadVehiclesPhase2(bool part_of_load)
 
 	for (Vehicle *v : Vehicle::Iterate()) {
 		switch (v->type) {
-			case VEH_ROAD:
 			case VEH_TRAIN:
+				if (v->IsEngineCountable() && Train::From(v)->IsFreeWagon()) CountFreeWagon(v, 1);
+			[[fallthrough]];
+			case VEH_ROAD:
 			case VEH_SHIP:
 				v->GetImage(v->direction, EIT_ON_MAP, &v->sprite_cache.sprite_seq);
 				break;
