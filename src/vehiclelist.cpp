@@ -133,3 +133,25 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 
 	return true;
 }
+
+/**
+ * Update free_wagons when adding or removing a free wagon.
+ * @param v Vehicle to count.
+ * @param delta +1 to add, -1 to remove.
+ */
+void CountFreeWagon(const Vehicle *v, int delta)
+{
+	assert(delta == 1 || delta == -1);
+	assert(v->type == VEH_TRAIN);
+	assert(v->IsEngineCountable());
+	assert(Train::From(v)->IsFreeWagon());
+
+	VehicleList &free_wagons = Company::Get(v->owner)->free_wagons;
+
+	auto it = std::ranges::find(free_wagons, v);
+	if (delta == 1) {
+		if (it == std::end(free_wagons)) free_wagons.push_back(v);
+	} else {
+		if (it != std::end(free_wagons)) free_wagons.erase(it);
+	}
+}

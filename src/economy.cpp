@@ -392,7 +392,10 @@ void ChangeOwnershipOfCompanyItems(Owner old_owner, Owner new_owner)
 				if (new_owner == INVALID_OWNER) {
 					if (v->Previous() == nullptr) delete v;
 				} else {
-					if (v->IsEngineCountable()) GroupStatistics::CountEngine(v, -1);
+					if (v->IsEngineCountable()) {
+						GroupStatistics::CountEngine(v, -1);
+						if (v->type == VEH_TRAIN && Train::From(v)->IsFreeWagon()) CountFreeWagon(v, -1);
+					}
 					if (v->IsPrimaryVehicle()) GroupStatistics::CountVehicle(v, -1);
 				}
 			}
@@ -454,6 +457,7 @@ void ChangeOwnershipOfCompanyItems(Owner old_owner, Owner new_owner)
 
 				if (v->IsEngineCountable()) {
 					GroupStatistics::CountEngine(v, 1);
+					if (v->type == VEH_TRAIN && Train::From(v)->IsFreeWagon()) CountFreeWagon(v, 1);
 				}
 				if (v->IsPrimaryVehicle()) {
 					GroupStatistics::CountVehicle(v, 1);
