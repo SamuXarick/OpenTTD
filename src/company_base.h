@@ -143,6 +143,8 @@ struct Company : CompanyProperties, CompanyPool::PoolItem<&_company_pool> {
 
 	Money GetMaxLoan() const;
 
+	VehicleList free_wagons{}; ///< NOSAVE: List of free wagons of this company.
+
 	/**
 	 * Is this company a valid company, controlled by the computer (a NoAI program)?
 	 * @param index Index in the pool.
