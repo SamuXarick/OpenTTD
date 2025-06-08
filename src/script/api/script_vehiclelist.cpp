@@ -14,7 +14,6 @@
 #include "script_waypoint.hpp"
 #include "../../depot_map.h"
 #include "../../vehiclelist_func.h"
-#include "../../train.h"
 
 #include "../../safeguards.h"
 
@@ -25,9 +24,9 @@ ScriptVehicleList::ScriptVehicleList(HSQUIRRELVM vm)
 	bool is_deity = ScriptCompanyMode::IsDeity();
 	::CompanyID owner = ScriptObject::GetCompany();
 
-	ScriptList::FillList<Vehicle>(vm, this,
-		[is_deity, owner](const Vehicle *v) {
-			return (is_deity || v->owner == owner) && (v->IsPrimaryVehicle() || (v->type == VEH_TRAIN && ::Train::From(v)->IsFreeWagon()));
+	FindVehiclesAndFreeWagons(vm, this,
+		[is_deity, owner](const Company *c) {
+			return is_deity || c->index == owner;
 		}
 	);
 }
