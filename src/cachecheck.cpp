@@ -351,4 +351,58 @@ void CheckCaches()
 			}
 		}
 	}
+
+	/* Check order_lists. */
+	for (const OrderList *orderlist : OrderList::Iterate()) {
+		const Vehicle *v = orderlist->GetFirstSharedVehicle();
+		const Company *c = Company::Get(v->owner);
+		const VehicleList &order_lists = c->order_lists[v->type];
+		if (std::ranges::find(order_lists, v) == std::end(order_lists)) {
+			Debug(desync, 2, "warning: vehicle order lists mismatch, vehicle_id {} missing in order_lists of company {} of type {}", v->index, c->index, v->type);
+		}
+		for (const Company *c2 : Company::Iterate()) {
+			for (VehicleType type = VEH_BEGIN; type != VEH_COMPANY_END; type++) {
+				for (const Vehicle *v2 : c2->order_lists[type]) {
+					if (v2 == nullptr) {
+						Debug(desync, 2, "warning: vehicle in order lists list mismatch: order_lists of company {} of type {} has vehicle_id {} which does not exist", c2->index, type, v2->index);
+						continue;
+					}
+					if (c2->index == c->index && type == v->type) continue;
+					if (std::ranges::find(c2->order_lists[type], v) != std::end(c2->order_lists[type])) {
+						Debug(desync, 2, "warning: vehicle in order lists list mismatch: order_lists of company {} of type {} has vehicle_id {}, but vehicle is also in order_lists of company {} of type {}", c2->index, type, v2->index, c->index, v->type);
+					}
+				}
+			}
+		}
+	}
+	for (const Company *c : Company::Iterate()) {
+		for (VehicleType type = VEH_BEGIN; type != VEH_COMPANY_END; type++) {
+			for (const Vehicle *v : c->order_lists[type]) {
+				if (v == nullptr) {
+					Debug(desync, 2, "warning: vehicle in company order lists list mismatch: order_lists of company {} of type {} has vehicle_id {} which does not exist", c->index, type, v->index);
+					continue;
+				}
+				if (v->orders == nullptr) {
+					Debug(desync, 2, "warning: vehicle in company order lists list mismatch: order_lists of company {} of type {} has vehicle_id {} which does not have an OrderList", c->index, type, v->index);
+				} else {
+					const Vehicle *v2 = v->orders->GetFirstSharedVehicle();
+					if (v2 != v) {
+						Debug(desync, 2, "warning: vehicle in company order lists list mismatch: order_lists of company {} of type {} has vehicle_id {} which is not the first shared vehicle_id {} of type {}", c->index, type, v->index, v2->index, v2->type);
+					}
+				}
+				bool found = false;
+				for (const OrderList *orderlist : OrderList::Iterate()) {
+					const Vehicle *v2 = orderlist->GetFirstSharedVehicle();
+					const Company *c2 = Company::Get(v2->owner);
+					if (v2->index == v->index && c2->index == c->index && v2->type == type) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					Debug(desync, 2, "warning: vehicle in company order lists list mismatch: order_lists of company {} of type {} has vehicle_id {}, but vehicle is not found in any OrderList", c->index, type, v->index);
+				}
+			}
+		}
+	}
 }
