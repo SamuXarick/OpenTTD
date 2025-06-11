@@ -20,10 +20,9 @@
  * @param veh_pred VehicleType selection predicate.
  * @param ord_pred Order selection predicate.
  * @param veh_func Called for each vehicle that matches company, vehicle type and order predicates.
- * @param skip_orders Whether to iterate vehicle orders.
  **/
 template <class CompanyPredicate, class VehiclePredicate, class OrderPredicate, class VehicleFunc>
-void FindVehiclesWithOrder(CompanyPredicate company_pred, VehiclePredicate veh_pred, OrderPredicate ord_pred, VehicleFunc veh_func, bool skip_orders = false)
+void FindVehiclesWithOrder(CompanyPredicate company_pred, VehiclePredicate veh_pred, OrderPredicate ord_pred, VehicleFunc veh_func)
 {
 	for (const Company *c : Company::Iterate()) {
 		if (!company_pred(c)) continue;
@@ -31,19 +30,17 @@ void FindVehiclesWithOrder(CompanyPredicate company_pred, VehiclePredicate veh_p
 		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
 			if (!veh_pred(type)) continue;
 
-			for (const Vehicle *v : c->group_all[type].vehicle_list) {
-				if (skip_orders) {
-					veh_func(v);
-					continue;
-				}
+			/* We assume all vehicles in the order lists are the first in a shared chain. */
+			for (const Vehicle *v : c->order_lists[type]) {
 
 				/* Vehicle is a candidate, search for a matching order. */
 				for (const Order &order : v->Orders()) {
-
 					if (!ord_pred(&order)) continue;
 
-					/* An order matches, we can add this vehicle to the list. */
-					veh_func(v);
+					/* An order matches, we can add all shared vehicles to the list. */
+					for (; v != nullptr; v = v->NextShared()) {
+						veh_func(v);
+					}
 					break;
 				}
 			}
@@ -62,18 +59,6 @@ template <class CompanyPredicate, class OrderPredicate, class VehicleFunc>
 void FindVehiclesWithOrder(CompanyPredicate company_pred, OrderPredicate ord_pred, VehicleFunc veh_func)
 {
 	FindVehiclesWithOrder(company_pred, [](VehicleType) { return true; }, ord_pred, veh_func);
-}
-
-/**
- * Find vehicles.
- * This can be used, e.g. to find all vehicles of a company.
- * @param company_pred Company selection predicate.
- * @param veh_func Called for each vehicle that matches company predicate.
- **/
-template <class CompanyPredicate, class VehicleFunc>
-void FindVehicles(CompanyPredicate company_pred, VehicleFunc veh_func)
-{
-	FindVehiclesWithOrder(company_pred, [](VehicleType) { return true; }, [](const Order *) { return true; }, veh_func, true);
 }
 
 #endif /* VEHICLELIST_FUNC_H */
