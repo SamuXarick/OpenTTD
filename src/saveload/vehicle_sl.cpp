@@ -325,7 +325,9 @@ void AfterLoadVehiclesPhase1(bool part_of_load)
 				/* As above, allocating OrderList here is safe. */
 				assert(OrderList::CanAllocateItem());
 				v->orders = new OrderList();
+				v->orders->CountOrderList(v->orders->first_shared, -1);
 				v->orders->first_shared = v;
+				v->orders->CountOrderList(v->orders->first_shared, 1);
 				for (Vehicle *u = v; u != nullptr; u = u->next_shared) {
 					u->orders = v->orders;
 				}
