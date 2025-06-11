@@ -54,18 +54,25 @@ protected:
 	template <class CompanyPredicate, class VehicleFilter>
 	static void FindVehiclesAndFreeWagons(ScriptVehicleList *list, CompanyPredicate company_pred, VehicleFilter veh_filter)
 	{
-		FindVehicles(company_pred,
-			[&list, &veh_filter](const Vehicle *v) { if (veh_filter(v)) list->AddItem(v->index.base()); }
-		);
-
-		/* Find free wagons. */
 		for (const Company *c : Company::Iterate()) {
 			if (!company_pred(c)) continue;
 
-			for (const Vehicle *v : c->free_wagons) {
-				if (!veh_filter(v)) continue;
+			for (VehicleType type = VEH_BEGIN; type != VEH_COMPANY_END; type++) {
+				/* Find free wagons. */
+				if (type == VEH_TRAIN) {
+					for (const Vehicle *v : c->free_wagons) {
+						if (!veh_filter(v)) continue;
 
-				list->AddItem(v->index.base());
+						list->AddItem(v->index.base());
+					}
+				}
+
+				/* Find primary vehicles. */
+				for (const Vehicle *v : c->group_all[type].vehicle_list) {
+					if (!veh_filter(v)) continue;
+
+					list->AddItem(v->index.base());
+				}
 			}
 		}
 	}
