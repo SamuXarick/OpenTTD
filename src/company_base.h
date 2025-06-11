@@ -144,6 +144,7 @@ struct Company : CompanyProperties, CompanyPool::PoolItem<&_company_pool> {
 	Money GetMaxLoan() const;
 
 	VehicleList free_wagons{}; ///< NOSAVE: List of free wagons of this company.
+	std::array<VehicleList, VEH_COMPANY_END> order_lists{}; ///< NOSAVE: firsh shared vehicle of each order list of this company per vehicle type.
 
 	/**
 	 * Is this company a valid company, controlled by the computer (a NoAI program)?

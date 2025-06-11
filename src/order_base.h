@@ -305,7 +305,13 @@ public:
 	}
 
 	/** Destructor. Invalidates OrderList for re-usage by the pool. */
-	~OrderList() {}
+	~OrderList()
+	{
+		if (this->CleaningPool()) return;
+		this->CountOrderList(this->GetFirstSharedVehicle(), -1);
+	}
+
+	void CountOrderList(const Vehicle *v, int delta);
 
 	void Initialize(Vehicle *v);
 
