@@ -39,6 +39,8 @@ void GroupStatistics::Clear()
 
 	/* This is also called when NewGRF change. So the number of engines might have changed. Reset. */
 	this->num_engines.clear();
+
+	this->vehicle_list.clear();
 }
 
 /**
@@ -157,6 +159,16 @@ uint16_t GroupStatistics::GetNumEngines(EngineID engine) const
 		stats_all.profit_last_year_min_age += v->GetDisplayProfitLastYear() * delta;
 		stats.num_vehicle_min_age += delta;
 		stats.profit_last_year_min_age += v->GetDisplayProfitLastYear() * delta;
+	}
+
+	auto it_all = std::ranges::find(stats_all.vehicle_list, v);
+	auto it = std::ranges::find(stats.vehicle_list, v);
+	if (delta == 1) {
+		if (it_all == std::end(stats_all.vehicle_list)) stats_all.vehicle_list.push_back(v);
+		if (it == std::end(stats.vehicle_list)) stats.vehicle_list.push_back(v);
+	} else {
+		if (it_all != std::end(stats_all.vehicle_list)) stats_all.vehicle_list.erase(it_all);
+		if (it != std::end(stats.vehicle_list)) stats.vehicle_list.erase(it);
 	}
 }
 

@@ -77,6 +77,16 @@ public:
 	 */
 	static void Save();
 
+	/**
+	 * Get the current maximum number of opcodes for a GameScript before it's suspended.
+	 */
+	static uint GetMaxOpCodes();
+
+	/**
+	 * Set a maximum number of opcodes for a GameScript before it's suspended.
+	 */
+	static void SetMaxOpCodes(uint max_opcodes);
+
 	/** Wrapper function for GameScanner::GetConsoleList */
 	static void GetConsoleList(std::back_insert_iterator<std::string> &output_iterator, bool newest_only);
 	/** Wrapper function for GameScanner::GetConsoleLibraryList */
@@ -114,6 +124,7 @@ private:
 	static std::unique_ptr<GameScannerInfo> scanner_info; ///< Scanner for Game scripts.
 	static std::unique_ptr<GameScannerLibrary> scanner_library; ///< Scanner for GS Libraries.
 	static GameInfo *info; ///< Current selected GameInfo.
+	static uint max_opcodes; ///< Maximum number of opcodes before the GameScript is suspended
 };
 
 #endif /* GAME_HPP */
