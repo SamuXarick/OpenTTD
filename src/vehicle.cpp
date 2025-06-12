@@ -382,7 +382,7 @@ Vehicle::Vehicle(VehicleType type)
 
 /* Size of the hash, 6 = 64 x 64, 7 = 128 x 128. Larger sizes will (in theory) reduce hash
  * lookup times at the expense of memory usage. */
-constexpr uint TILE_HASH_BITS = 7;
+constexpr uint TILE_HASH_BITS = 11;
 constexpr uint TILE_HASH_SIZE = 1 << TILE_HASH_BITS;
 constexpr uint TILE_HASH_MASK = TILE_HASH_SIZE - 1;
 constexpr uint TOTAL_TILE_HASH_SIZE = 1 << (TILE_HASH_BITS * 2);
@@ -814,6 +814,8 @@ void Vehicle::PreDestructor()
 
 		if (this->owner == _local_company) InvalidateAutoreplaceWindow(this->engine_type, this->group_id);
 		DeleteGroupHighlightOfVehicle(this);
+
+		if (this->type == VEH_TRAIN && Train::From(this)->IsFreeWagon()) CountFreeWagon(this, -1);
 	}
 
 	Company::Get(this->owner)->freeunits[this->type].ReleaseID(this->unitnumber);
