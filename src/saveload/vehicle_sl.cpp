@@ -325,7 +325,9 @@ void AfterLoadVehiclesPhase1(bool part_of_load)
 				/* As above, allocating OrderList here is safe. */
 				assert(OrderList::CanAllocateItem());
 				v->orders = new OrderList();
+				v->orders->CountOrderList(v->orders->first_shared, -1);
 				v->orders->first_shared = v;
+				v->orders->CountOrderList(v->orders->first_shared, 1);
 				for (Vehicle *u = v; u != nullptr; u = u->next_shared) {
 					u->orders = v->orders;
 				}
@@ -486,8 +488,10 @@ void AfterLoadVehiclesPhase2(bool part_of_load)
 
 	for (Vehicle *v : Vehicle::Iterate()) {
 		switch (v->type) {
-			case VEH_ROAD:
 			case VEH_TRAIN:
+				if (v->IsEngineCountable() && Train::From(v)->IsFreeWagon()) CountFreeWagon(v, 1);
+			[[fallthrough]];
+			case VEH_ROAD:
 			case VEH_SHIP:
 				v->GetImage(v->direction, EIT_ON_MAP, &v->sprite_cache.sprite_seq);
 				break;
@@ -544,6 +548,8 @@ void AfterLoadVehiclesPhase2(bool part_of_load)
 		if (v->type != VEH_EFFECT) v->UpdatePosition();
 		v->UpdateViewport(false);
 	}
+
+	GroupStatistics::UpdateAfterLoad();
 }
 
 bool TrainController(Train *v, Vehicle *nomove, bool reverse = true); // From train_cmd.cpp
