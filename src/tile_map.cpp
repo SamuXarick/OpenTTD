@@ -13,38 +13,92 @@
 #include "safeguards.h"
 
 /**
+ * Get bottom height of a tuple of heights of a tile inside the map.
+ * @param heights Tuple of heights to compute height of.
+ * @return Minimum height of the tuple of heights.
+ */
+static int GetTileMinHeight(auto heights)
+{
+	auto [hnorth, hwest, heast, hsouth] = heights;
+
+	return std::min({ hnorth, hwest, heast, hsouth });
+}
+
+/**
+ * Get top height of a tuple of heights of a tile inside the map.
+ * @param heights Tuple of heights to compute height of.
+ * @return Maximum height of the tuple of heights
+ */
+static int GetTileMaxHeight(auto heights)
+{
+	auto [hnorth, hwest, heast, hsouth] = heights;
+
+	return std::max({ hnorth, hwest, heast, hsouth });
+}
+
+/**
  * Get a tile's slope given the height of its four corners.
- * @param hnorth The height at the northern corner in the same unit as TileHeight.
- * @param hwest  The height at the western corner in the same unit as TileHeight.
- * @param heast  The height at the eastern corner in the same unit as TileHeight.
- * @param hsouth The height at the southern corner in the same unit as TileHeight.
+ * @param heights The tuple containing the heights at the northern, western, eastern and southern corners in the same unit as TileHeight.
  * @return The slope and the lowest height of the four corners.
  */
-static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
+static std::tuple<Slope, int> GetTileSlopeGivenHeight(auto heights)
 {
 	/* Due to the fact that tiles must connect with each other without leaving gaps, the
 	 * biggest difference in height between any corner and 'min' is between 0, 1, or 2.
 	 *
 	 * Also, there is at most 1 corner with height difference of 2.
 	 */
-	int hminnw = std::min(hnorth, hwest);
-	int hmines = std::min(heast, hsouth);
-	int hmin = std::min(hminnw, hmines);
-
-	int hmaxnw = std::max(hnorth, hwest);
-	int hmaxes = std::max(heast, hsouth);
-	int hmax = std::max(hmaxnw, hmaxes);
+	int hmin = GetTileMinHeight(heights);
 
 	Slope r = SLOPE_FLAT;
+
+	auto [hnorth, hwest, heast, hsouth] = heights;
 
 	if (hnorth != hmin) r |= SLOPE_N;
 	if (hwest  != hmin) r |= SLOPE_W;
 	if (heast  != hmin) r |= SLOPE_E;
 	if (hsouth != hmin) r |= SLOPE_S;
 
-	if (hmax - hmin == 2) r |= SLOPE_STEEP;
+	if (GetTileMaxHeight(heights) - hmin == 2) r |= SLOPE_STEEP;
 
 	return {r, hmin};
+}
+
+/**
+ * Get the bounding corner coordinates of a tile on the map grid.
+ *
+ * Extracts its top corner (x1, y1) coordinates and calculates the
+ * bottom corner (x2, y2) coordinates by incrementing each axis,
+ * ensuring they do not exceed the map boundaries.
+ *
+ * @param tile The tile for which to compute corner coordinates.
+ * @return A tuple containing (x1, y1, x2, y2), representing the top and bottom corners.
+ */
+static std::tuple<uint, uint, uint, uint> GetTileCornersCoordinates(TileIndex tile)
+{
+	uint x1 = TileX(tile);
+	uint y1 = TileY(tile);
+	uint x2 = std::min(x1 + 1, Map::MaxX());
+	uint y2 = std::min(y1 + 1, Map::MaxY());
+
+	return {x1, y1, x2, y2};
+}
+
+/**
+ * Get the heights of the four corners of a tile.
+ * @param tile Tile to get the heights of.
+ * @return A tuple containing the heights at the northern, western, eastern and southern corners in the same unit as TileHeight.
+ */
+static std::tuple<int, int, int, int> GetTileHeights(TileIndex tile)
+{
+	auto [x1, y1, x2, y2] = GetTileCornersCoordinates(tile);
+
+	int hnorth = TileHeight(tile);           // Height of the North corner.
+	int hwest  = TileHeight(TileXY(x2, y1)); // Height of the West corner.
+	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
+	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
+
+	return {hnorth, hwest, heast, hsouth};
 }
 
 /**
@@ -54,17 +108,7 @@ static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int
  */
 std::tuple<Slope, int> GetTileSlopeZ(TileIndex tile)
 {
-	uint x1 = TileX(tile);
-	uint y1 = TileY(tile);
-	uint x2 = std::min(x1 + 1, Map::MaxX());
-	uint y2 = std::min(y1 + 1, Map::MaxY());
-
-	int hnorth = TileHeight(tile);           // Height of the North corner.
-	int hwest  = TileHeight(TileXY(x2, y1)); // Height of the West corner.
-	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
-	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
-
-	return GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	return GetTileSlopeGivenHeight(GetTileHeights(tile));
 }
 
 /**
@@ -82,7 +126,7 @@ std::tuple<Slope, int> GetTilePixelSlopeOutsideMap(int x, int y)
 	int heast  = TileHeightOutsideMap(x,     y + 1); // E corner.
 	int hsouth = TileHeightOutsideMap(x + 1, y + 1); // S corner.
 
-	auto [slope, h] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	auto [slope, h] = GetTileSlopeGivenHeight(std::make_tuple(hnorth, hwest, heast, hsouth));
 	return {slope, h * TILE_HEIGHT};
 }
 
@@ -94,10 +138,7 @@ std::tuple<Slope, int> GetTilePixelSlopeOutsideMap(int x, int y)
  */
 bool IsTileFlat(TileIndex tile, int *h)
 {
-	uint x1 = TileX(tile);
-	uint y1 = TileY(tile);
-	uint x2 = std::min(x1 + 1, Map::MaxX());
-	uint y2 = std::min(y1 + 1, Map::MaxY());
+	auto [x1, y1, x2, y2] = GetTileCornersCoordinates(tile);
 
 	uint z = TileHeight(tile);
 	if (TileHeight(TileXY(x2, y1)) != z) return false;
@@ -115,17 +156,7 @@ bool IsTileFlat(TileIndex tile, int *h)
  */
 int GetTileZ(TileIndex tile)
 {
-	uint x1 = TileX(tile);
-	uint y1 = TileY(tile);
-	uint x2 = std::min(x1 + 1, Map::MaxX());
-	uint y2 = std::min(y1 + 1, Map::MaxY());
-
-	return std::min({
-		TileHeight(tile),           // N corner
-		TileHeight(TileXY(x2, y1)), // W corner
-		TileHeight(TileXY(x1, y2)), // E corner
-		TileHeight(TileXY(x2, y2)), // S corner
-	});
+	return GetTileMinHeight(GetTileHeights(tile));
 }
 
 /**
@@ -135,15 +166,5 @@ int GetTileZ(TileIndex tile)
  */
 int GetTileMaxZ(TileIndex t)
 {
-	uint x1 = TileX(t);
-	uint y1 = TileY(t);
-	uint x2 = std::min(x1 + 1, Map::MaxX());
-	uint y2 = std::min(y1 + 1, Map::MaxY());
-
-	return std::max({
-		TileHeight(t),              // N corner
-		TileHeight(TileXY(x2, y1)), // W corner
-		TileHeight(TileXY(x1, y2)), // E corner
-		TileHeight(TileXY(x2, y2)), // S corner
-	});
+	return GetTileMaxHeight(GetTileHeights(t));
 }
