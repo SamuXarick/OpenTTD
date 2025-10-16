@@ -17,6 +17,6 @@ ScriptObjectTypeList::ScriptObjectTypeList()
 {
 	for (const auto &spec : ObjectSpec::Specs()) {
 		if (!spec.IsEverAvailable()) continue;
-		this->AddItem(spec.Index());
+		this->AddItemUnchecked(spec.Index());
 	}
 }

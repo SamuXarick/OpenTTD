@@ -65,7 +65,7 @@ ScriptVehicleList_Station::ScriptVehicleList_Station(HSQUIRRELVM vm)
 	FindVehiclesWithOrder(
 		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && (type == VEH_INVALID || v->type == type); },
 		[station_id](const Order *order) { return (order->IsType(OT_GOTO_STATION) || order->IsType(OT_GOTO_WAYPOINT)) && order->GetDestination() == station_id; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+		[this](const Vehicle *v) { this->AddItemUnchecked(v->index.base()); }
 	);
 }
 
@@ -80,7 +80,7 @@ ScriptVehicleList_Waypoint::ScriptVehicleList_Waypoint(StationID waypoint_id)
 	FindVehiclesWithOrder(
 		[is_deity, owner](const Vehicle *v) { return is_deity || v->owner == owner; },
 		[waypoint_id](const Order *order) { return order->IsType(OT_GOTO_WAYPOINT) && order->GetDestination() == waypoint_id; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+		[this](const Vehicle *v) { this->AddItemUnchecked(v->index.base()); }
 	);
 }
 
@@ -127,7 +127,7 @@ ScriptVehicleList_Depot::ScriptVehicleList_Depot(TileIndex tile)
 	FindVehiclesWithOrder(
 		[is_deity, owner, type](const Vehicle *v) { return (is_deity || v->owner == owner) && v->type == type; },
 		[dest](const Order *order) { return order->IsType(OT_GOTO_DEPOT) && order->GetDestination() == dest; },
-		[this](const Vehicle *v) { this->AddItem(v->index.base()); }
+		[this](const Vehicle *v) { this->AddItemUnchecked(v->index.base()); }
 	);
 }
 
@@ -136,7 +136,7 @@ ScriptVehicleList_SharedOrders::ScriptVehicleList_SharedOrders(VehicleID vehicle
 	if (!ScriptVehicle::IsPrimaryVehicle(vehicle_id)) return;
 
 	for (const Vehicle *v = Vehicle::Get(vehicle_id)->FirstShared(); v != nullptr; v = v->NextShared()) {
-		this->AddItem(v->index.base());
+		this->AddItemUnchecked(v->index.base());
 	}
 }
 
