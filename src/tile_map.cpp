@@ -120,12 +120,16 @@ int GetTileZ(TileIndex tile)
 	uint x2 = std::min(x1 + 1, Map::MaxX());
 	uint y2 = std::min(y1 + 1, Map::MaxY());
 
-	return std::min({
-		TileHeight(tile),           // N corner
-		TileHeight(TileXY(x2, y1)), // W corner
-		TileHeight(TileXY(x1, y2)), // E corner
-		TileHeight(TileXY(x2, y2)), // S corner
-	});
+	int hnorth = TileHeight(tile);           // Height of the North corner.
+	int hwest  = TileHeight(TileXY(x2, y1)); // Height of the West corner.
+	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
+	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
+
+	int hminnw = std::min(hnorth, hwest);
+	int hmines = std::min(heast, hsouth);
+	int hmin = std::min(hminnw, hmines);
+
+	return hmin;
 }
 
 /**
@@ -140,10 +144,14 @@ int GetTileMaxZ(TileIndex t)
 	uint x2 = std::min(x1 + 1, Map::MaxX());
 	uint y2 = std::min(y1 + 1, Map::MaxY());
 
-	return std::max({
-		TileHeight(t),              // N corner
-		TileHeight(TileXY(x2, y1)), // W corner
-		TileHeight(TileXY(x1, y2)), // E corner
-		TileHeight(TileXY(x2, y2)), // S corner
-	});
+	int hnorth = TileHeight(t);              // Height of the North corner.
+	int hwest  = TileHeight(TileXY(x2, y1)); // Height of the West corner.
+	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
+	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
+
+	int hmaxnw = std::max(hnorth, hwest);
+	int hmaxes = std::max(heast, hsouth);
+	int hmax = std::max(hmaxnw, hmaxes);
+
+	return hmax;
 }
