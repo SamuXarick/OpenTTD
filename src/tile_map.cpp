@@ -12,6 +12,111 @@
 
 #include "safeguards.h"
 
+static inline constexpr Slope INVALID_SLOPE = static_cast<Slope>(0xFF); ///< Marker for invalid slope.
+
+/**
+ * Slope lookup table, indexed by encoded slope key.
+ * 
+ * dn, dw, de, ds are the height differences of the north, west,
+ * east, and south corners with the minimum height of the four corners,
+ * respectively. Valid height differences are: 0, 1 and 2.
+ *
+ * The table contains 81 entries (3^4), with invalid combinations marked
+ * as INVALID_SLOPE.
+ */
+static constexpr Slope _slope_height_diff_table[3][3][3][3] = {
+	/* dn = 0 */
+	{
+		/* dw = 0 */
+		{
+			/* de = 0 */
+			{ SLOPE_FLAT, SLOPE_S, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ SLOPE_E, SLOPE_SE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 1 */
+		{
+			/* de = 0 */
+			{ SLOPE_W, SLOPE_SW, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ SLOPE_EW, SLOPE_WSE, SLOPE_STEEP_S }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 2 */
+		{
+			/* de = 0 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		}
+	},
+	/* dn = 1 */
+	{
+		/* dw = 0 */
+		{
+			/* de = 0 */
+			{ SLOPE_N, SLOPE_NS, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ SLOPE_NE, SLOPE_SEN, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, SLOPE_STEEP_E, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 1 */
+		{
+			/* de = 0 */
+			{ SLOPE_NW, SLOPE_NWS, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ SLOPE_ENW, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 2 */
+		{
+			/* de = 0 */
+			{ INVALID_SLOPE, SLOPE_STEEP_W, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		}
+	},
+	/* dn = 2 */
+	{
+		/* dw = 0 */
+		{
+			/* de = 0 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 1 */
+		{
+			/* de = 0 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ SLOPE_STEEP_N, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		},
+		/* dw = 2 */
+		{
+			/* de = 0 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 1 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE }, // ds = 0, 1, 2
+			/* de = 2 */
+			{ INVALID_SLOPE, INVALID_SLOPE, INVALID_SLOPE } // ds = 0, 1, 2
+		}
+	}
+};
+
 /**
  * Get a tile's slope given the height of its four corners.
  * @param hnorth The height at the northern corner in the same unit as TileHeight.
@@ -31,18 +136,15 @@ static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int
 	int hmines = std::min(heast, hsouth);
 	int hmin = std::min(hminnw, hmines);
 
-	int hmaxnw = std::max(hnorth, hwest);
-	int hmaxes = std::max(heast, hsouth);
-	int hmax = std::max(hmaxnw, hmaxes);
+	/* Calculate height differences with the minimum height. */
+	int dn = hnorth - hmin;
+	int dw = hwest - hmin;
+	int de = heast - hmin;
+	int ds = hsouth - hmin;
 
-	Slope r = SLOPE_FLAT;
-
-	if (hnorth != hmin) r |= SLOPE_N;
-	if (hwest  != hmin) r |= SLOPE_W;
-	if (heast  != hmin) r |= SLOPE_E;
-	if (hsouth != hmin) r |= SLOPE_S;
-
-	if (hmax - hmin == 2) r |= SLOPE_STEEP;
+	/* Lookup the slope from the table. */
+	Slope r = _slope_height_diff_table[dn][dw][de][ds];
+	assert(r != INVALID_SLOPE); // Should never happen.
 
 	return {r, hmin};
 }
