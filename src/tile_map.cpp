@@ -123,9 +123,10 @@ static constexpr Slope _slope_height_diff_table[3][3][3][3] = {
  * @param hwest  The height at the western corner in the same unit as TileHeight.
  * @param heast  The height at the eastern corner in the same unit as TileHeight.
  * @param hsouth The height at the southern corner in the same unit as TileHeight.
+ * @param[out] hmin Pointer to storage of the lowest height of the four corners.
  * @return The slope and the lowest height of the four corners.
  */
-static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
+static Slope GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth, int *hmin)
 {
 	/* Due to the fact that tiles must connect with each other without leaving gaps, the
 	 * biggest difference in height between any corner and 'min' is between 0, 1, or 2.
@@ -134,19 +135,19 @@ static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int
 	 */
 	int hminnw = std::min(hnorth, hwest);
 	int hmines = std::min(heast, hsouth);
-	int hmin = std::min(hminnw, hmines);
+	*hmin = std::min(hminnw, hmines);
 
 	/* Calculate height differences with the minimum height. */
-	int dn = hnorth - hmin;
-	int dw = hwest - hmin;
-	int de = heast - hmin;
-	int ds = hsouth - hmin;
+	int dn = hnorth - *hmin;
+	int dw = hwest - *hmin;
+	int de = heast - *hmin;
+	int ds = hsouth - *hmin;
 
 	/* Lookup the slope from the table. */
 	Slope r = _slope_height_diff_table[dn][dw][de][ds];
 	assert(r != INVALID_SLOPE); // Should never happen.
 
-	return {r, hmin};
+	return r;
 }
 
 /**
@@ -166,7 +167,9 @@ std::tuple<Slope, int> GetTileSlopeZ(TileIndex tile)
 	int heast  = TileHeight(TileXY(x1, y2)); // Height of the East corner.
 	int hsouth = TileHeight(TileXY(x2, y2)); // Height of the South corner.
 
-	return GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	int h;
+	Slope slope = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth, &h);
+	return {slope, h};
 }
 
 /**
@@ -184,7 +187,8 @@ std::tuple<Slope, int> GetTilePixelSlopeOutsideMap(int x, int y)
 	int heast  = TileHeightOutsideMap(x,     y + 1); // E corner.
 	int hsouth = TileHeightOutsideMap(x + 1, y + 1); // S corner.
 
-	auto [slope, h] = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth);
+	int h;
+	Slope slope = GetTileSlopeGivenHeight(hnorth, hwest, heast, hsouth, &h);
 	return {slope, h * TILE_HEIGHT};
 }
 
