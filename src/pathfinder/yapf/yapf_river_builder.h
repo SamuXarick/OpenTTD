@@ -12,6 +12,6 @@
 
 #include "../../tile_type.h"
 
-void YapfBuildRiver(TileIndex start_tile, TileIndex end_tile, TileIndex spring_tile, bool main_river);
+std::vector<TileIndex> YapfFlowRiver(TileIndex start_tile, int height_begin);
 
 #endif /* YAPF_RIVER_BUILDER_H */

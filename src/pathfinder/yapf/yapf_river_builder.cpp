@@ -9,8 +9,6 @@
 
 #include "../../stdafx.h"
 
-#include "../../water.h"
-#include "../../genworld.h"
 #include "yapf.hpp"
 
 #include "../../safeguards.h"
@@ -47,7 +45,8 @@ public:
 	using Key = Node::Key;
 
 protected:
-	TileIndex end_tile; ///< End tile of the river
+	TileIndex start_tile; ///< Start tile of the river
+	int height_begin; ///< Height of the river start tile
 
 	inline YapfRiverBuilder &Yapf()
 	{
@@ -55,9 +54,10 @@ protected:
 	}
 
 public:
-	YapfRiverBuilder(TileIndex start_tile, TileIndex end_tile)
+	YapfRiverBuilder(TileIndex start_tile, int height_begin)
 	{
-		this->end_tile = end_tile;
+		this->start_tile = start_tile;
+		this->height_begin = height_begin;
 
 		Node &node = Yapf().CreateNewNode();
 		node.Set(nullptr, start_tile, INVALID_TRACKDIR, false);
@@ -66,7 +66,9 @@ public:
 
 	inline bool PfDetectDestination(Node &n) const
 	{
-		return n.GetTile() == this->end_tile;
+		TileIndex end = n.GetTile();
+		int height_end;
+		return IsTileFlat(end, &height_end) && (height_end < this->height_begin || (height_end == this->height_begin && IsWaterTile(end)));
 	}
 
 	inline bool PfCalcCost(Node &n, const RiverBuilderFollower *)
@@ -77,16 +79,44 @@ public:
 
 	inline bool PfCalcEstimate(Node &n)
 	{
-		n.estimate = n.cost + DistanceManhattan(this->end_tile, n.GetTile());
+		n.estimate = n.cost;
 		assert(n.estimate >= n.parent->estimate);
 		return true;
 	}
 
+	/**
+	 * Check whether a river at begin could (logically) flow down to end.
+	 * @param begin The origin of the flow.
+	 * @param end The destination of the flow.
+	 * @return True iff the water can be flowing down.
+	 */
+	inline bool RiverFlowsDown(TileIndex begin, TileIndex end) const
+	{
+		assert(DistanceManhattan(begin, end) == 1);
+
+		auto [slope_end, height_end] = GetTileSlopeZ(end);
+
+		/* Slope either is inclined or flat; rivers don't support other slopes. */
+		if (slope_end != SLOPE_FLAT && !IsInclinedSlope(slope_end)) return false;
+
+		auto [slope_begin, height_begin] = GetTileSlopeZ(begin);
+
+		/* It can't flow uphill. */
+		if (height_end > height_begin) return false;
+
+		/* Slope continues, then it must be lower... */
+		if (slope_end == slope_begin && height_end < height_begin) return true;
+
+		/* ... or either end must be flat. */
+		return slope_end == SLOPE_FLAT || slope_begin == SLOPE_FLAT;
+	}
+
 	inline void PfFollowNode(Node &old_node)
 	{
+		const TileIndex old_tile = old_node.GetTile();
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; ++d) {
-			const TileIndex t = old_node.GetTile() + TileOffsByDiagDir(d);
-			if (IsValidTile(t) && RiverFlowsDown(old_node.GetTile(), t)) {
+			const TileIndex t = old_tile + TileOffsByDiagDir(d);
+			if (IsValidTile(t) && this->RiverFlowsDown(old_tile, t)) {
 				Node &node = Yapf().CreateNewNode();
 				node.Set(&old_node, t, INVALID_TRACKDIR, true);
 				Yapf().AddNewNode(node, RiverBuilderFollower{});
@@ -99,49 +129,29 @@ public:
 		return '~';
 	}
 
-	static void BuildRiver(TileIndex start_tile, TileIndex end_tile, TileIndex spring_tile, bool main_river)
+	static std::vector<TileIndex> FlowRiver(TileIndex start_tile, int height_begin)
 	{
-		YapfRiverBuilder pf(start_tile, end_tile);
-		if (pf.FindPath(nullptr) == false) return; // No path found
+		YapfRiverBuilder pf(start_tile, height_begin);
+		if (!pf.FindPath(nullptr)) return {}; // No path found
 
-		/* First, build the river without worrying about its width. */
+		std::vector<TileIndex> river_tiles;
 		for (Node *node = pf.GetBestNode(); node != nullptr; node = node->parent) {
 			TileIndex tile = node->GetTile();
-			if (!IsWaterTile(tile)) {
-				MakeRiverAndModifyDesertZoneAround(tile);
-			}
+			river_tiles.push_back(tile);
 		}
 
-		/* If the river is a main river, go back along the path to widen it.
-		 * Don't make wide rivers if we're using the original landscape generator.
-		 */
-		if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
-			const uint long_river_length = _settings_game.game_creation.min_river_length * 4;
-
-			for (Node *node = pf.GetBestNode(); node != nullptr; node = node->parent) {
-				const TileIndex center_tile = node->GetTile();
-
-				/* Check if we should widen river depending on how far we are away from the source. */
-				uint current_river_length = DistanceManhattan(spring_tile, center_tile);
-				uint diameter = std::min(3u, (current_river_length / (long_river_length / 3u)) + 1u);
-				if (diameter <= 1) continue;
-
-				for (auto tile : SpiralTileSequence(center_tile, diameter)) {
-					RiverMakeWider(tile, center_tile);
-				}
-			}
-		}
+		std::ranges::reverse(river_tiles);
+		return river_tiles;
 	}
 };
 
 /**
- * Builds a river from the start tile to the end tile.
+ * Generates a river path, flowing from the start tile.
  * @param start_tile Start tile of the river.
- * @param end_tile End tile of the river.
- * @param spring_tile spring_tile Tile in which the spring of the river is located.
- * @param main_river Whether it is a main river. Main rivers can get wider than one tile.
+ * @param height_begin Height of the river start tile.
+ * @return Vector of tiles representing the river path. Empty if no path could be found.
  */
-void YapfBuildRiver(TileIndex start_tile, TileIndex end_tile, TileIndex spring_tile, bool main_river)
+std::vector<TileIndex> YapfFlowRiver(TileIndex start_tile, int height_begin)
 {
-	YapfRiverBuilder::BuildRiver(start_tile, end_tile, spring_tile, main_river);
+	return YapfRiverBuilder::FlowRiver(start_tile, height_begin);
 }

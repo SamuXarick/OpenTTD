@@ -1068,7 +1068,7 @@ static void MakeLake(TileIndex tile, uint height_lake)
  * @param tile The tile to try expanding the river into.
  * @param origin_tile The tile to try surrounding the river around.
  */
-void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
+static void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 {
 	/* Don't expand into void tiles. */
 	if (!IsValidTile(tile)) return;
@@ -1206,30 +1206,99 @@ void RiverMakeWider(TileIndex tile, TileIndex origin_tile)
 }
 
 /**
- * Check whether a river at begin could (logically) flow down to end.
- * @param begin The origin of the flow.
- * @param end The destination of the flow.
- * @return True iff the water can be flowing down.
+ * Build the river on the given tiles, widening it if necessary.
+ * @param river_tiles The tiles to build the river on.
+ * @param spring_tile The tile where the river springs from.
+ * @param main_river Whether this is a main river.
+ * @param min_river_length The minimum length for the river.
  */
-bool RiverFlowsDown(TileIndex begin, TileIndex end)
+static void BuildRiver(std::vector<TileIndex> river_tiles, TileIndex spring_tile, bool main_river, uint min_river_length)
 {
-	assert(DistanceManhattan(begin, end) == 1);
+	/* First, build the river without worrying about its width. */
+	for (TileIndex tile : river_tiles) {
+		if (IsWaterTile(tile)) continue;
+		MakeRiverAndModifyDesertZoneAround(tile);
+	}
 
-	auto [slope_end, height_end] = GetTileSlopeZ(end);
+	/* If the river is a long river, go back along the path to widen it.
+	 * Don't make wide rivers if we're using the original landscape generator.
+	 */
+	if (_settings_game.game_creation.land_generator != LG_ORIGINAL && main_river) {
+		for (TileIndex centre_tile : river_tiles) {
+			/* Check if we should widen river depending on how far we are away from the source. */
+			uint current_river_length = DistanceManhattan(spring_tile, centre_tile);
+			uint diameter = std::min(3u, (current_river_length / (min_river_length / 3u)) + 1u);
+			if (diameter <= 1) continue;
 
-	/* Slope either is inclined or flat; rivers don't support other slopes. */
-	if (slope_end != SLOPE_FLAT && !IsInclinedSlope(slope_end)) return false;
+			for (auto tile : SpiralTileSequence(centre_tile, diameter)) {
+				RiverMakeWider(tile, centre_tile);
+			}
+		}
+	}
+}
 
-	auto [slope_begin, height_begin] = GetTileSlopeZ(begin);
+/**
+ * Try to build a lake near this valley.
+ * @param begin The tile where the valley starts.
+ * @param height_begin The height of the river at begin.
+ * @param spring The springing point of the river.
+ * @param min_river_length The minimum length for the river.
+ * @return True iff a lake could/has been built, otherwise false.
+ */
+static bool TryBuildLake(TileIndex begin, int height_begin, TileIndex spring, uint min_river_length)
+{
+	std::unordered_set<TileIndex> marks;
+	marks.insert(begin);
 
-	/* It can't flow uphill. */
-	if (height_end > height_begin) return false;
+	std::vector<TileIndex> queue;
+	queue.push_back(begin);
 
-	/* Slope continues, then it must be lower... */
-	if (slope_end == slope_begin && height_end < height_begin) return true;
+	/* Collect all flat tiles spanning accross this valley using breadth first search. */
+	for (size_t i = 0; i != queue.size(); i++) {
+		TileIndex end = queue[i];
 
-	/* ... or either end must be flat. */
-	return slope_end == SLOPE_FLAT || slope_begin == SLOPE_FLAT;
+		if (IsWaterTile(end)) break;
+
+		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
+			TileIndex t = end + TileOffsByDiagDir(d);
+			if (IsValidTile(t) && !marks.contains(t) && IsTileFlat(t)) {
+				marks.insert(t);
+				queue.push_back(t);
+			}
+		}
+	}
+
+	if (queue.size() > 32) {
+		/* Maybe we can make a lake. Find the Nth of the considered tiles. */
+		TileIndex lake_centre = queue[RandomRange(static_cast<uint32_t>(queue.size()))];
+		int height_lake;
+
+		if (IsValidTile(lake_centre) &&
+				/* We don't want the lake at the entry of the valley. */
+				lake_centre != begin &&
+				/* We don't want lakes in the desert. */
+				(_settings_game.game_creation.landscape != LandscapeType::Tropic || GetTropicZone(lake_centre) != TROPICZONE_DESERT) &&
+				/* A river, or lake, can only be built on flat slopes. */
+				IsTileFlat(lake_centre, &height_lake) &&
+				/* We want the lake to be built at the height of the river. */
+				height_lake == height_begin &&
+				/* We only want a lake if the river is long enough. */
+				DistanceManhattan(spring, lake_centre) > min_river_length) {
+			MakeRiverAndModifyDesertZoneAround(lake_centre);
+			uint diameter = RandomRange(8) + 3;
+
+			/* Run the loop twice, so artefacts from going circular in one direction get (mostly) hidden. */
+			for (uint loops = 0; loops < 2; ++loops) {
+				for (auto tile : SpiralTileSequence(lake_centre, diameter)) {
+					MakeLake(tile, height_lake);
+				}
+			}
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
@@ -1247,72 +1316,25 @@ static std::tuple<bool, bool> FlowRiver(TileIndex spring, TileIndex begin, uint 
 
 	int height_begin = TileHeight(begin);
 
-	std::unordered_set<TileIndex> marks;
-	marks.insert(begin);
-
-	std::vector<TileIndex> queue;
-	queue.push_back(begin);
-
-	/* Breadth first search for the closest tile we can flow down to.
-	 * We keep the queue to find the Nth tile for lake guessing. The tiles
-	 * in the queue are neatly ordered by insertion.
-	 */
-	bool found = false;
-	TileIndex end;
-	for (size_t i = 0; i != queue.size(); i++) {
-		end = queue[i];
-
-		int height_end;
-		if (IsTileFlat(end, &height_end) && (height_end < height_begin || (height_end == height_begin && IsWaterTile(end)))) {
-			found = true;
-			break;
-		}
-
-		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
-			TileIndex t = end + TileOffsByDiagDir(d);
-			if (IsValidTile(t) && !marks.contains(t) && RiverFlowsDown(end, t)) {
-				marks.insert(t);
-				queue.push_back(t);
-			}
-		}
-	}
+	/* Find a path for the river. */
+	std::vector<TileIndex> river_tiles = YapfFlowRiver(begin, height_begin);
+	bool found = !river_tiles.empty();
 
 	bool main_river = false;
 	if (found) {
 		/* Flow further down hill. */
-		std::tie(found, main_river) = FlowRiver(spring, end, min_river_length);
-	} else if (queue.size() > 32) {
-		/* Maybe we can make a lake. Find the Nth of the considered tiles. */
-		TileIndex lake_centre = queue[RandomRange(static_cast<uint32_t>(queue.size()))];
-		int height_lake;
-
-		if (IsValidTile(lake_centre) &&
-				/* We don't want the lake at the entry of the valley. */
-				lake_centre != begin &&
-				/* We don't want lakes in the desert. */
-				(_settings_game.game_creation.landscape != LandscapeType::Tropic || GetTropicZone(lake_centre) != TROPICZONE_DESERT) &&
-				/* A river, or lake, can only be built on flat slopes. */
-				IsTileFlat(lake_centre, &height_lake) &&
-				/* We want the lake to be built at the height of the river. */
-				height_lake == height_begin &&
-				/* We only want a lake if the river is long enough. */
-				DistanceManhattan(spring, lake_centre) > min_river_length) {
-			end = lake_centre;
-			MakeRiverAndModifyDesertZoneAround(lake_centre);
-			uint diameter = RandomRange(8) + 3;
-
-			/* Run the loop twice, so artefacts from going circular in one direction get (mostly) hidden. */
-			for (uint loops = 0; loops < 2; ++loops) {
-				for (auto tile : SpiralTileSequence(lake_centre, diameter)) {
-					MakeLake(tile, height_lake);
-				}
-			}
-
-			found = true;
+		std::tie(found, main_river) = FlowRiver(spring, river_tiles.back(), min_river_length);
+	} else {
+		/* Try to make a lake and flow from there. */
+		found = TryBuildLake(begin, height_begin, spring, min_river_length);
+		if (found) {
+			river_tiles = YapfFlowRiver(begin, height_begin);
+			found = !river_tiles.empty();
 		}
 	}
 
-	if (found) YapfBuildRiver(begin, end, spring, main_river);
+	if (found) BuildRiver(river_tiles, spring, main_river, min_river_length);
+
 	return { found, main_river };
 }
 
