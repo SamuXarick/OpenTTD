@@ -27,7 +27,7 @@
 /** Set of tiles. */
 typedef std::set<TileIndex> TileIndexSet;
 /** Mapping of tiles to their height. */
-typedef std::map<TileIndex, int> TileIndexToHeightMap;
+typedef std::unordered_map<TileIndex, int> TileIndexToHeightMap;
 
 /** State of the terraforming. */
 struct TerraformerState {
