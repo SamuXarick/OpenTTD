@@ -20,7 +20,7 @@
  * @param hsouth The height at the southern corner in the same unit as TileHeight.
  * @return The slope and the lowest height of the four corners.
  */
-static std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
+std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth)
 {
 	/* Due to the fact that tiles must connect with each other without leaving gaps, the
 	 * biggest difference in height between any corner and 'min' is between 0, 1, or 2.

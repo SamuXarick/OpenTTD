@@ -265,6 +265,8 @@ inline void SetAnimationFrame(Tile t, uint8_t frame)
 	t.m7() = frame;
 }
 
+std::tuple<Slope, int> GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth);
+
 std::tuple<Slope, int> GetTileSlopeZ(TileIndex tile);
 int GetTileZ(TileIndex tile);
 int GetTileMaxZ(TileIndex tile);

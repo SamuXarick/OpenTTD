@@ -217,16 +217,11 @@ std::tuple<CommandCost, Money, TileIndex> CmdTerraformLand(DoCommandFlags flags,
 			int z_S = TerraformGetHeightOfTile(&ts, t + TileDiffXY(1, 1));
 			int z_E = TerraformGetHeightOfTile(&ts, t + TileDiffXY(0, 1));
 
-			/* Find min and max height of tile */
-			int z_min = std::min({z_N, z_W, z_S, z_E});
+			/* Find max height of tile */
 			int z_max = std::max({z_N, z_W, z_S, z_E});
 
-			/* Compute tile slope */
-			Slope tileh = (z_max > z_min + 1 ? SLOPE_STEEP : SLOPE_FLAT);
-			if (z_W > z_min) tileh |= SLOPE_W;
-			if (z_S > z_min) tileh |= SLOPE_S;
-			if (z_E > z_min) tileh |= SLOPE_E;
-			if (z_N > z_min) tileh |= SLOPE_N;
+			/* Compute tile slope and find min height of the tile */
+			auto [tileh, z_min] = GetTileSlopeGivenHeight(z_N, z_W, z_E, z_S);
 
 			if (pass == 0) {
 				/* Check if bridge would take damage */
