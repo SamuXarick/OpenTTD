@@ -36,9 +36,38 @@ inline bool IsTunnelTile(Tile t)
 	return IsTileType(t, MP_TUNNELBRIDGE) && IsTunnel(t);
 }
 
+/**
+ * Checks if a tunnel is set below the ground of this tile
+ * @param t The tile to analyze
+ * @return true if a tunnel is detected below
+ */
+inline bool IsAnyTunnelBelow(Tile t)
+{
+	return HasBit(t.m8(), 14);
+}
+
+/**
+ * Remove the tunnel under this tile.
+ * @param t the tile to remove the tunnel from
+ */
+inline void ClearTunnelMiddle(Tile t)
+{
+	ClrBit(t.m8(), 14);
+}
+
+/**
+ * Set that there is a tunnel under this tile.
+ * @param t the tile to add the tunnel to
+ */
+inline void SetTunnelMiddle(Tile t)
+{
+	SetBit(t.m8(), 14);
+}
+
 TileIndex GetOtherTunnelEnd(TileIndex);
 bool IsTunnelInWay(TileIndex, int z);
 bool IsTunnelInWayDir(TileIndex tile, int z, DiagDirection dir);
+void UpdateTunnelBelowMarkers(TileIndex start, TileIndex end, DiagDirection dir);
 
 /**
  * Makes a road tunnel entrance
@@ -57,7 +86,7 @@ inline void MakeRoadTunnel(Tile t, Owner o, DiagDirection d, RoadType road_rt, R
 	t.m5() = TRANSPORT_ROAD << 2 | d;
 	SB(t.m6(), 2, 4, 0);
 	t.m7() = 0;
-	t.m8() = 0;
+	t.m8() = GB(t.m8(), 14, 1) << 14;
 	SetRoadOwner(t, RTT_ROAD, o);
 	if (o != OWNER_TOWN) SetRoadOwner(t, RTT_TRAM, o);
 	SetRoadTypes(t, road_rt, tram_rt);
@@ -80,7 +109,7 @@ inline void MakeRailTunnel(Tile t, Owner o, DiagDirection d, RailType r)
 	t.m5() = TRANSPORT_RAIL << 2 | d;
 	SB(t.m6(), 2, 4, 0);
 	t.m7() = 0;
-	t.m8() = 0;
+	t.m8() = GB(t.m8(), 14, 1) << 14;
 	SetRailType(t, r);
 }
 

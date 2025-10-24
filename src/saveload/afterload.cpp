@@ -3383,6 +3383,20 @@ bool AfterLoadGame()
 		}
 	}
 
+	if (IsSavegameVersionBefore(SLV_TUNNEL_BELOW_MAP_ARRAY)) {
+		for (TileIndex tile : Map::Iterate()) {
+			if (IsTunnelTile(tile)) {
+				DiagDirection dir = GetTunnelBridgeDirection(tile);
+				if (dir == DIAGDIR_NE || dir == DIAGDIR_NW) continue;
+				TileIndex end = GetOtherTunnelEnd(tile);
+				TileIndexDiff delta = TileOffsByDiagDir(dir);
+				for (TileIndex t = tile + delta; t != end; t += delta) {
+					SetTunnelMiddle(t);
+				}
+			}
+		}
+	}
+
 	for (Company *c : Company::Iterate()) {
 		UpdateCompanyLiveries(c);
 	}
