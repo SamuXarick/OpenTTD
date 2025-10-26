@@ -126,7 +126,7 @@ static constexpr Slope _slope_height_diff_table[3][3][3][3] = {
  * @param[out] hmin Pointer to storage of the lowest height of the four corners.
  * @return The slope and the lowest height of the four corners.
  */
-static Slope GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth, int *hmin)
+Slope GetTileSlopeGivenHeight(int hnorth, int hwest, int heast, int hsouth, int *hmin)
 {
 	/* Due to the fact that tiles must connect with each other without leaving gaps, the
 	 * biggest difference in height between any corner and 'min' is between 0, 1, or 2.
