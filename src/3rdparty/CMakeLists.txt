@@ -1,5 +1,4 @@
 add_subdirectory(catch2)
-add_subdirectory(cpp-btree)
 add_subdirectory(fmt)
 add_subdirectory(icu)
 add_subdirectory(md5)

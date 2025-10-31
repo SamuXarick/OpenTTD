@@ -13,8 +13,6 @@
 
 #include "script_object.hpp"
 #include "script_controller.hpp"
-#include "../../3rdparty/cpp-btree/safe_btree_set.h"
-#include "../../3rdparty/cpp-btree/safe_btree_map.h"
 
 /** Maximum number of operations allowed for valuating a list. */
 static const int MAX_VALUATE_OPS = 1000000;
@@ -38,12 +36,8 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
-	/**
-	 * The safe btree variants ars used because these automatically manage refreshing iterators
-	 * which have been invalidated by adding/removing items.
-	 */
-	using ScriptListSet = btree::safe_btree_set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-	using ScriptListMap = btree::safe_btree_map<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
+	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
+	using ScriptListMap = std::map<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
 
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
@@ -57,8 +51,8 @@ private:
 	void InitValues();
 	void InitSorter();
 	void SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value);
-	ScriptListMap::iterator RemoveMapIter(ScriptListMap::iterator item_iter);
-	ScriptListSet::iterator RemoveSetIter(ScriptListSet::iterator value_iter);
+	void RemoveMapIter(ScriptListMap::iterator item_iter);
+	void RemoveSetIter(ScriptListSet::iterator value_iter);
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
