@@ -58,12 +58,7 @@ public:
 	virtual void Remove(SQInteger item) = 0;
 
 	/**
-	 * Callback from the list after an item gets removed.
-	 */
-	virtual void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator value_post_erase) = 0;
-
-	/**
-	 * Safe btree iterators hold a pointer to the parent container's tree, so update those
+	 * Iterators hold a pointer to the parent container's tree, so update those
 	 */
 	virtual void RetargetIterator() = 0;
 
@@ -147,22 +142,9 @@ public:
 		if (item == this->item_next) this->FindNext();
 	}
 
-	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator value_post_erase) override
-	{
-		if (this->IsEnd()) return;
-
-		/*
-		 * This is to the optimise the case where the current item is removed, and the resulting iterator points to the expected next item.
-		 * NB: A positive generation means that the iterator was not the end iterator, and therefore that item_next has a valid value.
-		 */
-		if (value_post_erase != this->list->values.end() && this->value_iter.generation() > 0 && value_post_erase->second == this->item_next) {
-			this->value_iter = value_post_erase;
-		}
-	}
-
 	void RetargetIterator() override
 	{
-		this->value_iter = (this->value_iter.generation() > 0) ? this->list->values.lower_bound(this->value_iter.key()) : this->list->values.end();
+		this->value_iter = this->list->values.end();
 	}
 };
 
@@ -242,14 +224,9 @@ public:
 		if (item == this->item_next) this->FindNext();
 	}
 
-	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator) override
-	{
-		/* not implemented */
-	}
-
 	void RetargetIterator() override
 	{
-		this->value_iter = (this->value_iter.generation() > 0) ? this->list->values.lower_bound(this->value_iter.key()) : this->list->values.end();
+		this->value_iter = this->list->values.end();
 	}
 };
 
@@ -319,22 +296,9 @@ public:
 		if (item == this->item_next) this->FindNext();
 	}
 
-	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator) override
-	{
-		if (this->IsEnd()) return;
-
-		/*
-		 * This is to the optimise the case where the current item is removed, and the resulting iterator points to the expected next item.
-		 * NB: A positive generation means that the iterator was not the end iterator, and therefore that item_next has a valid value.
-		 */
-		if (post_erase != this->list->items.end() && this->item_iter.generation() > 0 && post_erase->first == this->item_next) {
-			this->item_iter = post_erase;
-		}
-	}
-
 	void RetargetIterator() override
 	{
-		this->item_iter = (this->item_iter.generation() > 0) ? this->list->items.lower_bound(this->item_iter.key()) : this->list->items.end();
+		this->item_iter = this->list->items.end();
 	}
 };
 
@@ -413,14 +377,9 @@ public:
 		if (item == this->item_next) this->FindNext();
 	}
 
-	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator) override
-	{
-		/* not implemented */
-	}
-
 	void RetargetIterator() override
 	{
-		this->item_iter = (this->item_iter.generation() > 0) ? this->list->items.lower_bound(this->item_iter.key()) : this->list->items.end();
+		this->item_iter = this->list->items.end();
 	}
 };
 
@@ -557,38 +516,29 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 	if (this->values_inited) this->values.insert(std::make_pair(value, item));
 }
 
-ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
+void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 {
 	SQInteger item = item_iter->first;
 	SQInteger value = item_iter->second;
 
 	if (this->initialized) this->sorter->Remove(item);
 
-	auto new_item_iter = this->items.erase(item_iter);
 	if (this->values_inited) {
 		auto value_iter = this->values.find(std::make_pair(value, item));
-
-		auto new_value_iter = this->values.erase(value_iter);
-		if (this->initialized) this->sorter->PostErase(new_item_iter, new_value_iter);
-	} else {
-		if (this->initialized) this->sorter->PostErase(new_item_iter, {});
+		this->values.erase(value_iter);
 	}
 
-	return new_item_iter;
+	this->items.erase(item_iter);
 }
 
-ScriptList::ScriptListValueSet::iterator ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
+void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 {
 	SQInteger item = value_iter->second;
 
 	if (this->initialized) this->sorter->Remove(item);
 
-	auto new_item_iter = this->items.erase(this->items.find(item));
-	auto new_value_iter = this->values.erase(value_iter);
-
-	if (this->initialized) this->sorter->PostErase(new_item_iter, new_value_iter);
-
-	return new_value_iter;
+	this->items.erase(this->items.find(item));
+	this->values.erase(value_iter);
 }
 
 void ScriptList::RemoveItem(SQInteger item)
