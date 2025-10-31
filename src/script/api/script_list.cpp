@@ -68,7 +68,7 @@ public:
 	virtual void ValueChange(SQInteger item) = 0;
 
 	/**
-	 * Safe btree iterators hold a pointer to the parent container's tree, so update those
+	 * Iterators hold a pointer to the parent container's tree, so update those
 	 */
 	virtual void RetargetIterator() = 0;
 
@@ -159,11 +159,7 @@ public:
 	{
 		if (this->IsEnd()) return;
 
-		/*
-		 * This is to the optimise the case where the current item is removed, and the resulting iterator points to the expected next item.
-		 * NB: A positive generation means that the iterator was not the end iterator, and therefore that item_next has a valid value.
-		 */
-		if (value_post_erase != this->list->values.end() && this->value_iter.generation() > 0 && value_post_erase->second == this->item_next) {
+		if (value_post_erase != this->list->values.end() && value_post_erase->second == this->item_next) {
 			this->value_iter = value_post_erase;
 		}
 	}
@@ -175,7 +171,7 @@ public:
 
 	void RetargetIterator() override
 	{
-		this->value_iter = (this->value_iter.generation() > 0) ? this->list->values.lower_bound(this->value_iter.key()) : this->list->values.end();
+		this->value_iter = this->list->values.end();
 	}
 };
 
@@ -270,7 +266,7 @@ public:
 
 	void RetargetIterator() override
 	{
-		this->value_iter = (this->value_iter.generation() > 0) ? this->list->values.lower_bound(this->value_iter.key()) : this->list->values.end();
+		this->value_iter = this->list->values.end();
 	}
 };
 
@@ -347,11 +343,7 @@ public:
 	{
 		if (this->IsEnd()) return;
 
-		/*
-		 * This is to the optimise the case where the current item is removed, and the resulting iterator points to the expected next item.
-		 * NB: A positive generation means that the iterator was not the end iterator, and therefore that item_next has a valid value.
-		 */
-		if (post_erase != this->list->items.end() && this->item_iter.generation() > 0 && post_erase->first == this->item_next) {
+		if (post_erase != this->list->items.end() && post_erase->first == this->item_next) {
 			this->item_iter = post_erase;
 		}
 	}
@@ -363,7 +355,7 @@ public:
 
 	void RetargetIterator() override
 	{
-		this->item_iter = (this->item_iter.generation() > 0) ? this->list->items.lower_bound(this->item_iter.key()) : this->list->items.end();
+		this->item_iter = this->list->items.end();
 	}
 };
 
@@ -457,7 +449,7 @@ public:
 
 	void RetargetIterator() override
 	{
-		this->item_iter = (this->item_iter.generation() > 0) ? this->list->items.lower_bound(this->item_iter.key()) : this->list->items.end();
+		this->item_iter = this->list->items.end();
 	}
 };
 
