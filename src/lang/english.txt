@@ -1861,6 +1861,9 @@ STR_CONFIG_SETTING_AI_BUILDS_SHIPS_HELPTEXT                     :Enabling this s
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER                            :Allow AIs in multiplayer: {STRING2}
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Allow AI computer players to participate in multiplayer games
 
+STR_CONFIG_SETTING_SCRIPT_SLOW_VALUATE                          :Scripts use slow valuators: {STRING2}
+STR_CONFIG_SETTING_SCRIPT_SLOW_VALUATE_HELPTEXT                 :Prevents scripts from crashing due to excessive CPU usage in valuator and filter functions
+
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :#opcodes before scripts are suspended: {STRING2}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximum number of computation steps that a script can take in one turn
 STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY                            :Max memory usage per script: {STRING2}
