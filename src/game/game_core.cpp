@@ -47,11 +47,11 @@
 	cur_company.Change(OWNER_DEITY);
 	Game::instance->GameLoop();
 	cur_company.Restore();
-
-	/* Occasionally collect garbage */
-	if ((Game::frame_counter & 255) == 0) {
-		Game::instance->CollectGarbage();
-	}
+//
+//	/* Occasionally collect garbage */
+//	if ((Game::frame_counter & 255) == 0) {
+//		Game::instance->CollectGarbage();
+//	}
 }
 
 /* static */ void Game::Initialize()
