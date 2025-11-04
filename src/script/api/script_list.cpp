@@ -126,6 +126,7 @@ public:
 			++this->bucket_iter;
 			if (this->bucket_iter == this->list->buckets.end()) {
 				this->bucket_list = nullptr;
+				this->item_next = 0;
 				return;
 			}
 			this->bucket_list = &this->bucket_iter->second;
@@ -218,6 +219,7 @@ public:
 		if (this->bucket_list_iter == this->bucket_list->begin()) {
 			if (this->bucket_iter == this->list->buckets.begin()) {
 				this->bucket_list = nullptr;
+				this->item_next = 0;
 				return;
 			}
 			--this->bucket_iter;
@@ -296,7 +298,11 @@ public:
 			return;
 		}
 		++this->item_iter;
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
+		if (this->item_iter != this->list->items.end()) {
+			this->item_next = this->item_iter->first;
+			return;
+		}
+		this->item_next = 0;
 	}
 
 	SQInteger Next() override
@@ -375,7 +381,11 @@ public:
 		} else {
 			--this->item_iter;
 		}
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
+		if (this->item_iter != this->list->items.end()) {
+			this->item_next = this->item_iter->first;
+			return;
+		}
+		this->item_next = 0;
 	}
 
 	SQInteger Next() override
