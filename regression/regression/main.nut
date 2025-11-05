@@ -897,6 +897,176 @@ function Regression::List()
 		print("    " + idx + " => " + val);
 	}
 
+	list.RemoveItem(0);
+	local list4 = clone list;
+
+	foreach (sorter_type in [ AIList.SORT_BY_VALUE, AIList.SORT_BY_ITEM ]) {
+		foreach (sorter_direction in [ AIList.SORT_DESCENDING, AIList.SORT_ASCENDING ]) {
+			local type = sorter_type == AIList.SORT_BY_VALUE ? "Value" : "Item";
+			local direction = sorter_direction == AIList.SORT_DESCENDING ? "Descending" : "Ascending";
+			local sorter = "  (" + type + " " + direction + ")";
+			list = clone list4;
+			list.Sort(sorter_type, sorter_direction);
+			print("");
+
+			print("  ListDump:" + sorter);
+			foreach (idx, val in list) {
+				print("    " + idx + " => " + val);
+			}
+			it = list.Begin();
+			print("    Begin(): " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Next():  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Next():  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Next():  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Next():  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			print("  foreach (idx, val in list) {print}:" + sorter);
+			foreach (idx, val in list) {
+				print("    " + idx + " => " + val + "  (" + list.IsEnd() + ")");
+			}
+			print("    Post loop:  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			print("  for (Begin / !IsEnd / Next) {print}:" + sorter);
+			for (it = list.Begin(); !list.IsEnd(); it = list.Next()) {
+				print("    " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			}
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			print("  Begin / while (!IsEnd) {print / Next}:" + sorter);
+			it = list.Begin();
+			while (!list.IsEnd()) {
+				print("    " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+				it = list.Next();
+			}
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			print("  Begin / do {{print / Next} while (!IsEnd)}:" + sorter);
+			it = list.Begin();
+			do {
+				print("    " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+				it = list.Next();
+			} while (!list.IsEnd());
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			print("  GetValue / SetValue:" + sorter);
+			for (it = list.Begin(); !list.IsEnd(); it = list.Next()) {
+				local old_val = list.GetValue(it);
+				local old_isend = list.IsEnd();
+				local res = list.SetValue(it, old_val);
+				local val = list.GetValue(it);
+				local isend = list.IsEnd();
+				local new_val_to_set = old_val * 1111;
+				local new_res = list.SetValue(it, new_val_to_set);
+				local new_val = list.GetValue(it);
+				local new_isend = list.IsEnd();
+				print("    " + it + " => " + old_val + "  (" + old_isend + ")");
+				print("      => SetValue(" + it + ", " + old_val + ") ? " + res + " => " + val + "  (" + isend + ")");
+				print("      => SetValue(" + it + ", " + new_val_to_set + ") ? " + new_res + " => " + new_val + "  (" + new_isend + ")");
+			}
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			list.Clear();
+			list.AddList(list4);
+			print("  GetValue / AddItem:" + sorter);
+			for (it = list.Begin(); !list.IsEnd(); it = list.Next()) {
+				local old_val = list.GetValue(it);
+				local old_isend = list.IsEnd();
+				list.AddItem(it, old_val);
+				local val = list.GetValue(it);
+				local isend = list.IsEnd();
+				local new_val_to_set = old_val * 1111;
+				list.AddItem(it, new_val_to_set);
+				local new_val = list.GetValue(it);
+				local new_isend = list.IsEnd();
+				print("    " + it + " => " + old_val + "  (" + old_isend + ")");
+				print("      => AddItem(" + it + ", " + old_val + ") => " + val + "  (" + isend + ")");
+				print("      => AddItem(" + it + ", " + new_val_to_set + ") => " + new_val + "  (" + new_isend + ")");
+			}
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+
+			list.Clear();
+			list.AddList(list4);
+			print("  RemoveItem / HasItem / AddItem:" + sorter);
+			for (it = list.Begin(); !list.IsEnd(); it = list.Next()) {
+				local val = list.GetValue(it);
+				print("    " + it + " => " + val + " / " + list.HasItem(it) + "  (" + list.IsEnd() + ")");
+				list.RemoveItem(it);
+				print("      => RemoveItem(" + it + ") => " + list.GetValue(it) + " / " + list.HasItem(it) + "  (" + list.IsEnd() + ")");
+				if (list.IsEnd()) {
+					list.AddItem(it, val);
+					print("      => AddItem(" + it + ", " + val + ") => " + list.GetValue(it) + " / " + list.HasItem(it) + "  (" + list.IsEnd() + ")");
+				}
+			}
+			print("    Post loop:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+			it = list.Next();
+			print("    Post loop Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+		}
+	}
+
+	list.Clear(),
+	list.AddList(list4);
+
+	print("");
+	print("  SwapList:");
+	print("    DumpList 1:");
+	foreach (idx, val in list) {
+		print("    " + idx + " => " + val);
+	}
+	print("    DumpList 3:");
+	foreach (idx, val in list3) {
+		print("    " + idx + " => " + val);
+	}
+	it = list.Begin();
+	print("    List 1 Begin:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+	local it3 = list3.Begin();
+	print("    List 3 Begin:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+	it3 = list3.Next();
+	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+	print("    => Swap list 1 with list 3  " + list.SwapList(list3));
+	it = list.Next();
+	print("    List 1 Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+	it3 = list3.Next();
+	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+	it3 = list3.Next();
+	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+	print("    => Swap list 1 with list 3  " + list.SwapList(list3));
+	it = list.Next();
+	print("    List 1 Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
+	it3 = list3.Next();
+	print("    List 3 Next:  " + it3 + " >= " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+	it3 = list3.Next();
+	print("    List 3 Next:  " + it3 + " >= " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
+
 }
 
 function Regression::Map()
