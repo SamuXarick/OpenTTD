@@ -8,6 +8,7 @@
 /** @file script_list.cpp Implementation of ScriptList. */
 
 #include "../../stdafx.h"
+#include "script_controller.hpp"
 #include "script_list.hpp"
 #include "../../debug.h"
 #include "../../script/squirrel.hpp"
@@ -937,25 +938,30 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	ScriptObject::DisableDoCommandScope disabler{};
 
 	/* Limit the total number of ops that can be consumed by a valuate operation */
-	SQOpsLimiter limiter(vm, MAX_VALUATE_OPS, "valuator function");
+	SQOpsLimiter limiter(vm, ScriptController::GetOpsTillSuspend(), "valuator function");
 
 	/* Push the function to call */
 	sq_push(vm, 2);
 
-	for (const auto &item : this->items) {
+	for (const auto &[item, _] : std::ranges::subrange(this->items.lower_bound(this->resume_item.value_or(std::numeric_limits<SQInteger>::min())), this->items.end())) {
 		/* Check for changing of items. */
 		int previous_modification_count = this->modifications;
 
 		/* Push the root table as instance object, this is what squirrel does for meta-functions. */
 		sq_pushroottable(vm);
 		/* Push all arguments for the valuator function. */
-		sq_pushinteger(vm, item.first);
+		sq_pushinteger(vm, item);
 		for (int i = 0; i < nparam - 1; i++) {
 			sq_push(vm, i + 3);
 		}
 
 		/* Call the function. Squirrel pops all parameters and pushes the return value. */
 		if (SQ_FAILED(sq_call(vm, nparam + 1, SQTrue, SQFalse))) {
+			if (this->resume_item != item && Squirrel::IsOpsTillSuspendError(vm)) {
+				this->resume_item = item;
+				sq_pushbool(vm, SQTrue);
+				return 1;
+			}
 			return SQ_ERROR;
 		}
 
@@ -990,7 +996,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "modifying valuated list outside of valuator function");
 		}
 
-		this->SetValue(item.first, value);
+		this->SetValue(item, value);
 
 		/* Pop the return value. */
 		sq_poptop(vm);
@@ -1004,5 +1010,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	 * 4. The ScriptList instance object. */
 	sq_pop(vm, nparam + 3);
 
-	return 0;
+	this->resume_item.reset();
+	sq_pushbool(vm, SQFalse);
+	return 1;
 }

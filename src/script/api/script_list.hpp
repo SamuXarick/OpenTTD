@@ -41,6 +41,7 @@ private:
 	bool sort_ascending;          ///< Whether to sort ascending or descending
 	bool initialized;             ///< Whether an iteration has been started
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
+	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -374,6 +375,7 @@ public:
 
 	/**
 	 * The Valuate() wrapper from Squirrel.
+	 * @suspendable
 	 */
 	SQInteger Valuate(HSQUIRRELVM vm);
 #else
@@ -397,6 +399,7 @@ public:
 	 *  }
 	 *  list.Valuate(MyVal, 12);
 	 * @endcode
+	 * @note The valuator may be called more than once per item.
 	 */
 	void Valuate(function valuator_function, ...);
 #endif /* DOXYGEN_API */

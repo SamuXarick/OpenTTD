@@ -814,3 +814,8 @@ SQInteger Squirrel::GetOpsTillSuspend()
 {
 	return this->vm->_ops_till_suspend;
 }
+
+/* static */ bool Squirrel::IsOpsTillSuspendError(HSQUIRRELVM vm)
+{
+	return vm->IsOpsTillSuspendError();
+}
