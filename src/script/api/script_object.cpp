@@ -369,3 +369,8 @@ ScriptObject::DisableDoCommandScope::DisableDoCommandScope()
 
 	throw Script_FatalError("This instance is not cloneable");
 }
+
+/* static */uint32_t ScriptObject::GetMaxOpsTillSuspend()
+{
+	return ScriptObject::GetActiveInstance().GetMaxOpsTillSuspend();
+}

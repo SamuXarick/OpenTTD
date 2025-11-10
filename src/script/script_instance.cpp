@@ -60,6 +60,7 @@ void ScriptInstance::Initialize(const std::string &main_script, const std::strin
 	ScriptObject::ActiveInstance active(*this);
 
 	this->controller = std::make_unique<ScriptController>(company);
+	this->SetMaxOpsTillSuspend(_settings_game.script.script_max_opcode_till_suspend);
 
 	/* Register the API functions and classes */
 	this->engine->SetGlobalPointer(this->engine.get());
@@ -220,6 +221,8 @@ void ScriptInstance::GameLoop()
 	this->suspend  = 0;
 	this->callback = nullptr;
 
+	this->SetMaxOpsTillSuspend(_settings_game.script.script_max_opcode_till_suspend);
+
 	if (!this->is_started) {
 		try {
 			{
@@ -239,7 +242,7 @@ void ScriptInstance::GameLoop()
 				}
 			}
 			/* Start the script by calling Start() */
-			if (!this->engine->CallMethod(*this->instance, "Start",  _settings_game.script.script_max_opcode_till_suspend) || !this->engine->IsSuspended()) this->Died();
+			if (!this->engine->CallMethod(*this->instance, "Start", this->GetMaxOpsTillSuspend()) || !this->engine->IsSuspended()) this->Died();
 		} catch (Script_Suspend &e) {
 			this->suspend  = e.GetSuspendTime();
 			this->callback = e.GetSuspendCallback();
@@ -260,7 +263,7 @@ void ScriptInstance::GameLoop()
 
 	/* Continue the VM */
 	try {
-		if (!this->engine->Resume(_settings_game.script.script_max_opcode_till_suspend)) this->Died();
+		if (!this->engine->Resume(this->GetMaxOpsTillSuspend())) this->Died();
 	} catch (Script_Suspend &e) {
 		this->suspend  = e.GetSuspendTime();
 		this->callback = e.GetSuspendCallback();
@@ -582,7 +585,7 @@ void ScriptInstance::Pause()
 {
 	/* Suspend script. */
 	HSQUIRRELVM vm = this->engine->GetVM();
-	Squirrel::DecreaseOps(vm, _settings_game.script.script_max_opcode_till_suspend);
+	Squirrel::DecreaseOps(vm, this->GetMaxOpsTillSuspend());
 
 	this->is_paused = true;
 }
@@ -808,6 +811,16 @@ bool ScriptInstance::CallLoad()
 SQInteger ScriptInstance::GetOpsTillSuspend()
 {
 	return this->engine->GetOpsTillSuspend();
+}
+
+void ScriptInstance::SetMaxOpsTillSuspend(uint32_t ops)
+{
+	this->max_ops_till_suspend = ops;
+}
+
+uint32_t ScriptInstance::GetMaxOpsTillSuspend()
+{
+	return this->max_ops_till_suspend;
 }
 
 bool ScriptInstance::DoCommandCallback(const CommandCost &result, const CommandDataBuffer &data, CommandDataBuffer result_data, Commands cmd)

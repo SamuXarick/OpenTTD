@@ -152,6 +152,12 @@ public:
 	 */
 	static SQInteger _cloned(HSQUIRRELVM);
 
+	/**
+	 * Get the maximum number of operations till suspension for the current active instance.
+	 * @return The maximum number of operations.
+	 */
+	static uint32_t GetMaxOpsTillSuspend();
+
 protected:
 	template <Commands TCmd, typename T> struct ScriptDoCommandHelper;
 
