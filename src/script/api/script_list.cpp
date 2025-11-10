@@ -938,7 +938,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	ScriptObject::DisableDoCommandScope disabler{};
 
 	/* Limit the total number of ops that can be consumed by a valuate operation */
-	SQOpsLimiter limiter(vm, ScriptController::GetOpsTillSuspend(), "valuator function");
+	SQOpsLimiter limiter(vm, ScriptObject::GetMaxOpsTillSuspend(), "valuator function");
 
 	/* Push the function to call */
 	sq_push(vm, 2);
