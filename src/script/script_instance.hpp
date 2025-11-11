@@ -219,6 +219,18 @@ public:
 	SQInteger GetOpsTillSuspend();
 
 	/**
+	* Set the maximum number of operations till suspension for this script.
+	* @param ops The new maximum number of operations.
+	*/
+	void SetMaxOpsTillSuspend(uint32_t ops);
+
+	/**
+	 * Get the current maximum number of operations till suspension for this script.
+	 * @return The current maximum number of operations.
+	 */
+	uint32_t GetMaxOpsTillSuspend();
+
+	/**
 	 * DoCommand callback function for all commands executed by scripts.
 	 * @param result The result of the command.
 	 * @param tile The tile on which the command was executed.
@@ -300,6 +312,7 @@ private:
 	bool in_shutdown = false; ///< Is this instance currently being destructed?
 	Script_SuspendCallbackProc *callback = nullptr; ///< Callback that should be called in the next tick the script runs.
 	size_t last_allocated_memory = 0; ///< Last known allocated memory value (for display for crashed scripts)
+	uint32_t max_ops_till_suspend = 0; ///< Maximum number of ops till suspend.
 
 	/**
 	 * Call the script Load function if it exists and data was loaded
