@@ -924,6 +924,7 @@ SettingsContainer &GetSettingsTree()
 				npc->Add(new SettingEntry("script.script_max_opcode_till_suspend"));
 				npc->Add(new SettingEntry("script.script_max_memory_megabytes"));
 				npc->Add(new SettingEntry("difficulty.competitor_speed"));
+				npc->Add(new SettingEntry("script.slow_valuate"));
 				npc->Add(new SettingEntry("ai.ai_in_multiplayer"));
 				npc->Add(new SettingEntry("ai.ai_disable_veh_train"));
 				npc->Add(new SettingEntry("ai.ai_disable_veh_roadveh"));
