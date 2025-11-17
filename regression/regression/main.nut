@@ -1036,36 +1036,63 @@ function Regression::List()
 	list.Clear(),
 	list.AddList(list4);
 
-	print("");
-	print("  SwapList:");
-	print("    DumpList 1:");
-	foreach (idx, val in list) {
-		print("    " + idx + " => " + val);
+	local list1 = list;
+	local list2 = list3;
+
+	foreach (sorter_type_1 in [ AIList.SORT_BY_VALUE, AIList.SORT_BY_ITEM ]) {
+		foreach (sorter_direction_1 in [ AIList.SORT_DESCENDING, AIList.SORT_ASCENDING ]) {
+			local type_1 = sorter_type_1 == AIList.SORT_BY_VALUE ? "Value" : "Item";
+			local direction_1 = sorter_direction_1 == AIList.SORT_DESCENDING ? "Descending" : "Ascending";
+			local sorter_1 = "  (" + type_1 + " " + direction_1 + ")";
+
+			foreach (sorter_type_2 in [ AIList.SORT_BY_VALUE, AIList.SORT_BY_ITEM ]) {
+				foreach (sorter_direction_2 in [ AIList.SORT_DESCENDING, AIList.SORT_ASCENDING ]) {
+					local type_2 = sorter_type_2 == AIList.SORT_BY_VALUE ? "Value" : "Item";
+					local direction_2 = sorter_direction_2 == AIList.SORT_DESCENDING ? "Descending" : "Ascending";
+					local sorter_2 = "  (" + type_2 + " " + direction_2 + ")";
+
+					local sorter = sorter_1 + sorter_2;
+
+					list1.Clear(),
+					list1.AddList(list4);
+
+					list1.Sort(sorter_type_1, sorter_direction_1);
+					list2.Sort(sorter_type_2, sorter_direction_2);
+
+					print("");
+					print("  SwapList:" + sorter);
+					print("    DumpList 1:" + sorter_1);
+					foreach (idx, val in list1) {
+						print("    " + idx + " => " + val);
+					}
+					print("    DumpList 2:" + sorter_2);
+					foreach (idx, val in list2) {
+						print("    " + idx + " => " + val);
+					}
+					local it1 = list1.Begin();
+					print("    List 1 Begin:  " + it1 + " => " + list1.GetValue(it1) + "  (" + list1.IsEnd() + ")");
+					local it2 = list2.Begin();
+					print("    List 2 Begin:  " + it2 + " => " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+					it2 = list2.Next();
+					print("    List 2 Next:   " + it2 + " => " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+					print("    => Swap list 1 with list 2  " + list1.SwapList(list2));
+					it1 = list1.Next();
+					print("    List 1 Next:   " + it1 + " => " + list1.GetValue(it1) + "  (" + list1.IsEnd() + ")");
+					it2 = list2.Next();
+					print("    List 2 Next:   " + it2 + " => " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+					it2 = list2.Next();
+					print("    List 2 Next:   " + it2 + " => " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+					print("    => Swap list 1 with list 2  " + list1.SwapList(list2));
+					it1 = list1.Next();
+					print("    List 1 Next:   " + it1 + " => " + list1.GetValue(it1) + "  (" + list1.IsEnd() + ")");
+					it2 = list2.Next();
+					print("    List 2 Next:   " + it2 + " >= " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+					it2 = list2.Next();
+					print("    List 2 Next:   " + it2 + " >= " + list2.GetValue(it2) + "  (" + list2.IsEnd() + ")");
+				}
+			}
+		}
 	}
-	print("    DumpList 3:");
-	foreach (idx, val in list3) {
-		print("    " + idx + " => " + val);
-	}
-	it = list.Begin();
-	print("    List 1 Begin:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
-	local it3 = list3.Begin();
-	print("    List 3 Begin:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
-	it3 = list3.Next();
-	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
-	print("    => Swap list 1 with list 3  " + list.SwapList(list3));
-	it = list.Next();
-	print("    List 1 Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
-	it3 = list3.Next();
-	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
-	it3 = list3.Next();
-	print("    List 3 Next:  " + it3 + " => " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
-	print("    => Swap list 1 with list 3  " + list.SwapList(list3));
-	it = list.Next();
-	print("    List 1 Next:  " + it + " => " + list.GetValue(it) + "  (" + list.IsEnd() + ")");
-	it3 = list3.Next();
-	print("    List 3 Next:  " + it3 + " >= " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
-	it3 = list3.Next();
-	print("    List 3 Next:  " + it3 + " >= " + list3.GetValue(it3) + "  (" + list3.IsEnd() + ")");
 
 }
 

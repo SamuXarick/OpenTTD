@@ -932,12 +932,180 @@ ERROR: IsEnd() is invalid as Begin() is never called
     Post loop Next:  0 => 0  (true)
     Post loop Next:  0 => 0  (true)
 
-  SwapList:
-    DumpList 1:
+  SwapList:  (Value Descending)  (Value Descending)
+    DumpList 1:  (Value Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Value Descending)
+    4002 => 8004
+    4001 => 8002
+    1005 => 1005
+    4000 => 50
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4002 => 8004  (false)
+    List 2 Next:   4001 => 8002  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1005 => 1005  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4000 >= 50  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Value Descending)  (Value Ascending)
+    DumpList 1:  (Value Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Value Ascending)
+    4012 => 1
+    4006 => 12
+    4000 => 50
+    1005 => 1005
+    4001 => 8002
+    4002 => 8004
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4000 => 50  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   1005 >= 1005  (false)
+    List 2 Next:   4001 >= 8002  (false)
+
+  SwapList:  (Value Descending)  (Item Descending)
+    DumpList 1:  (Value Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Item Descending)
+    4012 => 1
+    4006 => 12
+    4002 => 8004
+    4001 => 8002
+    4000 => 50
+    1005 => 1005
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4002 => 8004  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4001 >= 8002  (false)
+    List 2 Next:   4000 >= 50  (false)
+
+  SwapList:  (Value Descending)  (Item Ascending)
+    DumpList 1:  (Value Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Item Ascending)
+    1005 => 1005
+    4000 => 50
+    4001 => 8002
+    4002 => 8004
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  1005 => 1005  (false)
+    List 2 Next:   4000 => 50  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4001 => 8002  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4002 >= 8004  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Value Ascending)  (Value Descending)
+    DumpList 1:  (Value Ascending)
     1 => -5
     2 => 6
     3 => 6
-    DumpList 3:
+    DumpList 2:  (Value Descending)
+    4002 => 8004
+    4001 => 8002
+    1005 => 1005
+    4000 => 50
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4002 => 8004  (false)
+    List 2 Next:   4001 => 8002  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1005 => 1005  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4000 >= 50  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Value Ascending)  (Value Ascending)
+    DumpList 1:  (Value Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Value Ascending)
+    4012 => 1
+    4006 => 12
+    4000 => 50
+    1005 => 1005
+    4001 => 8002
+    4002 => 8004
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4000 => 50  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   1005 >= 1005  (false)
+    List 2 Next:   4001 >= 8002  (false)
+
+  SwapList:  (Value Ascending)  (Item Descending)
+    DumpList 1:  (Value Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Item Descending)
+    4012 => 1
+    4006 => 12
+    4002 => 8004
+    4001 => 8002
+    4000 => 50
+    1005 => 1005
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4002 => 8004  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4001 >= 8002  (false)
+    List 2 Next:   4000 >= 50  (false)
+
+  SwapList:  (Value Ascending)  (Item Ascending)
+    DumpList 1:  (Value Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Item Ascending)
     1005 => 1005
     4000 => 50
     4001 => 8002
@@ -945,16 +1113,208 @@ ERROR: IsEnd() is invalid as Begin() is never called
     4006 => 12
     4012 => 1
     List 1 Begin:  1 => -5  (false)
-    List 3 Begin:  1005 => 1005  (false)
-    List 3 Next:  4000 => 50  (false)
-    => Swap list 1 with list 3  (null : 0x00000000)
-    List 1 Next:  4001 => 8002  (false)
-    List 3 Next:  2 => 6  (false)
-    List 3 Next:  3 => 6  (false)
-    => Swap list 1 with list 3  (null : 0x00000000)
-    List 1 Next:  3 => 6  (true)
-    List 3 Next:  4002 >= 8004  (false)
-    List 3 Next:  4006 >= 12  (false)
+    List 2 Begin:  1005 => 1005  (false)
+    List 2 Next:   4000 => 50  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4001 => 8002  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4002 >= 8004  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Item Descending)  (Value Descending)
+    DumpList 1:  (Item Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Value Descending)
+    4002 => 8004
+    4001 => 8002
+    1005 => 1005
+    4000 => 50
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4002 => 8004  (false)
+    List 2 Next:   4001 => 8002  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1005 => 1005  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4000 >= 50  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Item Descending)  (Value Ascending)
+    DumpList 1:  (Item Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Value Ascending)
+    4012 => 1
+    4006 => 12
+    4000 => 50
+    1005 => 1005
+    4001 => 8002
+    4002 => 8004
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4000 => 50  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   1005 >= 1005  (false)
+    List 2 Next:   4001 >= 8002  (false)
+
+  SwapList:  (Item Descending)  (Item Descending)
+    DumpList 1:  (Item Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Item Descending)
+    4012 => 1
+    4006 => 12
+    4002 => 8004
+    4001 => 8002
+    4000 => 50
+    1005 => 1005
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4002 => 8004  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4001 >= 8002  (false)
+    List 2 Next:   4000 >= 50  (false)
+
+  SwapList:  (Item Descending)  (Item Ascending)
+    DumpList 1:  (Item Descending)
+    3 => 6
+    2 => 6
+    1 => -5
+    DumpList 2:  (Item Ascending)
+    1005 => 1005
+    4000 => 50
+    4001 => 8002
+    4002 => 8004
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  3 => 6  (false)
+    List 2 Begin:  1005 => 1005  (false)
+    List 2 Next:   4000 => 50  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4001 => 8002  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   1 => -5  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1 => -5  (true)
+    List 2 Next:   4002 >= 8004  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Item Ascending)  (Value Descending)
+    DumpList 1:  (Item Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Value Descending)
+    4002 => 8004
+    4001 => 8002
+    1005 => 1005
+    4000 => 50
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4002 => 8004  (false)
+    List 2 Next:   4001 => 8002  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   1005 => 1005  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4000 >= 50  (false)
+    List 2 Next:   4006 >= 12  (false)
+
+  SwapList:  (Item Ascending)  (Value Ascending)
+    DumpList 1:  (Item Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Value Ascending)
+    4012 => 1
+    4006 => 12
+    4000 => 50
+    1005 => 1005
+    4001 => 8002
+    4002 => 8004
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4000 => 50  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   1005 >= 1005  (false)
+    List 2 Next:   4001 >= 8002  (false)
+
+  SwapList:  (Item Ascending)  (Item Descending)
+    DumpList 1:  (Item Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Item Descending)
+    4012 => 1
+    4006 => 12
+    4002 => 8004
+    4001 => 8002
+    4000 => 50
+    1005 => 1005
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  4012 => 1  (false)
+    List 2 Next:   4006 => 12  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4002 => 8004  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4001 >= 8002  (false)
+    List 2 Next:   4000 >= 50  (false)
+
+  SwapList:  (Item Ascending)  (Item Ascending)
+    DumpList 1:  (Item Ascending)
+    1 => -5
+    2 => 6
+    3 => 6
+    DumpList 2:  (Item Ascending)
+    1005 => 1005
+    4000 => 50
+    4001 => 8002
+    4002 => 8004
+    4006 => 12
+    4012 => 1
+    List 1 Begin:  1 => -5  (false)
+    List 2 Begin:  1005 => 1005  (false)
+    List 2 Next:   4000 => 50  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   4001 => 8002  (false)
+    List 2 Next:   2 => 6  (false)
+    List 2 Next:   3 => 6  (false)
+    => Swap list 1 with list 2  (null : 0x00000000)
+    List 1 Next:   3 => 6  (true)
+    List 2 Next:   4002 >= 8004  (false)
+    List 2 Next:   4006 >= 12  (false)
 
 --Company--
   SetName():            true
@@ -10474,7 +10834,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
 constructor failed with: excessive CPU usage in list filter function
 Your script made an error: excessive CPU usage in valuator function
 
-*FUNCTION [Start()] regression/main.nut line [2356]
+*FUNCTION [Start()] regression/main.nut line [2383]
 
 [Infinite] CLOSURE
 [list] INSTANCE
