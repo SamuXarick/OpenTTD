@@ -121,4 +121,18 @@ public:
 	ScriptTileList_StationCoverage(StationID station_id);
 };
 
+/**
+ * Creates a list of tiles occupied by buildings in the given town.
+ * @api ai game
+ * @ingroup ScriptList
+ */
+class ScriptTileList_TownBuildings : public ScriptTileList {
+public:
+	/**
+	 * @param town_id The town to create the ScriptTileList for.
+	 * @pre ScriptTown::IsValidTown(town_id).
+	 */
+	ScriptTileList_TownBuildings(TownID town_id);
+};
+
 #endif /* SCRIPT_TILELIST_HPP */

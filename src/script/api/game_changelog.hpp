@@ -31,6 +31,7 @@
  * \li GSBaseStation::GetOwner
  * \li GSError::ERR_BRIDGE_TOO_LOW
  * \li GSEngine::GetAllRailTypes
+ * \li GSTileList_TownBuildings
  *
  * Other changes:
  * \li GSBridge::GetBridgeID renamed to GSBridge::GetBridgeType

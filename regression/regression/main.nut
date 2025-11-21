@@ -1668,6 +1668,15 @@ function Regression::TileList()
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
+
+	list = AITileList_TownBuildings(2);
+	print("");
+	print("--TileList_TownBuildings--");
+	print("  Count():             " + list.Count());
+	print("  Location ListDump:");
+	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
+		print("    " + i + " => " + list.GetValue(i));
+	}
 }
 
 function Regression::Town()

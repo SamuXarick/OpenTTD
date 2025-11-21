@@ -12,6 +12,7 @@
 #include "script_industry.hpp"
 #include "../../industry.h"
 #include "../../station_base.h"
+#include "../../town.h"
 
 #include "../../safeguards.h"
 
@@ -172,6 +173,15 @@ ScriptTileList_StationCoverage::ScriptTileList_StationCoverage(StationID station
 
 	BitmapTileIterator it(ta);
 	for (TileIndex tile = it; tile != INVALID_TILE; tile = ++it) {
+		this->AddTile(tile);
+	}
+}
+
+ScriptTileList_TownBuildings::ScriptTileList_TownBuildings(TownID town_id)
+{
+	if (!::Town::IsValidID(town_id)) return;
+
+	for (const TileIndex &tile : ::Town::Get(town_id)->cache.building_tiles) {
 		this->AddTile(tile);
 	}
 }

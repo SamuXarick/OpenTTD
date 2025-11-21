@@ -17,6 +17,7 @@
 #include "subsidy_type.h"
 #include "newgrf_storage.h"
 #include "cargotype.h"
+#include <unordered_set>
 
 template <typename T>
 struct BuildingCounts {
@@ -55,6 +56,7 @@ struct TownCache {
 	PartsOfSubsidy part_of_subsidy{}; ///< Is this town a source/destination of a subsidy?
 	std::array<uint32_t, NUM_HOUSE_ZONES> squared_town_zone_radius{}; ///< UpdateTownRadius updates this given the house count
 	BuildingCounts<uint16_t> building_counts{}; ///< The number of each type of building in the town
+	std::unordered_set<TileIndex> building_tiles{}; ///< Set of tiles occupied by buildings in this town
 
 	auto operator<=>(const TownCache &) const = default;
 };

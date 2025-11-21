@@ -9321,6 +9321,32 @@ ERROR: IsEnd() is invalid as Begin() is never called
     33413 => 0
     33411 => 0
 
+--TileList_TownBuildings--
+  Count():             22
+  Location ListDump:
+    29900 => 0
+    29390 => 0
+    29388 => 0
+    29135 => 0
+    29134 => 0
+    29132 => 0
+    29130 => 0
+    28879 => 0
+    28878 => 0
+    28876 => 0
+    28874 => 0
+    28623 => 0
+    28622 => 0
+    28364 => 0
+    28363 => 0
+    28111 => 0
+    28109 => 0
+    27853 => 0
+    27599 => 0
+    27597 => 0
+    27343 => 0
+    27341 => 0
+
 --Town--
   GetTownCount():    28
   Town 0
@@ -10116,7 +10142,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
 constructor failed with: excessive CPU usage in list filter function
 Your script made an error: excessive CPU usage in valuator function
 
-*FUNCTION [Start()] regression/main.nut line [2184]
+*FUNCTION [Start()] regression/main.nut line [2193]
 
 [Infinite] CLOSURE
 [list] INSTANCE

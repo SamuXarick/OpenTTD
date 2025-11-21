@@ -2513,6 +2513,7 @@ static inline void ClearMakeHouseTile(TileIndex tile, Town *t, uint8_t counter, 
 	assert(cc.Succeeded());
 
 	IncreaseBuildingCount(t, type);
+	t->cache.building_tiles.insert(tile);
 	MakeHouseTile(tile, t->index, counter, stage, type, random_bits, is_protected);
 	if (HouseSpec::Get(type)->building_flags.Test(BuildingFlag::IsAnimated)) AddAnimatedTile(tile, false);
 
@@ -2972,6 +2973,7 @@ static void DoClearTownHouseHelper(TileIndex tile, Town *t, HouseID house)
 {
 	assert(IsTileType(tile, MP_HOUSE));
 	DecreaseBuildingCount(t, house);
+	t->cache.building_tiles.erase(tile);
 	DoClearSquare(tile);
 
 	DeleteNewGRFInspectWindow(GSF_HOUSES, tile.base());
