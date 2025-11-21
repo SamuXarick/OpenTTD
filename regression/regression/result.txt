@@ -597,6 +597,17 @@ ERROR: IsEnd() is invalid as Begin() is never called
     4001 => 8002
     4002 => 8004
     4006 => 12
+  DifferenceList:  (1 with 2)
+    1 => -5
+    0 => 5
+    2 => 6
+    3 => 6
+    1005 => 1005
+    4000 => 8000
+    4001 => 8002
+    4002 => 8004
+  DifferenceList:  (2 with 3)
+    4006 => 12
 
 --Company--
   SetName():            true
@@ -10116,7 +10127,7 @@ ERROR: IsEnd() is invalid as Begin() is never called
 constructor failed with: excessive CPU usage in list filter function
 Your script made an error: excessive CPU usage in valuator function
 
-*FUNCTION [Start()] regression/main.nut line [2184]
+*FUNCTION [Start()] regression/main.nut line [2195]
 
 [Infinite] CLOSURE
 [list] INSTANCE

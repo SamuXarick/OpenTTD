@@ -356,6 +356,13 @@ public:
 	 */
 	void KeepList(ScriptList *list);
 
+	/**
+	 * Keeps everything that is not in the given list nor from this list in this list.
+	 * @param list the given list.
+	 * @pre list != null
+	 */
+	void DifferenceList(ScriptList *list);
+
 #ifndef DOXYGEN_API
 	/**
 	 * Used for 'foreach()' and [] get from Squirrel.

@@ -837,6 +837,22 @@ void ScriptList::KeepList(ScriptList *list)
 	this->RemoveList(&tmp);
 }
 
+void ScriptList::DifferenceList(ScriptList *list)
+{
+	if (list == this) {
+		this->Clear();
+		return;
+	}
+
+	this->modifications++;
+
+	ScriptList tmp;
+	tmp.AddList(this);
+	tmp.KeepList(list);
+	this->AddList(list);
+	this->RemoveList(&tmp);
+}
+
 SQInteger ScriptList::_get(HSQUIRRELVM vm)
 {
 	if (sq_gettype(vm, 2) != OT_INTEGER) return SQ_ERROR;

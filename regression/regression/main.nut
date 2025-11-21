@@ -895,6 +895,17 @@ function Regression::List()
 		print("    " + idx + " => " + val);
 	}
 
+	print("  DifferenceList:  (1 with 2)");
+	list.DifferenceList(list2);
+	foreach (idx, val in list) {
+		print("    " + idx + " => " + val);
+	}
+	print("  DifferenceList:  (2 with 3)");
+	list2.DifferenceList(list3);
+	foreach (idx, val in list2) {
+		print("    " + idx + " => " + val);
+	}
+
 }
 
 function Regression::Map()
