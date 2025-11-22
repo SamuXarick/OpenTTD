@@ -471,7 +471,7 @@ void ScriptList::RemoveMapIter(ScriptListMap::iterator item_iter)
 	if (this->initialized) this->sorter->Remove(item);
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value, item));
+		auto value_iter = this->values.find({value, item});
 		this->values.erase(value_iter);
 	}
 
@@ -585,7 +585,7 @@ void ScriptList::SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger va
 	item_iter->second = value;
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value_old, item));
+		auto value_iter = this->values.find({value_old, item});
 		auto node_handle = this->values.extract(value_iter);
 		node_handle.value().first = value;
 		this->values.insert(std::move(node_handle));
