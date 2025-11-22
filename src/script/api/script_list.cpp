@@ -441,6 +441,23 @@ void ScriptList::Clear()
 	if (this->sorter != nullptr) this->sorter->End();
 }
 
+ScriptList::ScriptListMap::iterator ScriptList::AddOrSetItem(ScriptList::ScriptListMap::iterator hint, SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	/* Insert if missing using hint; otherwise get iterator to existing element */
+	hint = this->items.try_emplace(hint, item, value); // next element likely belongs after this one
+
+	if (hint->second != value) {
+		/* Key was already present, insertion did not take place */
+		this->SetIterValue(hint, value);
+	} else if (this->values_inited) {
+		this->values.emplace(value, item);
+	}
+
+	return std::next(hint);
+}
+
 void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
@@ -635,8 +652,9 @@ void ScriptList::AddList(ScriptList *list)
 		}
 		this->modifications++;
 	} else {
+		auto hint = this->items.end();
 		for (const auto &item : list->items) {
-			this->AddOrSetItem(item.first, item.second);
+			hint = this->AddOrSetItem(hint, item.first, item.second);
 		}
 	}
 }
