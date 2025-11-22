@@ -144,7 +144,7 @@ public:
 		if (this->item_next) {
 			auto item_iter = this->list->items.find(*this->item_next);
 			SQInteger value = item_iter->second;
-			this->value_iter = this->list->values.find(std::make_pair(value, *this->item_next));
+			this->value_iter = this->list->values.find({value, *this->item_next});
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -237,7 +237,7 @@ public:
 		if (this->item_next) {
 			auto item_iter = this->list->items.find(*this->item_next);
 			SQInteger value = item_iter->second;
-			this->value_iter = this->list->values.find(std::make_pair(value, *this->item_next));
+			this->value_iter = this->list->values.find({value, *this->item_next});
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -560,7 +560,7 @@ void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 	if (this->initialized) this->sorter->Remove(item);
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value, item));
+		auto value_iter = this->values.find({value, item});
 		this->values.erase(value_iter);
 	}
 
@@ -674,7 +674,7 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 	item_iter->second = value;
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value_old, item));
+		auto value_iter = this->values.find({value_old, item});
 		this->values.erase(value_iter);
 		this->values.emplace(value, item);
 	}
