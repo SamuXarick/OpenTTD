@@ -515,41 +515,41 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.emplace(item, value);
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		this->SetIterValue(res.first, value);
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.emplace(value, item);
 }
 
 void ScriptList::AddToItemValue(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.emplace(item, value);
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		this->SetIterValue(res.first, res.first->second + value);
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.emplace(value, item);
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.emplace(item, value);
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.emplace(value, item);
 }
 
 void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
@@ -589,7 +589,7 @@ void ScriptList::InitValues()
 {
 	this->values.clear();
 	for (const auto &iter : this->items) {
-		this->values.insert(std::make_pair(iter.second, iter.first));
+		this->values.emplace(iter.second, iter.first);
 	}
 	this->values_inited = true;
 }
@@ -676,7 +676,7 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 	if (this->values_inited) {
 		auto value_iter = this->values.find(std::make_pair(value_old, item));
 		this->values.erase(value_iter);
-		this->values.insert(std::make_pair(value, item));
+		this->values.emplace(value, item);
 	}
 }
 
