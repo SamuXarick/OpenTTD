@@ -137,7 +137,12 @@ CargoCollector::~CargoCollector()
 void CargoCollector::SetValue()
 {
 	if (this->amount > 0) {
-		this->list->AddToItemValue(this->last_key.base(), this->amount);
+		if (this->list->HasItem(this->last_key.base())) {
+			this->list->SetValue(this->last_key.base(),
+					this->list->GetValue(this->last_key.base()) + this->amount);
+		} else {
+			this->list->AddItem(this->last_key.base(), this->amount);
+		}
 	}
 }
 
