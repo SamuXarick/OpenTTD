@@ -37,12 +37,23 @@ public:
 	/**
 	 * Stop iterating a sorter.
 	 */
-	virtual void End() = 0;
+	void End()
+	{
+		this->item_next = std::nullopt;
+		this->has_no_more_items = true;
+	}
 
 	/**
 	 * Get the next item of the sorter.
 	 */
-	virtual std::optional<SQInteger> Next() = 0;
+	std::optional<SQInteger> Next()
+	{
+		if (this->IsEnd()) return std::nullopt;
+
+		std::optional<SQInteger> item_current = this->item_next;
+		this->FindNext();
+		return item_current;
+	}
 
 	/**
 	 * See if the sorter has reached the end.
@@ -55,7 +66,13 @@ public:
 	/**
 	 * Callback from the list if an item gets removed.
 	 */
-	virtual void Remove(SQInteger item) = 0;
+	void Remove(SQInteger item)
+	{
+		if (this->IsEnd()) return;
+
+		/* If we remove the 'next' item, skip to the next */
+		if (item == this->item_next) this->FindNext();
+	}
 
 	/**
 	 * Attach the sorter to a new list and update internal iterators so they remain valid
@@ -64,6 +81,12 @@ public:
 	 * @param new_list New list to attach to and update internal iterators.
 	 */
 	virtual void Retarget(ScriptList *new_list) = 0;
+
+private:
+	/**
+	 * Find the next item, and store that information.
+	 */
+	virtual void FindNext() = 0;
 };
 
 /**
@@ -100,16 +123,10 @@ public:
 		return item_current;
 	}
 
-	void End() override
-	{
-		this->item_next = std::nullopt;
-		this->has_no_more_items = true;
-	}
-
 	/**
 	 * Find the next item, and store that information.
 	 */
-	void FindNext()
+	void FindNext() override
 	{
 		this->item_next = std::nullopt;
 		if (this->value_iter == this->list->values.end()) {
@@ -118,23 +135,6 @@ public:
 		}
 		++this->value_iter;
 		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
-	}
-
-	std::optional<SQInteger> Next() override
-	{
-		if (this->IsEnd()) return std::nullopt;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void Remove(SQInteger item) override
-	{
-		if (this->IsEnd()) return;
-
-		/* If we remove the 'next' item, skip to the next */
-		if (item == this->item_next) this->FindNext();
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -188,16 +188,10 @@ public:
 		return item_current;
 	}
 
-	void End() override
-	{
-		this->item_next = std::nullopt;
-		this->has_no_more_items = true;
-	}
-
 	/**
 	 * Find the next item, and store that information.
 	 */
-	void FindNext()
+	void FindNext() override
 	{
 		this->item_next = std::nullopt;
 		if (this->value_iter == this->list->values.end()) {
@@ -211,23 +205,6 @@ public:
 			--this->value_iter;
 		}
 		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
-	}
-
-	std::optional<SQInteger> Next() override
-	{
-		if (this->IsEnd()) return std::nullopt;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void Remove(SQInteger item) override
-	{
-		if (this->IsEnd()) return;
-
-		/* If we remove the 'next' item, skip to the next */
-		if (item == this->item_next) this->FindNext();
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -277,16 +254,10 @@ public:
 		return item_current;
 	}
 
-	void End() override
-	{
-		this->item_next = std::nullopt;
-		this->has_no_more_items = true;
-	}
-
 	/**
 	 * Find the next item, and store that information.
 	 */
-	void FindNext()
+	void FindNext() override
 	{
 		this->item_next = std::nullopt;
 		if (this->item_iter == this->list->items.end()) {
@@ -295,23 +266,6 @@ public:
 		}
 		++this->item_iter;
 		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
-	}
-
-	std::optional<SQInteger> Next() override
-	{
-		if (this->IsEnd()) return std::nullopt;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void Remove(SQInteger item) override
-	{
-		if (this->IsEnd()) return;
-
-		/* If we remove the 'next' item, skip to the next */
-		if (item == this->item_next) this->FindNext();
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -363,16 +317,10 @@ public:
 		return item_current;
 	}
 
-	void End() override
-	{
-		this->item_next = std::nullopt;
-		this->has_no_more_items = true;
-	}
-
 	/**
 	 * Find the next item, and store that information.
 	 */
-	void FindNext()
+	void FindNext() override
 	{
 		this->item_next = std::nullopt;
 		if (this->item_iter == this->list->items.end()) {
@@ -386,23 +334,6 @@ public:
 			--this->item_iter;
 		}
 		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
-	}
-
-	std::optional<SQInteger> Next() override
-	{
-		if (this->IsEnd()) return std::nullopt;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void Remove(SQInteger item) override
-	{
-		if (this->IsEnd()) return;
-
-		/* If we remove the 'next' item, skip to the next */
-		if (item == this->item_next) this->FindNext();
 	}
 
 	void Retarget(ScriptList *new_list) override
