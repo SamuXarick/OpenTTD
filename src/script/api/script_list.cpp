@@ -436,20 +436,6 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 	if (this->values_inited) this->values.emplace(value, item);
 }
 
-void ScriptList::AddToItemValue(SQInteger item, SQInteger value)
-{
-	this->modifications++;
-
-	auto res = this->items.emplace(item, value);
-	if (!res.second) {
-		/* Key was already present, insertion did not take place */
-		this->SetMapIterValue(res.first, res.first->second + value);
-		return;
-	}
-
-	if (this->values_inited) this->values.emplace(value, item);
-}
-
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
