@@ -199,11 +199,6 @@ public:
 	void AddOrSetItem(SQInteger item, SQInteger value);
 
 	/**
-	 * @api -all
-	 */
-	void AddToItemValue(SQInteger item, SQInteger value_to_add);
-
-	/**
 	 * Remove a single item from the list.
 	 * @param item the item to remove. If not existing, it is ignored.
 	 */
