@@ -60,7 +60,7 @@ public:
 	 */
 	bool IsEnd()
 	{
-		return this->list->items.empty() || this->has_no_more_items;
+		return std::empty(this->list->items) || this->has_no_more_items;
 	}
 
 	/**
@@ -109,13 +109,13 @@ public:
 
 	std::optional<SQInteger> Begin() override
 	{
-		if (this->list->values.empty()) {
+		if (std::empty(this->list->values)) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
-		this->value_iter = this->list->values.begin();
+		this->value_iter = std::begin(this->list->values);
 		this->item_next = this->value_iter->second;
 
 		std::optional<SQInteger> item_current = this->item_next;
@@ -129,12 +129,12 @@ public:
 	void FindNext() override
 	{
 		this->item_next = std::nullopt;
-		if (this->value_iter == this->list->values.end()) {
+		if (this->value_iter == std::end(this->list->values)) {
 			this->has_no_more_items = true;
 			return;
 		}
 		++this->value_iter;
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
+		if (this->value_iter != std::end(this->list->values)) this->item_next = this->value_iter->second;
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -145,7 +145,7 @@ public:
 			SQInteger value = item_iter->second;
 			this->value_iter = this->list->values.find({value, *this->item_next});
 		} else {
-			this->value_iter = this->list->values.end();
+			this->value_iter = std::end(this->list->values);
 		}
 	}
 };
@@ -173,13 +173,13 @@ public:
 
 	std::optional<SQInteger> Begin() override
 	{
-		if (this->list->values.empty()) {
+		if (std::empty(this->list->values)) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
-		this->value_iter = this->list->values.end();
+		this->value_iter = std::end(this->list->values);
 		--this->value_iter;
 		this->item_next = this->value_iter->second;
 
@@ -194,17 +194,17 @@ public:
 	void FindNext() override
 	{
 		this->item_next = std::nullopt;
-		if (this->value_iter == this->list->values.end()) {
+		if (this->value_iter == std::end(this->list->values)) {
 			this->has_no_more_items = true;
 			return;
 		}
-		if (this->value_iter == this->list->values.begin()) {
+		if (this->value_iter == std::begin(this->list->values)) {
 			/* Use 'end' as marker for 'beyond begin' */
-			this->value_iter = this->list->values.end();
+			this->value_iter = std::end(this->list->values);
 		} else {
 			--this->value_iter;
 		}
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
+		if (this->value_iter != std::end(this->list->values)) this->item_next = this->value_iter->second;
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -215,7 +215,7 @@ public:
 			SQInteger value = item_iter->second;
 			this->value_iter = this->list->values.find({value, *this->item_next});
 		} else {
-			this->value_iter = this->list->values.end();
+			this->value_iter = std::end(this->list->values);
 		}
 	}
 };
@@ -240,13 +240,13 @@ public:
 
 	std::optional<SQInteger> Begin() override
 	{
-		if (this->list->items.empty()) {
+		if (std::empty(this->list->items)) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
-		this->item_iter = this->list->items.begin();
+		this->item_iter = std::begin(this->list->items);
 		this->item_next = this->item_iter->first;
 
 		std::optional<SQInteger> item_current = this->item_next;
@@ -260,12 +260,12 @@ public:
 	void FindNext() override
 	{
 		this->item_next = std::nullopt;
-		if (this->item_iter == this->list->items.end()) {
+		if (this->item_iter == std::end(this->list->items)) {
 			this->has_no_more_items = true;
 			return;
 		}
 		++this->item_iter;
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
+		if (this->item_iter != std::end(this->list->items)) this->item_next = this->item_iter->first;
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -274,7 +274,7 @@ public:
 		if (this->item_next) {
 			this->item_iter = this->list->items.find(*this->item_next);
 		} else {
-			this->item_iter = this->list->items.end();
+			this->item_iter = std::end(this->list->items);
 		}
 	}
 };
@@ -302,13 +302,13 @@ public:
 
 	std::optional<SQInteger> Begin() override
 	{
-		if (this->list->items.empty()) {
+		if (std::empty(this->list->items)) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
-		this->item_iter = this->list->items.end();
+		this->item_iter = std::end(this->list->items);
 		--this->item_iter;
 		this->item_next = this->item_iter->first;
 
@@ -323,17 +323,17 @@ public:
 	void FindNext() override
 	{
 		this->item_next = std::nullopt;
-		if (this->item_iter == this->list->items.end()) {
+		if (this->item_iter == std::end(this->list->items)) {
 			this->has_no_more_items = true;
 			return;
 		}
-		if (this->item_iter == this->list->items.begin()) {
+		if (this->item_iter == std::begin(this->list->items)) {
 			/* Use 'end' as marker for 'beyond begin' */
-			this->item_iter = this->list->items.end();
+			this->item_iter = std::end(this->list->items);
 		} else {
 			--this->item_iter;
 		}
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
+		if (this->item_iter != std::end(this->list->items)) this->item_next = this->item_iter->first;
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -342,7 +342,7 @@ public:
 		if (this->item_next) {
 			this->item_iter = this->list->items.find(*this->item_next);
 		} else {
-			this->item_iter = this->list->items.end();
+			this->item_iter = std::end(this->list->items);
 		}
 	}
 };
@@ -428,7 +428,7 @@ ScriptList::~ScriptList()
 
 bool ScriptList::HasItem(SQInteger item)
 {
-	return this->items.count(item) == 1;
+	return this->items.find(item) != std::end(this->items);
 }
 
 void ScriptList::Clear()
@@ -512,7 +512,7 @@ void ScriptList::RemoveItem(SQInteger item)
 	this->modifications++;
 
 	auto item_iter = this->items.find(item);
-	if (item_iter != this->items.end()) this->RemoveIter(item_iter);
+	if (item_iter != std::end(this->items)) this->RemoveIter(item_iter);
 }
 
 void ScriptList::InitValues()
@@ -569,7 +569,7 @@ SQInteger ScriptList::Next()
 
 bool ScriptList::IsEmpty()
 {
-	return this->items.empty();
+	return std::empty(this->items);
 }
 
 bool ScriptList::IsEnd()
@@ -583,13 +583,13 @@ bool ScriptList::IsEnd()
 
 SQInteger ScriptList::Count()
 {
-	return this->items.size();
+	return std::size(this->items);
 }
 
 SQInteger ScriptList::GetValue(SQInteger item)
 {
 	auto item_iter = this->items.find(item);
-	return item_iter == this->items.end() ? 0 : item_iter->second;
+	return item_iter == std::end(this->items) ? 0 : item_iter->second;
 }
 
 void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value)
@@ -615,7 +615,7 @@ bool ScriptList::SetValue(SQInteger item, SQInteger value)
 	this->modifications++;
 
 	auto item_iter = this->items.find(item);
-	if (item_iter == this->items.end()) return false;
+	if (item_iter == std::end(this->items)) return false;
 
 	this->SetIterValue(item_iter, value);
 
@@ -639,7 +639,7 @@ void ScriptList::AddList(ScriptList *list)
 {
 	if (list == this) return;
 
-	if (this->IsEmpty()) {
+	if (std::empty(this->items)) {
 		/* If this is empty, we can just take the items of the other list as is. */
 		this->items = list->items;
 		this->values = list->values;
@@ -659,8 +659,8 @@ void ScriptList::SwapList(ScriptList *list)
 {
 	if (list == this) return;
 
-	this->items.swap(list->items);
-	this->values.swap(list->values);
+	std::swap(this->items, list->items);
+	std::swap(this->values, list->values);
 	std::swap(this->sorter, list->sorter);
 	std::swap(this->sorter_type, list->sorter_type);
 	std::swap(this->sort_ascending, list->sort_ascending);
@@ -675,7 +675,7 @@ void ScriptList::RemoveAboveValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second > value) this->RemoveItem(iter->first);
 	}
@@ -685,7 +685,7 @@ void ScriptList::RemoveBelowValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second < value) this->RemoveItem(iter->first);
 	}
@@ -695,7 +695,7 @@ void ScriptList::RemoveBetweenValue(SQInteger start, SQInteger end)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second > start && iter->second < end) this->RemoveItem(iter->first);
 	}
@@ -705,7 +705,7 @@ void ScriptList::RemoveValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second == value) this->RemoveItem(iter->first);
 	}
@@ -726,14 +726,14 @@ void ScriptList::RemoveTop(SQInteger count)
 		default: NOT_REACHED();
 		case SORT_BY_VALUE:
 			if (!this->values_inited) this->InitValues();
-			for (auto iter = this->values.begin(); iter != this->values.end(); iter = this->values.begin()) {
+			for (auto iter = std::begin(this->values); iter != std::end(this->values); iter = std::begin(this->values)) {
 				if (--count < 0) return;
 				this->RemoveValueIter(iter);
 			}
 			break;
 
 		case SORT_BY_ITEM:
-			for (auto iter = this->items.begin(); iter != this->items.end(); iter = this->items.begin()) {
+			for (auto iter = std::begin(this->items); iter != std::end(this->items); iter = std::begin(this->items)) {
 				if (--count < 0) return;
 				this->RemoveIter(iter);
 			}
@@ -756,7 +756,7 @@ void ScriptList::RemoveBottom(SQInteger count)
 		default: NOT_REACHED();
 		case SORT_BY_VALUE:
 			if (!this->values_inited) this->InitValues();
-			for (auto iter = this->values.end(); iter != this->values.begin(); iter = this->values.end()) {
+			for (auto iter = std::end(this->values); iter != std::begin(this->values); iter = std::end(this->values)) {
 				if (--count < 0) return;
 				--iter;
 				this->RemoveValueIter(iter);
@@ -764,7 +764,7 @@ void ScriptList::RemoveBottom(SQInteger count)
 			break;
 
 		case SORT_BY_ITEM:
-			for (auto iter = this->items.end(); iter != this->items.begin(); iter = this->items.end()) {
+			for (auto iter = std::end(this->items); iter != std::begin(this->items); iter = std::end(this->items)) {
 				if (--count < 0) return;
 				--iter;
 				this->RemoveIter(iter);
@@ -790,7 +790,7 @@ void ScriptList::KeepAboveValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second <= value) this->RemoveIter(iter);
 	}
@@ -800,7 +800,7 @@ void ScriptList::KeepBelowValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second >= value) this->RemoveIter(iter);
 	}
@@ -810,7 +810,7 @@ void ScriptList::KeepBetweenValue(SQInteger start, SQInteger end)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second <= start || iter->second >= end) this->RemoveIter(iter);
 	}
@@ -820,7 +820,7 @@ void ScriptList::KeepValue(SQInteger value)
 {
 	this->modifications++;
 
-	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
+	for (ScriptListMap::iterator next_iter, iter = std::begin(this->items); iter != std::end(this->items); iter = next_iter) {
 		next_iter = std::next(iter);
 		if (iter->second != value) this->RemoveIter(iter);
 	}
@@ -860,7 +860,7 @@ SQInteger ScriptList::_get(HSQUIRRELVM vm)
 	sq_getinteger(vm, 2, &idx);
 
 	auto item_iter = this->items.find(idx);
-	if (item_iter == this->items.end()) return SQ_ERROR;
+	if (item_iter == std::end(this->items)) return SQ_ERROR;
 
 	sq_pushinteger(vm, item_iter->second);
 	return 1;
@@ -902,7 +902,7 @@ SQInteger ScriptList::_set(HSQUIRRELVM vm)
 SQInteger ScriptList::_nexti(HSQUIRRELVM vm)
 {
 	if (sq_gettype(vm, 2) == OT_NULL) {
-		if (this->IsEmpty()) {
+		if (std::empty(this->items)) {
 			sq_pushnull(vm);
 			return 1;
 		}
@@ -952,7 +952,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	/* Push the function to call */
 	sq_push(vm, 2);
 
-	for (auto iter = this->items.begin(); iter != this->items.end(); ++iter) {
+	for (auto iter = std::begin(this->items); iter != std::end(this->items); ++iter) {
 		/* Check for changing of items. */
 		int previous_modification_count = this->modifications;
 
