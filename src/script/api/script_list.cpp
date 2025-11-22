@@ -540,41 +540,41 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.insert({item, value});
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		this->SetIterValue(res.first, value);
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.insert({value, item});
 }
 
 void ScriptList::AddToItemValue(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.insert({item, value});
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		this->SetIterValue(res.first, res.first->second + value);
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.insert({value, item});
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.insert(std::make_pair(item, value));
+	auto res = this->items.insert({item, value});
 	if (!res.second) {
 		/* Key was already present, insertion did not take place */
 		return;
 	}
 
-	if (this->values_inited) this->values.insert(std::make_pair(value, item));
+	if (this->values_inited) this->values.insert({value, item});
 }
 
 ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
@@ -586,7 +586,7 @@ ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterat
 
 	auto new_item_iter = this->items.erase(item_iter);
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value, item));
+		auto value_iter = this->values.find({value, item});
 
 		auto new_value_iter = this->values.erase(value_iter);
 		if (this->initialized) this->sorter->PostErase(new_item_iter, new_value_iter);
@@ -623,7 +623,7 @@ void ScriptList::InitValues()
 {
 	this->values.clear();
 	for (const auto &iter : this->items) {
-		this->values.insert(std::make_pair(iter.second, iter.first));
+		this->values.insert({iter.second, iter.first});
 	}
 	this->values_inited = true;
 }
@@ -708,9 +708,9 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 	item_iter->second = value;
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find(std::make_pair(value_old, item));
+		auto value_iter = this->values.find({value_old, item});
 		this->values.erase(value_iter);
-		this->values.insert(std::make_pair(value, item));
+		this->values.insert({value, item});
 	}
 }
 
