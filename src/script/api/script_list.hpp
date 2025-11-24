@@ -198,16 +198,6 @@ public:
 	void Clear();
 
 	/**
-	 * Add or set an item using a hint to speed up insertion.
-	 * @param hint  an iterator that points to the position where the item should be inserted.
-	 * @param item  the item to add or set.
-	 * @param value the value to assign.
-	 * @return an iterator that points to the added or set item.
-	 * @api -all
-	 */
-	ScriptList::ScriptListMap::iterator AddOrSetItem(ScriptList::ScriptListMap::iterator hint, SQInteger item, SQInteger value);
-
-	/**
 	 * Check if an item is in the list.
 	 * @param item the item to check for.
 	 * @return true if the item is in the list.
