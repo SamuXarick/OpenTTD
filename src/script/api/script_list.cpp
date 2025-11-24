@@ -446,10 +446,10 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.emplace(item, value);
-	if (!res.second) {
+	auto [item_iter, inserted] = this->items.try_emplace(item, value);
+	if (!inserted) {
 		/* Key was already present, insertion did not take place */
-		this->SetIterValue(res.first, value);
+		this->SetIterValue(item_iter, value);
 		return;
 	}
 
@@ -460,13 +460,11 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto res = this->items.emplace(item, value);
-	if (!res.second) {
-		/* Key was already present, insertion did not take place */
-		return;
-	}
+	bool inserted = this->items.try_emplace(item, value).second;
 
-	if (this->values_inited) this->values.emplace(value, item);
+	if (inserted && this->values_inited) {
+		this->values.emplace(value, item);
+	}
 }
 
 void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
@@ -476,12 +474,12 @@ void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 
 	if (this->initialized) this->sorter->Remove(item);
 
+	this->items.erase(item_iter);
+
 	if (this->values_inited) {
 		auto value_iter = this->values.find({value, item});
 		this->values.erase(value_iter);
 	}
-
-	this->items.erase(item_iter);
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
@@ -490,7 +488,9 @@ void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 
 	if (this->initialized) this->sorter->Remove(item);
 
-	this->items.erase(this->items.find(item));
+	auto item_iter = this->items.find(item);
+	this->items.erase(item_iter);
+
 	this->values.erase(value_iter);
 }
 
@@ -505,8 +505,8 @@ void ScriptList::RemoveItem(SQInteger item)
 void ScriptList::InitValues()
 {
 	this->values.clear();
-	for (const auto &iter : this->items) {
-		this->values.emplace(iter.second, iter.first);
+	for (const auto &[item, value] : this->items) {
+		this->values.emplace(value, item);
 	}
 	this->values_inited = true;
 }
@@ -636,8 +636,8 @@ void ScriptList::AddList(ScriptList *list)
 		}
 		this->modifications++;
 	} else {
-		for (const auto &item : list->items) {
-			this->AddOrSetItem(item.first, item.second);
+		for (const auto &[item, value] : list->items) {
+			this->AddOrSetItem(item, value);
 		}
 	}
 }
