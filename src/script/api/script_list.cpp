@@ -663,7 +663,7 @@ void ScriptList::RemoveAboveValue(SQInteger value)
 
 	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
 		next_iter = std::next(iter);
-		if (iter->second > value) this->RemoveItem(iter->first);
+		if (iter->second > value) this->RemoveIter(iter);
 	}
 }
 
@@ -673,7 +673,7 @@ void ScriptList::RemoveBelowValue(SQInteger value)
 
 	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
 		next_iter = std::next(iter);
-		if (iter->second < value) this->RemoveItem(iter->first);
+		if (iter->second < value) this->RemoveIter(iter);
 	}
 }
 
@@ -683,7 +683,7 @@ void ScriptList::RemoveBetweenValue(SQInteger start, SQInteger end)
 
 	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
 		next_iter = std::next(iter);
-		if (iter->second > start && iter->second < end) this->RemoveItem(iter->first);
+		if (iter->second > start && iter->second < end) this->RemoveIter(iter);
 	}
 }
 
@@ -693,7 +693,7 @@ void ScriptList::RemoveValue(SQInteger value)
 
 	for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
 		next_iter = std::next(iter);
-		if (iter->second == value) this->RemoveItem(iter->first);
+		if (iter->second == value) this->RemoveIter(iter);
 	}
 }
 
