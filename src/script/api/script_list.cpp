@@ -467,19 +467,19 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 	}
 }
 
-void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
+ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 {
 	SQInteger item = item_iter->first;
 	SQInteger value = item_iter->second;
 
 	if (this->initialized) this->sorter->Remove(item);
 
-	this->items.erase(item_iter);
-
 	if (this->values_inited) {
 		auto value_iter = this->values.find({value, item});
 		this->values.erase(value_iter);
 	}
+
+	return this->items.erase(item_iter);
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
