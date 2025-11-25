@@ -51,7 +51,7 @@ private:
 	void InitValues();
 	void InitSorter();
 	void SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value);
-	void RemoveMapIter(ScriptListMap::iterator item_iter);
+	ScriptListMap::iterator RemoveMapIter(ScriptListMap::iterator item_iter);
 	void RemoveSetIter(ScriptListSet::iterator value_iter);
 
 protected:
@@ -179,13 +179,16 @@ protected:
 			begin = this->items.begin();
 		}
 
-		for (ScriptListMap::iterator next_iter, iter = begin; iter != this->items.end(); iter = next_iter) {
+		for (auto iter = begin; iter != this->items.end();) {
 			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
 				this->resume_item = iter->first;
 				return true;
 			}
-			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second)) this->RemoveMapIter(iter);
+			if (value_filter(iter->first, iter->second)) {
+				iter = this->RemoveMapIter(iter);
+			} else {
+				++iter;
+			}
 			ScriptController::DecreaseOps(5);
 		}
 
