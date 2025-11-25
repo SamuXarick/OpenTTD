@@ -778,9 +778,23 @@ void ScriptList::RemoveList(ScriptList *list)
 
 	if (list == this) {
 		this->Clear();
-	} else {
-		for (const auto &item : list->items) {
-			this->RemoveItem(item.first);
+		return;
+	}
+
+	auto item_iter2 = list->items.begin();
+	auto item_iter1 = this->items.lower_bound(item_iter2->first);
+
+	while (item_iter1 != this->items.end() && item_iter2 != list->items.end()) {
+		if (item_iter1->first < item_iter2->first) {
+			/* key1 < key2 => advance 'this' */
+			++item_iter1;
+		} else if (item_iter1->first > item_iter2->first) {
+			/* key1 > key2 => advance 'list' */
+			++item_iter2;
+		} else {
+			/* key1 == key2 => erase from 'this', advance 'list' */
+			item_iter1 = this->RemoveIter(item_iter1);
+			++item_iter2;
 		}
 	}
 }
