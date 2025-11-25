@@ -524,7 +524,7 @@ ScriptList::~ScriptList()
 
 bool ScriptList::HasItem(SQInteger item) const
 {
-	return this->items.count(item) == 1;
+	return this->items.contains(item);
 }
 
 void ScriptList::Clear()
