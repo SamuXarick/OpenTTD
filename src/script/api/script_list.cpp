@@ -467,19 +467,19 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 	}
 }
 
-void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
+ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 {
 	SQInteger item = item_iter->first;
 	SQInteger value = item_iter->second;
 
 	if (this->initialized) this->sorter->Remove(item);
 
-	this->items.erase(item_iter);
-
 	if (this->values_inited) {
 		auto value_iter = this->values.find({value, item});
 		this->values.erase(value_iter);
 	}
+
+	return this->items.erase(item_iter);
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
@@ -785,8 +785,37 @@ void ScriptList::KeepBottom(SQInteger count)
 
 void ScriptList::KeepList(ScriptList *list)
 {
-	if (list == this) return;
-	this->RemoveItems([&](const SQInteger &k, const SQInteger &) { return !list->HasItem(k); });
+	if (list == this || this->IsEmpty()) return;
+
+	this->modifications++;
+
+	if (list->IsEmpty()) {
+		/* If 'list' is empty, we can just clear 'this'. */
+		this->Clear();
+		return;
+	}
+
+	auto item_iter1 = this->items.begin();
+	auto item_iter2 = list->items.begin();
+
+	while (item_iter1 != this->items.end() && item_iter2 != list->items.end()) {
+		if (item_iter1->first < item_iter2->first) {
+			/* key1 < key2 => key1 not in 'list', erase from 'this' */
+			item_iter1 = this->RemoveIter(item_iter1);
+		} else if (item_iter1->first > item_iter2->first) {
+			/* key1 > key2 => advance 'list' */
+			++item_iter2;
+		} else {
+			/* key1 == key2 => keep, advance both 'this' and 'list' */
+			++item_iter1;
+			++item_iter2;
+		}
+	}
+
+	/* 'list' exhausted: remaining keys in 'this' are not present in 'list' */
+	while (item_iter1 != this->items.end()) {
+		item_iter1 = this->RemoveIter(item_iter1);
+	}
 }
 
 SQInteger ScriptList::_get(HSQUIRRELVM vm)

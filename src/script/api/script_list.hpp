@@ -50,7 +50,7 @@ private:
 	void InitValues();
 	void InitSorter();
 	void SetIterValue(ScriptListMap::iterator item_iter, SQInteger value);
-	void RemoveIter(ScriptListMap::iterator item_iter);
+	ScriptListMap::iterator RemoveIter(ScriptListMap::iterator item_iter);
 	void RemoveValueIter(ScriptListValueSet::iterator value_iter);
 
 protected:
