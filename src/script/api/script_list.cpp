@@ -632,6 +632,7 @@ void ScriptList::AddList(ScriptList *list)
 		this->values = list->values;
 		this->values_inited = list->values_inited;
 		if (!this->values_inited && this->initialized && this->sorter_type == SORT_BY_VALUE) {
+			assert(this->values.empty());
 			this->InitValues();
 		}
 		this->modifications++;
