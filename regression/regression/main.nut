@@ -30,6 +30,9 @@ function Regression::TestInit()
 	print("");
 	print(" Value Descending");
 	local list = AIList();
+	print("  GetSorterType():      " + list.GetSorterType());
+	print("  GetSorterDirection(): " + list.GetSorterDirection());
+
 	list.AddItem( 5, 10);
 	list.AddItem(10, 10);
 	list.AddItem(15, 20);
@@ -65,6 +68,9 @@ function Regression::TestInit()
 	list.Sort(AIList.SORT_BY_VALUE, AIList.SORT_ASCENDING);
 	print("");
 	print(" Value Ascending");
+	print("  GetSorterType():      " + list.GetSorterType());
+	print("  GetSorterDirection(): " + list.GetSorterDirection());
+
 	list.AddItem( 5, 10);
 	list.AddItem(10, 10);
 	list.AddItem(15, 20);
@@ -100,6 +106,9 @@ function Regression::TestInit()
 	list.Sort(AIList.SORT_BY_ITEM, AIList.SORT_DESCENDING);
 	print("");
 	print(" Item Descending");
+	print("  GetSorterType():      " + list.GetSorterType());
+	print("  GetSorterDirection(): " + list.GetSorterDirection());
+
 	list.AddItem( 5, 10);
 	list.AddItem(10, 10);
 	list.AddItem(15, 20);
@@ -135,6 +144,9 @@ function Regression::TestInit()
 	list.Sort(AIList.SORT_BY_ITEM, AIList.SORT_ASCENDING);
 	print("");
 	print(" Item Ascending");
+	print("  GetSorterType():      " + list.GetSorterType());
+	print("  GetSorterDirection(): " + list.GetSorterDirection());
+
 	list.AddItem( 5, 10);
 	list.AddItem(10, 10);
 	list.AddItem(15, 20);
@@ -170,6 +182,9 @@ function Regression::TestInit()
 	foreach (idx, val in list) {
 		print("   " + idx);
 	}
+
+	print("");
+	print(" IsSlowValuateEnabled(): " + list.IsSlowValuateEnabled());
 
 	print(" Ops:      " + this.GetOpsTillSuspend());
 }
@@ -2074,6 +2089,8 @@ function Regression::PriorityQueue()
 
 function Regression::Start()
 {
+	local tick = this.GetTick();
+	local ops = this.GetOpsTillSuspend();
 	this.TestInit();
 	this.Std();
 	this.Base();
@@ -2170,6 +2187,7 @@ function Regression::Start()
 
 	this.Math();
 	this.PriorityQueue();
+	print("  Regression completed in " + (this.GetTick() - tick) + " ticks and " + (ops - this.GetOpsTillSuspend()) + " ops");
 
 	/* Check Valuate() is actually limited, MUST BE THE LAST TEST. */
 	print("--Valuate() with excessive CPU usage--")
