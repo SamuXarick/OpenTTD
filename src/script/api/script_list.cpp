@@ -420,7 +420,6 @@ ScriptList::ScriptList()
 	this->initialized    = false;
 	this->values_inited  = false;
 	this->modifications  = 0;
-	this->iter_current = this->items.end();
 }
 
 ScriptList::~ScriptList()
@@ -440,7 +439,6 @@ void ScriptList::Clear()
 	this->values.clear();
 	this->values_inited = false;
 	if (this->sorter != nullptr) this->sorter->End();
-	this->iter_current = this->items.end();
 }
 
 ScriptList::ScriptListMap::iterator ScriptList::AddOrSetItem(ScriptListMap::iterator hint, SQInteger item, SQInteger value)
@@ -462,29 +460,28 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	this->iter_current = this->items.try_emplace(this->iter_current, item, value);
-	if (this->iter_current->second != value) {
+	auto [item_iter, inserted] = this->items.try_emplace(item, value);
+	if (!inserted) {
 		/* Key was already present, insertion did not take place */
-		this->SetIterValue(this->iter_current, value);
-	} else if (this->values_inited) {
-		this->values.emplace(value, item);
+		this->SetIterValue(item_iter, value);
+		return;
 	}
-	++this->iter_current;
+
+	if (this->values_inited) this->values.emplace(value, item);
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	this->iter_current = this->items.try_emplace(this->iter_current, item, value);
+	bool inserted = this->items.try_emplace(item, value).second;
 
-	if (this->iter_current->second == value && this->values_inited) {
+	if (inserted && this->values_inited) {
 		this->values.emplace(value, item);
 	}
-	++this->iter_current;
 }
 
-void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
+ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 {
 	SQInteger item = item_iter->first;
 	SQInteger value = item_iter->second;
@@ -496,7 +493,7 @@ void ScriptList::RemoveIter(ScriptListMap::iterator item_iter)
 		this->values.erase(value_iter);
 	}
 
-	this->iter_current = this->items.erase(item_iter);
+	return this->items.erase(item_iter);
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
@@ -699,8 +696,6 @@ void ScriptList::SwapList(ScriptList *list)
 	std::swap(this->modifications, list->modifications);
 	if (this->sorter != nullptr) this->sorter->Retarget(this);
 	if (list->sorter != nullptr) list->sorter->Retarget(list);
-	this->iter_current = this->items.end(); // TODO: Retain position?
-	list->iter_current = list->items.end(); // TODO: Retain position?
 }
 
 void ScriptList::RemoveAboveValue(SQInteger value)
@@ -709,8 +704,7 @@ void ScriptList::RemoveAboveValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second > value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -723,8 +717,7 @@ void ScriptList::RemoveBelowValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second < value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -737,8 +730,7 @@ void ScriptList::RemoveBetweenValue(SQInteger start, SQInteger end)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second > start && iter->second < end) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -751,8 +743,7 @@ void ScriptList::RemoveValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second == value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -842,8 +833,7 @@ void ScriptList::RemoveList(ScriptList *list)
 			++item_iter2;
 		} else {
 			/* key1 == key2 => erase from 'this', advance 'list' */
-			this->RemoveIter(item_iter1);
-			item_iter1 = this->iter_current;
+			item_iter1 = this->RemoveIter(item_iter1);
 			++item_iter2;
 		}
 	}
@@ -855,8 +845,7 @@ void ScriptList::KeepAboveValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second <= value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -869,8 +858,7 @@ void ScriptList::KeepBelowValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second >= value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -883,8 +871,7 @@ void ScriptList::KeepBetweenValue(SQInteger start, SQInteger end)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second <= start || iter->second >= end) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -897,8 +884,7 @@ void ScriptList::KeepValue(SQInteger value)
 
 	for (auto iter = this->items.begin(); iter != this->items.end();) {
 		if (iter->second != value) {
-			this->RemoveIter(iter);
-			iter = this->iter_current;
+			iter = this->RemoveIter(iter);
 		} else {
 			++iter;
 		}
@@ -937,8 +923,7 @@ void ScriptList::KeepList(ScriptList *list)
 	while (item_iter1 != this->items.end() && item_iter2 != list->items.end()) {
 		if (item_iter1->first < item_iter2->first) {
 			/* key1 < key2 => key1 not in 'list', erase from 'this' */
-			this->RemoveIter(item_iter1);
-			item_iter1 = this->iter_current;
+			item_iter1 = this->RemoveIter(item_iter1);
 		} else if (item_iter1->first > item_iter2->first) {
 			/* key1 > key2 => advance 'list' */
 			++item_iter2;
@@ -951,8 +936,7 @@ void ScriptList::KeepList(ScriptList *list)
 
 	/* 'list' exhausted: remaining keys in 'this' are not present in 'list' */
 	while (item_iter1 != this->items.end()) {
-		this->RemoveIter(item_iter1);
-		item_iter1 = this->iter_current;
+		item_iter1 = this->RemoveIter(item_iter1);
 	}
 }
 

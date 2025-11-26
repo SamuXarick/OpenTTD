@@ -45,12 +45,11 @@ private:
 	bool initialized;             ///< Whether an iteration has been started
 	bool values_inited;           ///< Whether the 'values' field has been initialised
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
-	ScriptListMap::iterator iter_current; ///< Current iterator position
 
 	void InitValues();
 	void InitSorter();
 	void SetIterValue(ScriptListMap::iterator item_iter, SQInteger value);
-	void RemoveIter(ScriptListMap::iterator item_iter);
+	ScriptListMap::iterator RemoveIter(ScriptListMap::iterator item_iter);
 	void RemoveValueIter(ScriptListValueSet::iterator value_iter);
 
 protected:
