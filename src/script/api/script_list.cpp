@@ -442,6 +442,21 @@ void ScriptList::Clear()
 	if (this->sorter != nullptr) this->sorter->End();
 }
 
+ScriptList::ScriptListMap::iterator ScriptList::AddOrSetItem(ScriptListMap::iterator hint, SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	hint = this->items.try_emplace(hint, item, value);
+	if (hint->second != value) {
+		/* Key was already present, insertion did not take place */
+		this->SetIterValue(hint, value);
+	} else if (this->values_inited) {
+		this->values.emplace(value, item);
+	}
+
+	return hint;
+}
+
 void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
@@ -624,7 +639,9 @@ void ScriptList::Sort(SorterType sorter, bool ascending)
 
 void ScriptList::AddList(ScriptList *list)
 {
-	if (list == this) return;
+	if (list == this || list->IsEmpty()) return;
+
+	this->modifications++;
 
 	if (this->IsEmpty()) {
 		/* If this is empty, we can just take the items of the other list as is. */
@@ -635,11 +652,34 @@ void ScriptList::AddList(ScriptList *list)
 			assert(this->values.empty());
 			this->InitValues();
 		}
-		this->modifications++;
-	} else {
-		for (const auto &[item, value] : list->items) {
-			this->AddOrSetItem(item, value);
+		return;
+	}
+
+	auto item_iter2 = list->items.begin();
+	auto item_iter1 = this->items.lower_bound(item_iter2->first);
+
+	while (item_iter1 != this->items.end() && item_iter2 != list->items.end()) {
+		if (item_iter1->first < item_iter2->first) {
+			/* key1 < key2 => advance 'this' */
+			++item_iter1;
+		} else if (item_iter1->first > item_iter2->first) {
+			/* key1 > key2 => add 'list' key/val to 'this', advance both 'this' and 'list' */
+			item_iter1 = this->AddOrSetItem(item_iter1, item_iter2->first, item_iter2->second);
+			++item_iter1;
+			++item_iter2;
+		} else {
+			/* key1 == key2 => set 'this' with'list' value, advance both 'this' and 'list' */
+			this->SetIterValue(item_iter1, item_iter2->second);
+			++item_iter1;
+			++item_iter2;
 		}
+	}
+
+	while (item_iter2 != list->items.end()) {
+		/* Add remaining items from 'list' */
+		item_iter1 = this->AddOrSetItem(item_iter1, item_iter2->first, item_iter2->second);
+		++item_iter1;
+		++item_iter2;
 	}
 }
 

@@ -202,6 +202,11 @@ public:
 	void AddOrSetItem(SQInteger item, SQInteger value);
 
 	/**
+	 * @api -all
+	 */
+	ScriptListMap::iterator AddOrSetItem(ScriptListMap::iterator hint, SQInteger item, SQInteger value = 0);
+
+	/**
 	 * Remove a single item from the list.
 	 * @param item the item to remove. If not existing, it is ignored.
 	 */
