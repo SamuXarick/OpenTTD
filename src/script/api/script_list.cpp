@@ -153,7 +153,7 @@ public:
 	{
 		if (this->item_next.has_value()) {
 			auto item_iter = this->list->items.find(this->item_next.value());
-			this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+			this->value_iter = item_iter->second.viter;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -247,7 +247,7 @@ public:
 	{
 		if (this->item_next.has_value()) {
 			auto item_iter = this->list->items.find(this->item_next.value());
-			this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+			this->value_iter = item_iter->second.viter;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -444,7 +444,7 @@ bool ScriptList::SaveObject(HSQUIRRELVM vm) const
 	sq_newtable(vm);
 	for (const auto &item : this->items) {
 		sq_pushinteger(vm, item.first);
-		sq_pushinteger(vm, item.second);
+		sq_pushinteger(vm, item.second.value);
 		sq_rawset(vm, -3);
 	}
 	sq_arrayappend(vm, -2);
@@ -495,6 +495,7 @@ void ScriptList::CopyList(const ScriptList *list)
 	this->Sort(list->sorter_type, list->sort_ascending);
 	this->items = list->items;
 	this->values = list->values;
+	this->RefreshValueItemLinks();
 }
 
 ScriptList::ScriptList()
@@ -531,8 +532,7 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 
 	if (this->HasItem(item)) return;
 
-	this->items[item] = value;
-	this->values.emplace(value, item);
+	this->items.try_emplace(item, value, this->values.emplace(value, item).first);
 }
 
 void ScriptList::RemoveItem(SQInteger item)
@@ -542,12 +542,8 @@ void ScriptList::RemoveItem(SQInteger item)
 	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return;
 
-	SQInteger value = item_iter->second;
-
 	this->sorter->Remove(item);
-	auto value_iter = this->values.find({value, item});
-	assert(value_iter != this->values.end());
-	this->values.erase(value_iter);
+	this->values.erase(item_iter->second.viter);
 	this->items.erase(item_iter);
 }
 
@@ -588,7 +584,7 @@ SQInteger ScriptList::Count() const
 SQInteger ScriptList::GetValue(SQInteger item) const
 {
 	auto item_iter = this->items.find(item);
-	return item_iter == this->items.end() ? 0 : item_iter->second;
+	return item_iter == this->items.end() ? 0 : item_iter->second.value;
 }
 
 bool ScriptList::SetValue(SQInteger item, SQInteger value)
@@ -598,16 +594,15 @@ bool ScriptList::SetValue(SQInteger item, SQInteger value)
 	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return false;
 
-	SQInteger value_old = item_iter->second;
+	SQInteger value_old = item_iter->second.value;
 	if (value_old == value) return true;
 
 	this->sorter->Remove(item);
-	auto value_iter = this->values.find({value_old, item});
-	assert(value_iter != this->values.end());
-	item_iter->second = value;
-	auto node_handle = this->values.extract(value_iter);
+	assert(item_iter->second.viter != this->values.end());
+	item_iter->second.value = value;
+	auto node_handle = this->values.extract(item_iter->second.viter);
 	node_handle.value().first = value;
-	this->values.insert(std::move(node_handle));
+	item_iter->second.viter = this->values.insert(std::move(node_handle)).position;
 
 	return true;
 }
@@ -651,6 +646,7 @@ bool ScriptList::AddList(ScriptList *list)
 		/* If this is empty, we can just take the items of the other list as is. */
 		this->items = list->items;
 		this->values = list->values;
+		this->RefreshValueItemLinks();
 		this->modifications++;
 	} else {
 		ScriptObject::DisableDoCommandScope disabler{};
@@ -666,7 +662,7 @@ bool ScriptList::AddList(ScriptList *list)
 				return true;
 			}
 			this->AddItem(item.first);
-			this->SetValue(item.first, item.second);
+			this->SetValue(item.first, item.second.value);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -676,12 +672,52 @@ bool ScriptList::AddList(ScriptList *list)
 	return false;
 }
 
+void ScriptList::RefreshValueItemLinks()
+{
+	/* Define a helper struct that links each item key to its ItemRecord.
+	 * It can be implicitly converted into the (value,item) pair required
+	 * by ScriptListSet for insertion. */
+	struct ValueItemLink {
+		SQInteger item;
+		ItemRecord *record; ///< pointer to original record
+
+		/* Conversion operator: allows direct insertion into values set */
+		operator ScriptListSet::value_type() const { return {record->value, item}; }
+	};
+
+	/* Build a buffer of links (item -> record) for all items.
+	 * This buffer will be sorted before bulk insertion. */
+	std::vector<ValueItemLink> insertion_buffer;
+	insertion_buffer.reserve(this->items.size());
+
+	/* Populate buffer with (item, record) links */
+	for (auto &[item, record] : this->items) {
+		insertion_buffer.push_back({item, &record});
+	}
+
+	/* Sort buffer by (value,item) so that bulk insertion into the set
+	 * can be performed in linear time. */
+	std::ranges::sort(insertion_buffer, [](auto &a, auto &b) {
+		return std::tie(a.record->value, a.item) < std::tie(b.record->value, b.item);
+	});
+
+	/* Walk values set and buffer in parallel.
+	 * Assign each ItemRecord its correct iterator into values. */
+	auto value_iter = this->values.begin();
+	for (auto &link : insertion_buffer) {
+		link.record->viter = value_iter;
+		++value_iter;
+	}
+}
+
 void ScriptList::SwapList(ScriptList *list)
 {
 	if (list == this) return;
 
 	this->items.swap(list->items);
 	this->values.swap(list->values);
+	this->RefreshValueItemLinks();
+	list->RefreshValueItemLinks();
 	std::swap(this->sorter, list->sorter);
 	std::swap(this->sorter_type, list->sorter_type);
 	std::swap(this->sort_ascending, list->sort_ascending);
@@ -797,7 +833,7 @@ SQInteger ScriptList::_get(HSQUIRRELVM vm) const
 	auto item_iter = this->items.find(idx);
 	if (item_iter == this->items.end()) return SQ_ERROR;
 
-	sq_pushinteger(vm, item_iter->second);
+	sq_pushinteger(vm, item_iter->second.value);
 	return 1;
 }
 
