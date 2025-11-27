@@ -35,8 +35,16 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
-	typedef std::map<SQInteger, SQInteger> ScriptListMap;                 ///< Item to value map
-	typedef std::set<std::pair<SQInteger, SQInteger>> ScriptListValueSet; ///< [Value, Item] set
+	using ScriptListValueSet = std::set<std::pair<SQInteger, SQInteger>>; // [value, item]
+
+	struct ItemRecord {
+		SQInteger value;
+		ScriptListValueSet::iterator viter;  ///< iterator into `values`
+
+		explicit ItemRecord(SQInteger value) : value(value), viter() {}
+	};
+
+	using ScriptListMap = std::map<SQInteger, ItemRecord>; // key = item
 
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
@@ -170,7 +178,7 @@ protected:
 		this->modifications++;
 
 		for (auto iter = this->items.begin(); iter != this->items.end();) {
-			if (value_filter(iter->first, iter->second)) {
+			if (value_filter(iter->first, iter->second.value)) {
 				iter = this->RemoveIter(iter);
 			} else {
 				++iter;
