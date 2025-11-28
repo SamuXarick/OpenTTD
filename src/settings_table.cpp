@@ -42,7 +42,10 @@
 #include "base_media_sounds.h"
 #include "ai/ai_config.hpp"
 #include "ai/ai.hpp"
+#include "ai/ai_instance.hpp"
 #include "game/game_config.hpp"
+#include "game/game.hpp"
+#include "game/game_instance.hpp"
 #include "ship.h"
 #include "smallmap_gui.h"
 #include "roadveh.h"
@@ -683,6 +686,29 @@ static std::tuple<int32_t, uint32_t> GetMinutesPerYearRange(const IntSettingDesc
 static bool CanChangeTimetableMode(int32_t &)
 {
 	return !TimerGameEconomy::UsingWallclockUnits();
+}
+
+/**
+ * Callback after changing script max opcode till suspend.
+ * @param new_value The new value to change to.
+ */
+static void ScriptMaxOpcodeTillSuspendChanged(int32_t new_value)
+{
+	if (GetGameSettings().script.self_regulate_max_opcode) return;
+	Game::GetInstance()->SetMaxOpsTillSuspend(new_value);
+	for (const Company *c : Company::Iterate()) {
+		Company::Get(c->index)->ai_instance.get()->SetMaxOpsTillSuspend(new_value);
+	}
+}
+
+/**
+ * Callback after changing self regulate max opcode setting.
+ * @param new_value The new value to change to.
+ */
+static void SelfRegulateMaxOpcodeChanged(int32_t new_value)
+{
+	if (new_value != 0) return;
+	ScriptMaxOpcodeTillSuspendChanged(GetGameSettings().script.script_max_opcode_till_suspend);
 }
 
 /* End - Callback Functions */
