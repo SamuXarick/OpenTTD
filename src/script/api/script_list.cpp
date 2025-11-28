@@ -597,7 +597,7 @@ ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterat
 	return new_item_iter;
 }
 
-ScriptList::ScriptListValueSet::iterator ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
+void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 {
 	SQInteger item = value_iter->second;
 
@@ -607,8 +607,6 @@ ScriptList::ScriptListValueSet::iterator ScriptList::RemoveValueIter(ScriptListV
 	auto new_value_iter = this->values.erase(value_iter);
 
 	if (this->initialized) this->sorter->PostErase(new_item_iter, new_value_iter);
-
-	return new_value_iter;
 }
 
 void ScriptList::RemoveItem(SQInteger item)

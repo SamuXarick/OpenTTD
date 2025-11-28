@@ -56,7 +56,7 @@ private:
 	void InitSorter();
 	void SetIterValue(ScriptListMap::iterator item_iter, SQInteger value);
 	ScriptListMap::iterator RemoveIter(ScriptListMap::iterator item_iter);
-	ScriptListValueSet::iterator RemoveValueIter(ScriptListValueSet::iterator value_iter);
+	void RemoveValueIter(ScriptListValueSet::iterator value_iter);
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
