@@ -175,9 +175,12 @@ protected:
 	{
 		this->modifications++;
 
-		for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
-			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second)) this->RemoveMapIter(iter);
+		for (auto iter = this->items.begin(); iter != this->items.end();) {
+			if (value_filter(iter->first, iter->second)) {
+				iter = this->RemoveMapIter(iter);
+			} else {
+				++iter;
+			}
 		}
 	}
 
