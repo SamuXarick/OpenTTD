@@ -21,6 +21,6 @@ ScriptTownList::ScriptTownList(HSQUIRRELVM vm)
 ScriptTownEffectList::ScriptTownEffectList()
 {
 	for (int i = TAE_BEGIN; i < TAE_END; i++) {
-		this->AddItem(i);
+		this->AddItemUnchecked(i);
 	}
 }
