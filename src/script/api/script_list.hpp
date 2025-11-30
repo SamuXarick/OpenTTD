@@ -13,6 +13,7 @@
 
 #include "script_object.hpp"
 #include "script_controller.hpp"
+#include "../../core/bplustree_type.hpp"
 
 /** Maximum number of operations allowed for valuating a list. */
 static const int MAX_VALUATE_OPS = 1000000;
@@ -36,8 +37,8 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
-	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-	using ScriptListMap = std::map<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
+	using ScriptListSet = BPlusTree<std::pair<SQInteger, SQInteger>, void, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
+	using ScriptListMap = BPlusTree<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
 
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
@@ -180,11 +181,11 @@ protected:
 		}
 
 		for (auto iter = begin; iter != this->items.end();) {
-			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = iter->first;
+			if (disabler.GetOriginalValue() && (*iter).first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = (*iter).first;
 				return true;
 			}
-			if (value_filter(iter->first, iter->second)) {
+			if (value_filter((*iter).first, (*iter).second)) {
 				iter = this->RemoveMapIter(iter);
 			} else {
 				++iter;
