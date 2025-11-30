@@ -54,6 +54,7 @@ public:
 
 		Node *leaf_ = nullptr;
 		size_t index_ = 0;
+		const BPlusTree *owner_ = nullptr;
 
 		// Dereference
 		reference operator*() const {
@@ -73,8 +74,7 @@ public:
 
 		// Increment
 		iterator &operator++() {
-			std::cout << "Leaf=" << leaf_ << " index=" << index_ 
-				<< " count=" << leaf_->count << "\n";
+//			std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
 
 			if (this->leaf_ == nullptr) return *this;
 			if (++this->index_ >= this->leaf_->count) {
@@ -88,17 +88,28 @@ public:
 
 		// Decrement
 		iterator &operator--() {
-			if (this->leaf_ == nullptr) return *this; // end() case
+			if (this->leaf_ == nullptr) {
+				// Special case: --end() should land on the last element
+				this->leaf_ = this->owner_->rightmost_leaf();           // helper to find last leaf
+				this->index_ = this->leaf_ != nullptr? this->leaf_->count - 1 : 0;
+				return *this;
+			}
+
 			if (this->index_ == 0) {
+				// Move to previous leaf
 				this->leaf_ = this->leaf_->prev_leaf;
-				if (this->leaf_) this->index_ = this->leaf_->count - 1;
+				if (this->leaf_ != nullptr) this->index_ = this->leaf_->count - 1;
 			} else {
 				--this->index_;
 			}
 			return *this;
 		}
 
-		iterator operator--(int) { auto tmp = *this; --(*this); return tmp; }
+		iterator operator--(int) {
+			auto tmp = *this;
+			--(*this);
+			return tmp;
+		}
 
 		// Equality
 		friend bool operator==(const iterator &a, const iterator &b) {
@@ -119,6 +130,7 @@ public:
 
 		const Node *leaf_ = nullptr;
 		size_t index_ = 0;
+		const BPlusTree *owner_ = nullptr; // back-pointer to the tree
 
 		reference operator*() const {
 			return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] };
@@ -145,18 +157,30 @@ public:
 		}
 		const_iterator operator++(int) { auto tmp = *this; ++(*this); return tmp; }
 
+		// Decrement
 		const_iterator &operator--() {
-			if (this->leaf_ == nullptr) return *this; // end() case
+			if (this->leaf_ == nullptr) {
+				// Special case: --end() should land on the last element
+				this->leaf_ = this->owner_->rightmost_leaf();           // helper to find last leaf
+				this->index_ = this->leaf_ != nullptr? this->leaf_->count - 1 : 0;
+				return *this;
+			}
+
 			if (this->index_ == 0) {
+				// Move to previous leaf
 				this->leaf_ = this->leaf_->prev_leaf;
-				if (this->leaf_) this->index_ = this->leaf_->count - 1;
+				if (this->leaf_ != nullptr) this->index_ = this->leaf_->count - 1;
 			} else {
 				--this->index_;
 			}
 			return *this;
 		}
-		const_iterator operator--(int) { auto tmp = *this; --(*this); return tmp; }
 
+		const_iterator operator--(int) {
+			auto tmp = *this;
+			--(*this);
+			return tmp;
+		}
 		friend bool operator==(const const_iterator &a, const const_iterator &b) {
 			return a.leaf_ == b.leaf_ && a.index_ == b.index_;
 		}
@@ -165,6 +189,24 @@ public:
 			return !(a == b);
 		}
 	};
+
+	Node *leftmost_leaf() const {
+		Node *node = this->root.get();
+		if (node == nullptr) return nullptr;
+		while (!node->is_leaf) {
+			node = node->children[0].get();
+		}
+		return node;
+	}
+
+	Node *rightmost_leaf() const {
+		Node *node = this->root.get();
+		if (node == nullptr) return nullptr;
+		while (!node->is_leaf) {
+			node = node->children[node->count].get(); // rightmost child
+		}
+		return node;
+	}
 
 	void insert(const Key &key, const Value &value) {
 		if (this->root == nullptr) {
@@ -397,38 +439,25 @@ public:
 	}
 
 	// Return iterator to first element
-	iterator begin() {
-		Node *node = this->root.get();
-		if (node == nullptr) return this->end();
-
-		// Descend to leftmost leaf
-		while (node != nullptr && !node->is_leaf) {
-			node = node->children[0].get();
-		}
-		if (node == nullptr || node->count == 0) return this->end();
-		return iterator(node, 0);
+	iterator begin() { 
+		Node *first = this->leftmost_leaf();
+		return iterator(first, 0, this);
 	}
 
 	const_iterator begin() const {
-		const Node *node = this->root.get();
-		if (node == nullptr) return this->cend();
-
-		while (node != nullptr && !node->is_leaf) {
-			node = node->children[0].get();
-		}
-		if (node == nullptr || node->count == 0) return this->cend();
-		return const_iterator(node, 0);
+		const Node *first = this->leftmost_leaf();
+		return const_iterator(first, 0, this);
 	}
 
 	const_iterator cbegin() const { return this->begin(); }
 
 	// Return iterator to "one past the last element"
 	iterator end() {
-		return iterator(nullptr, 0); // sentinel
+		return iterator(nullptr, 0, this); // sentinel
 	}
 
 	const_iterator end() const {
-		return const_iterator(nullptr, 0); // sentinel
+		return const_iterator(nullptr, 0, this); // sentinel
 	}
 
 	const_iterator cend() const { return this->end(); }
@@ -445,9 +474,9 @@ public:
 			// next leaf (or end) if key is greater than all in this leaf
 			node = node->next_leaf;
 			if (node == nullptr) return this->end();
-			return iterator(node, 0);
+			return iterator(node, 0, this);
 		}
-		return iterator(node, i);
+		return iterator(node, i, this);
 	}
 
 	// Deep copy constructor
@@ -524,7 +553,7 @@ public:
 
 		size_t i = this->lower_bound(node->keys, node->count, key);
 		if (i < node->count && node->keys[i] == key) {
-			return iterator(node, i);
+			return iterator(node, i, this);
 		}
 		return this->end();
 	}
@@ -542,7 +571,7 @@ public:
 
 		size_t i = this->lower_bound(node->keys, node->count, key);
 		if (i < node->count && node->keys[i] == key) {
-			return const_iterator(node, i);
+			return const_iterator(node, i, this);
 		}
 		return this->cend();
 	}
@@ -593,9 +622,9 @@ public:
 
 		// Return iterator to next element
 		if (i < leaf->count) {
-			return iterator(leaf, i);
+			return iterator(leaf, i, this);
 		} else if (leaf->next_leaf) {
-			return iterator(leaf->next_leaf, 0);
+			return iterator(leaf->next_leaf, 0, this);
 		} else {
 			return this->end();
 		}
@@ -612,7 +641,6 @@ private:
 		return total;
 	}
 
-private:
 	// Iteration: start from leftmost leaf
 	Node *begin_leaf() const {
 		Node *node = this->root.get();
@@ -791,7 +819,6 @@ private:
 			}
 		}
 	}
-
 
 };
 
