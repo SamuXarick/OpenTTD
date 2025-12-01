@@ -473,12 +473,16 @@ ScriptList::ScriptList()
 	int count = 5;
 	for (auto it = tree.end(); count > 0 && it != tree.begin();) {
 		--it;
+		std::cout << (*it).first << " => " << (*it).second << "\n";
 		it = tree.erase(it); // successor returned
+		assert(it == tree.end());
 		--count;
 	}
 
 	// Erase all to shrink root
 	for (auto it = tree.begin(); it != tree.end();) {
+		std::cout << "Forward iteration:\n";
+		std::cout << (*it).first << " => " << (*it).second << "\n";
 		it = tree.erase(it);
 	}
 
