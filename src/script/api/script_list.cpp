@@ -416,6 +416,73 @@ void ScriptList::CopyList(const ScriptList *list)
 
 ScriptList::ScriptList()
 {
+	BPlusTree<int,int,4> tree; // small B to force splits quickly
+
+	// Insert ascending keys
+	for (int k = 1; k <= 10; ++k) {
+		tree.insert(k, k * 100);
+		std::cout << "Forward iteration:\n";
+		for (auto it = tree.begin(); it != tree.end(); ++it) {
+			std::cout << (*it).first << " => " << (*it).second << "\n";
+		}
+	}
+
+	// Forward iteration
+	std::cout << "Forward iteration:\n";
+	for (auto it = tree.begin(); it != tree.end(); ++it) {
+		std::cout << (*it).first << " => " << (*it).second << "\n";
+	}
+
+	// Reverse iteration
+	std::cout << "\nReverse iteration:\n";
+	for (auto it = tree.end(); it != tree.begin();) {
+		--it;
+		std::cout << (*it).first << " => " << (*it).second << "\n";
+	}
+
+	// Check leaf linkage
+	std::cout << "\nLeaf linkage check:\n";
+	auto leaf = tree.leftmost_leaf();
+	while (leaf) {
+		std::cout << "Leaf count=" << leaf->count
+			<< " min=" << (leaf->count ? leaf->keys[0] : -1)
+			<< " max=" << (leaf->count ? leaf->keys[leaf->count-1] : -1)
+			<< "\n";
+		leaf = leaf->next_leaf;
+	}
+
+	// Mixed inserts
+	for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
+		tree.insert(k, k * 100);
+		// Forward iteration
+		std::cout << "Forward iteration:\n";
+		for (auto it = tree.begin(); it != tree.end(); ++it) {
+			std::cout << (*it).first << " => " << (*it).second << "\n";
+		}
+	}
+
+	// Duplicate handling (choose your policy)
+	tree.insert(5, 555); // expect either overwrite or ignore
+
+	std::cout << "Forward iteration:\n";
+	for (auto it = tree.begin(); it != tree.end(); ++it) {
+		std::cout << (*it).first << " => " << (*it).second << "\n";
+	}
+
+	// Iterator erase stress
+	int count = 5;
+	for (auto it = tree.end(); count > 0 && it != tree.begin();) {
+		--it;
+		it = tree.erase(it); // successor returned
+		--count;
+	}
+
+	// Erase all to shrink root
+	for (auto it = tree.begin(); it != tree.end();) {
+		it = tree.erase(it);
+	}
+
+
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
@@ -732,10 +799,11 @@ void ScriptList::RemoveBottom(SQInteger count)
 			break;
 
 		case SORT_BY_ITEM:
-			for (auto iter = this->items.end(); iter != this->items.begin(); iter = this->items.end()) {
-				if (--count < 0) return;
-				--iter;
-				this->RemoveIter(iter);
+			for (auto iter = this->items.end(); count > 0 && iter != this->items.begin();) {
+				--iter; // move to last element
+				std::cout << (*iter).first << " => " << (*iter).second << "\n";
+				iter = this->RemoveIter(iter); // erase returns next valid iterator
+				--count;
 			}
 			break;
 	}
