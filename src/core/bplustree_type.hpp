@@ -64,23 +64,6 @@ public:
 			return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] };
 		}
 
-		//struct Proxy {
-		//	const Key *k;
-		//	Value *v;
-
-		//	const Key &first() const {
-		//		return *k;
-		//	}
-
-		//	Value &second() const {
-		//		return *v;
-		//	}
-		//};
-
-		//Proxy operator->() const {
-		//	return Proxy{ &this->leaf_->keys[this->index_], &this->leaf_->values[this->index_] };
-		//}
-
 		// Increment
 		iterator &operator++() {
 //			std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
@@ -95,19 +78,13 @@ public:
 			return *this;
 		}
 
-		iterator operator++(int) {
-			auto tmp = *this;
-			++(*this);
-			return tmp;
-		}
-
 		// Decrement
 		iterator &operator--() {
 			if (this->leaf_ == nullptr) {
 				// Special case: --end() should land on the last element
 				this->leaf_ = this->owner_->rightmost_leaf();           // helper to find last leaf
 				this->index_ = this->leaf_ != nullptr ? this->leaf_->count - 1 : 0;
-				std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
+//				std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
 				return *this;
 			}
 
@@ -118,14 +95,8 @@ public:
 			} else {
 				--this->index_;
 			}
-			std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
+//			std::cout << "Leaf=" << leaf_ << " index=" << index_ << " count=" << leaf_->count << "\n";
 			return *this;
-		}
-
-		iterator operator--(int) {
-			auto tmp = *this;
-			--(*this);
-			return tmp;
 		}
 
 		// Equality
@@ -149,70 +120,6 @@ public:
 		size_t index_ = 0;
 		const BPlusTree *owner_ = nullptr; // back-pointer to the tree
 
-		//reference operator*() const {
-		//	assert(this->leaf_ != nullptr);
-		//	assert(this->index_ < this->leaf_->count);
-		//	return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] };
-		//}
-
-		//struct Proxy {
-		//	const Key *k;
-		//	const Value *v;
-
-		//	const Key &first() const {
-		//		return *k;
-		//	}
-
-		//	const Value &second() const {
-		//		return *v;
-		//	}
-		//};
-
-		//Proxy operator->() const {
-		//	return Proxy{ &this->leaf_->keys[this->index_], &this->leaf_->values[this->index_] };
-		//}
-
-		//const_iterator &operator++() {
-		//	if (this->leaf_ == nullptr) {
-		//		return *this;
-		//	}
-		//	if (++this->index_ >= this->leaf_->count) {
-		//		this->leaf_ = this->leaf_->next_leaf;
-		//		this->index_ = 0;
-		//	}
-		//	return *this;
-		//}
-
-		//const_iterator operator++(int) {
-		//	auto tmp = *this;
-		//	++(*this);
-		//	return tmp;
-		//}
-
-		//// Decrement
-		//const_iterator &operator--() {
-		//	if (this->leaf_ == nullptr) {
-		//		// Special case: --end() should land on the last element
-		//		this->leaf_ = this->owner_->rightmost_leaf();           // helper to find last leaf
-		//		this->index_ = this->leaf_ != nullptr ? this->leaf_->count - 1 : 0;
-		//		return *this;
-		//	}
-
-		//	if (this->index_ == 0) {
-		//		// Move to previous leaf
-		//		this->leaf_ = this->leaf_->prev_leaf;
-		//		if (this->leaf_ != nullptr) this->index_ = this->leaf_->count - 1;
-		//	} else {
-		//		--this->index_;
-		//	}
-		//	return *this;
-		//}
-
-		//const_iterator operator--(int) {
-		//	auto tmp = *this;
-		//	--(*this);
-		//	return tmp;
-		//}
 		friend bool operator==(const const_iterator &a, const const_iterator &b) {
 			return a.leaf_ == b.leaf_ && a.index_ == b.index_;
 		}
@@ -765,18 +672,6 @@ public:
 		return iterator(first, 0, this);
 	}
 
-	//const_iterator begin() const {
-	//	const Node *first = this->leftmost_leaf();
-	//	if (first == nullptr || first->count == 0) {
-	//		return this->cend();
-	//	}
-	//	return const_iterator(first, 0, this);
-	//}
-
-	//const_iterator cbegin() const {
-	//	return this->begin();
-	//}
-
 	// Return iterator to "one past the last element"
 	iterator end() {
 		return iterator(nullptr, 0, this); // sentinel
@@ -789,31 +684,6 @@ public:
 	const_iterator cend() const {
 		return this->end();
 	}
-
-	//// Lower-bound as iterator (ordered seek).
-	//iterator lower_bound(const Key &key) {
-	//	Node *node = this->root.get();
-	//	while (!node->is_leaf) {
-	//		size_t i = this->upper_bound(node->keys, node->count, key);
-	//		node = node->children[i].get();
-	//	}
-	//	size_t i = this->lower_bound(node->keys, node->count, key);
-	//	if (i >= node->count) {
-	//		// next leaf (or end) if key is greater than all in this leaf
-	//		node = node->next_leaf;
-	//		if (node == nullptr) {
-	//			return this->end();
-	//		}
-	//		return iterator(node, 0, this);
-	//	}
-	//	return iterator(node, i, this);
-	//}
-
-	//// Deep copy constructor
-	//BPlusTree(const BPlusTree &other) {
-	//	this->root = this->clone_node(other.root.get());
-	//	this->repair_leaf_links();
-	//}
 
 	// Deep copy assignment
 	BPlusTree &operator=(const BPlusTree &other) {
@@ -1014,15 +884,6 @@ private:
 		return total;
 	}
 
-	//// Iteration: start from leftmost leaf
-	//Node *begin_leaf() const {
-	//	Node *node = this->root.get();
-	//	while (!node->is_leaf) {
-	//		node = node->children[0].get();
-	//	}
-	//	return node;
-	//}
-
 	// Binary search over keys[0..count), returning first index i where keys[i] >= key.
 	static size_t lower_bound(const std::array<Key, B> &keys, size_t count, const Key &key) {
 		size_t lo = 0;
@@ -1054,168 +915,6 @@ private:
 		}
 		return lo;
 	}
-
-
-	//// Insert into a node that is guaranteed non-full.
-	//void insert_nonfull(Node *node, const Key &key, const Value &value) {
-	//	if (node->is_leaf) {
-	//		// Find position and insert key/value
-	//		size_t i = this->lower_bound(node->keys, node->count, key);
-	//		if (i < node->count && node->keys[i] == key) {
-	//			// Overwrite value (B+ trees typically allow update on duplicate key)
-	//			node->values[i] = value;
-	//			return;
-	//		}
-	//		// Shift right to make room
-	//		for (size_t j = node->count; j > i; --j) {
-	//			node->keys[j] = std::move(node->keys[j - 1]);
-	//			node->values[j] = std::move(node->values[j - 1]);
-	//		}
-	//		node->keys[i] = key;
-	//		node->values[i] = value;
-	//		++node->count;
-	//	} else {
-	//		// Internal: descend into the correct child
-	//		size_t i = this->upper_bound(node->keys, node->count, key);
-	//		Node *child = node->children[i].get();
-	//		if (child->count == B) {
-	//			// Child is full; split it and decide where to descend
-	//			this->split_child(node, i);
-	//			// After split, decide which child to descend based on promoted key
-	//			if (key >= node->keys[i]) {
-	//				child = node->children[i + 1].get();
-	//			}
-	//		}
-	//		this->insert_nonfull(child, key, value);
-	//	}
-	//}
-
-	//// Split parent->children[i] into two siblings and update parent
-	//void split_child(Node *parent, size_t i) {
-	//	Node *child = parent->children[i].get();
-	//	assert(child != nullptr && "split_child: child must exist");
-	//	assert(parent->count < max_keys && "split_child: parent must have space");
-	//	assert(child->count == max_keys && "split_child: child must be full to split");
-
-	//	auto new_node = std::make_unique<Node>(child->is_leaf);
-	//	size_t mid = child->count / 2; // lower mid for even B
-
-	//	if (child->is_leaf) {
-	//		// Move keys/values [mid .. count-1] to new leaf
-	//		const size_t right_count = child->count - mid;
-	//		for (size_t j = 0; j < right_count; ++j) {
-	//			new_node->keys[j]   = std::move(child->keys[mid + j]);
-	//			new_node->values[j] = std::move(child->values[mid + j]);
-	//		}
-	//		new_node->count = right_count;
-	//		child->count    = mid;
-
-	//		// Wire leaf links
-	//		new_node->next_leaf = child->next_leaf;
-	//		if (child->next_leaf != nullptr) {
-	//			child->next_leaf->prev_leaf = new_node.get();
-	//		}
-	//		child->next_leaf = new_node.get();
-	//		new_node->prev_leaf = child;
-
-	//		// Shift parent keys to make room at position i
-	//		for (size_t j = parent->count; j > i; --j) {
-	//			parent->keys[j] = std::move(parent->keys[j - 1]);
-	//		}
-	//		// Shift parent children to make room at position i+1
-	//		for (size_t j = parent->count + 1; j > i + 1; --j) {
-	//			parent->children[j] = std::move(parent->children[j - 1]);
-	//		}
-
-	//		// Separator is first key of right leaf (remains in the leaf)
-	//		parent->keys[i] = new_node->keys[0];
-	//		parent->children[i + 1] = std::move(new_node);
-	//		++parent->count;
-
-	//		// Sanity checks for leaf split
-	//		assert(parent->children[i] != nullptr);
-	//		assert(parent->children[i + 1] != nullptr);
-	//		assert(parent->keys[i] == parent->children[i + 1]->keys[0]);
-
-	//		assert(child->count > 0);
-	//		assert(parent->children[i + 1]->count > 0);
-
-	//		// Check leaf linkage
-	//		assert(child->next_leaf == parent->children[i + 1].get());
-	//		assert(parent->children[i + 1]->prev_leaf == child);
-	//	} else {
-	//		// Internal split: promote middle key; distribute keys/children
-	//		// Left keeps keys [0..mid-1] and children [0..mid]
-	//		// Right gets keys [mid+1..count-1] and children [mid+1..count]
-	//		const Key promote = child->keys[mid];
-
-	//		// Move keys to right sibling
-	//		const size_t right_keys = child->count - mid - 1;
-	//		for (size_t j = 0; j < right_keys; ++j) {
-	//			new_node->keys[j] = std::move(child->keys[mid + 1 + j]);
-	//		}
-	//		// Move children to right sibling
-	//		for (size_t j = 0; j < right_keys + 1; ++j) {
-	//			new_node->children[j] = std::move(child->children[mid + 1 + j]);
-	//		}
-
-	//		new_node->count = right_keys;
-	//		child->count    = mid;
-
-	//		// Shift parent keys/children to make room for promote at i
-	//		for (size_t j = parent->count; j > i; --j) {
-	//			parent->keys[j] = std::move(parent->keys[j - 1]);
-	//		}
-	//		for (size_t j = parent->count + 1; j > i + 1; --j) {
-	//			parent->children[j] = std::move(parent->children[j - 1]);
-	//		}
-
-	//		parent->keys[i] = promote;
-	//		parent->children[i + 1] = std::move(new_node);
-	//		++parent->count;
-
-	//		// Sanity checks for internal split
-	//		assert(parent->children[i] != nullptr);
-	//		assert(parent->children[i + 1] != nullptr);
-	//		assert(parent->keys[i] == promote);
-
-	//		assert(child->count == mid);
-	//		assert(parent->children[i + 1]->count > 0);
-
-	//	}
-	//}
-
-	//// Insert (promote_key, right_child) into internal parent at position child_idx+?
-	//void insert_into_internal(Node *parent, size_t left_child_idx, const Key &promote_key, std::unique_ptr<Node> right_child) {
-	//	assert(!parent->is_leaf);
-	//	// Insert promote_key into parent->keys at position left_child_idx
-	//	// Shift keys and children right from (left_child_idx+1)
-	//	for (size_t j = parent->count; j > left_child_idx; --j) {
-	//		parent->keys[j] = std::move(parent->keys[j - 1]);
-	//		parent->children[j + 1] = std::move(parent->children[j]);
-	//	}
-	//	parent->keys[left_child_idx] = promote_key;
-	//	parent->children[left_child_idx + 1] = std::move(right_child);
-	//	++parent->count;
-	//}
-
-	//void check_invariants(Node *node) {
-	//	if (node == nullptr) {
-	//		return;
-	//	}
-	//	if (node->is_leaf) {
-	//		assert(node->count <= max_keys);
-	//		if (node->next_leaf != nullptr) {
-	//			assert(node->next_leaf->prev_leaf == node);
-	//		}
-	//	} else {
-	//		assert(node->count <= max_keys);
-	//		for (size_t j = 0; j <= node->count; ++j) {
-	//			assert(node->children[j] != nullptr);
-	//			this->check_invariants(node->children[j].get());
-	//		}
-	//	}
-	//}
 
 };
 
