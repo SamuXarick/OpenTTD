@@ -418,73 +418,75 @@ ScriptList::ScriptList()
 {
 	BPlusTree<int,int,4> tree; // small B to force splits quickly
 
-	// Insert ascending keys
-	for (int k = 1; k <= 10; ++k) {
-		tree.insert(k, k * 100);
-		std::cout << "Forward iteration:\n";
-		for (auto it = tree.begin(); it != tree.end(); ++it) {
-			std::cout << (*it).first << " => " << (*it).second << "\n";
-		}
-	}
+	//// Insert ascending keys
+	//for (int k = 1; k <= 10; ++k) {
+	//	tree.insert(k, k * 100);
+	//	std::cout << "Forward iteration:\n";
+	//	for (auto it = tree.begin(); it != tree.end(); ++it) {
+	//		std::cout << (*it).first << " => " << (*it).second << "\n";
+	//	}
+	//}
 
-	// Forward iteration
-	std::cout << "Forward iteration:\n";
-	for (auto it = tree.begin(); it != tree.end(); ++it) {
-		std::cout << (*it).first << " => " << (*it).second << "\n";
-	}
+	//// Forward iteration
+	//std::cout << "Forward iteration:\n";
+	//for (auto it = tree.begin(); it != tree.end(); ++it) {
+	//	std::cout << (*it).first << " => " << (*it).second << "\n";
+	//}
 
-	// Reverse iteration
-	std::cout << "\nReverse iteration:\n";
-	for (auto it = tree.end(); it != tree.begin();) {
-		--it;
-		std::cout << (*it).first << " => " << (*it).second << "\n";
-	}
+	//// Reverse iteration
+	//std::cout << "\nReverse iteration:\n";
+	//for (auto it = tree.end(); it != tree.begin();) {
+	//	--it;
+	//	std::cout << (*it).first << " => " << (*it).second << "\n";
+	//}
 
-	// Check leaf linkage
-	std::cout << "\nLeaf linkage check:\n";
-	auto leaf = tree.leftmost_leaf();
-	while (leaf) {
-		std::cout << "Leaf count=" << leaf->count
-			<< " min=" << (leaf->count ? leaf->keys[0] : -1)
-			<< " max=" << (leaf->count ? leaf->keys[leaf->count-1] : -1)
-			<< "\n";
-		leaf = leaf->next_leaf;
-	}
+	//// Check leaf linkage
+	//std::cout << "\nLeaf linkage check:\n";
+	//auto leaf = tree.leftmost_leaf();
+	//while (leaf != nullptr) {
+	//	std::cout << "Leaf count=" << leaf->count
+	//		<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
+	//		<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
+	//		<< "\n";
+	//	leaf = leaf->next_leaf;
+	//}
 
-	// Mixed inserts
-	for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
-		tree.insert(k, k * 100);
-		// Forward iteration
-		std::cout << "Forward iteration:\n";
-		for (auto it = tree.begin(); it != tree.end(); ++it) {
-			std::cout << (*it).first << " => " << (*it).second << "\n";
-		}
-	}
+	//// Mixed inserts
+	//for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
+	//	tree.insert(k, k * 111);
+	//}
 
-	// Duplicate handling (choose your policy)
-	tree.insert(5, 555); // expect either overwrite or ignore
+	//// Iterator erase stress
+	//int count = 5;
+	//for (auto it = tree.end(); count > 0 && it != tree.begin();) {
+	//	--it;
+	//	std::cout << (*it).first << " => " << (*it).second << "\n";
+	//	auto leaf = tree.leftmost_leaf();
+	//	while (leaf != nullptr) {
+	//		std::cout << "Leaf count=" << leaf->count
+	//			<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
+	//			<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
+	//			<< "\n";
+	//		leaf = leaf->next_leaf;
+	//	}
+	//	it = tree.erase(it); // successor returned
+	//	assert(it == tree.end());
+	//	--count;
+	//}
 
-	std::cout << "Forward iteration:\n";
-	for (auto it = tree.begin(); it != tree.end(); ++it) {
-		std::cout << (*it).first << " => " << (*it).second << "\n";
-	}
-
-	// Iterator erase stress
-	int count = 5;
-	for (auto it = tree.end(); count > 0 && it != tree.begin();) {
-		--it;
-		std::cout << (*it).first << " => " << (*it).second << "\n";
-		it = tree.erase(it); // successor returned
-		assert(it == tree.end());
-		--count;
-	}
-
-	// Erase all to shrink root
-	for (auto it = tree.begin(); it != tree.end();) {
-		std::cout << "Forward iteration:\n";
-		std::cout << (*it).first << " => " << (*it).second << "\n";
-		it = tree.erase(it);
-	}
+	//// Erase all to shrink root
+	//for (auto it = tree.begin(); it != tree.end();) {
+	//	std::cout << (*it).first << " => " << (*it).second << "\n";
+	//	auto leaf = tree.leftmost_leaf();
+	//	while (leaf != nullptr) {
+	//		std::cout << "Leaf count=" << leaf->count
+	//			<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
+	//			<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
+	//			<< "\n";
+	//		leaf = leaf->next_leaf;
+	//	}
+	//	it = tree.erase(it);
+	//}
 
 
 	/* Default sorter */

@@ -391,83 +391,48 @@ public:
 		parent->keys[child_idx - 1] = leaf->keys[0];
 	}
 
-	// Merge leaf child at child_idx into its right sibling.
-	// Remove the separator from parent and unlink the merged leaf.
-	void merge_leaf_with_right(Node *parent, size_t child_idx) {
-		Node *leaf  = parent->children[child_idx].get();
-		Node *right = parent->children[child_idx + 1].get();
+	// Merge leaf at i+1 into leaf at i, keep the left leaf.
+	// Preconditions: parent->children[i] and parent->children[i+1] exist.
+	void merge_leaf_keep_left(Node *parent, size_t i) {
+		Node *left  = parent->children[i].get();
+		Node *right = parent->children[i + 1].get();
 
-		// Prepend leaf’s keys to right (shift right to make room)
-		for (size_t j = right->count; j > 0; --j) {
-			right->keys[j]   = std::move(right->keys[j - 1]);
-			right->values[j] = std::move(right->values[j - 1]);
+		// Append right’s keys/values to left
+		for (size_t j = 0; j < right->count; ++j) {
+			left->keys[left->count + j]   = std::move(right->keys[j]);
+			left->values[left->count + j] = std::move(right->values[j]);
 		}
-		for (size_t j = 0; j < leaf->count; ++j) {
-			right->keys[j]   = std::move(leaf->keys[j]);
-			right->values[j] = std::move(leaf->values[j]);
-		}
-		right->count += leaf->count;
+		left->count += right->count;
 
-		// Unlink leaf from leaf list
-		if (leaf->prev_leaf != nullptr) {
-			leaf->prev_leaf->next_leaf = leaf->next_leaf;
-		}
-		if (leaf->next_leaf != nullptr) {
-			leaf->next_leaf->prev_leaf = leaf->prev_leaf;
+		// Rewire leaf links to bypass right
+		left->next_leaf = right->next_leaf;
+		if (left->next_leaf != nullptr) {
+			left->next_leaf->prev_leaf = left;
 		}
 
-		// Remove leaf child from parent: delete separator at child_idx and child pointer at child_idx
-		this->remove_separator_and_child(parent, child_idx);
+		// Remove separator at i and child i+1 from parent
+		this->remove_separator_and_child_right(parent, i);
+		// right gets deleted by unique_ptr when parent child slot is shifted away
 
-		// Delete the leaf node (unique_ptr in parent is already cleared by remove)
-		// Underflow can cascade into parent; caller must check parent underflow.
+		// Note: left survives; any iterators pointing into right must be redirected
 	}
 
-	// Merge leaf child at child_idx into its left sibling (child_idx - 1).
-	void merge_leaf_with_left(Node *parent, size_t child_idx) {
-		Node *leaf = parent->children[child_idx].get();
-		Node *left = parent->children[child_idx - 1].get();
-
-		// Append leaf to left
-		for (size_t j = 0; j < leaf->count; ++j) {
-			left->keys[left->count + j]   = std::move(leaf->keys[j]);
-			left->values[left->count + j] = std::move(leaf->values[j]);
-		}
-		left->count += leaf->count;
-
-		// Unlink leaf
-		if (leaf->prev_leaf != nullptr) {
-			leaf->prev_leaf->next_leaf = leaf->next_leaf;
-		}
-		if (leaf->next_leaf != nullptr) {
-			leaf->next_leaf->prev_leaf = leaf->prev_leaf;
-		}
-
-		// Remove separator and child at child_idx - 1 (separator between left|leaf resides at child_idx - 1)
-		this->remove_separator_and_child(parent, child_idx - 1);
-	}
-
-	// Remove separator at sep_idx and child pointer at sep_idx+1 (for merge into right),
-	// or at sep_idx and child pointer at sep_idx (for merge into left) depending on call site.
-	// We implement a general helper that shifts arrays appropriately.
-	void remove_separator_and_child(Node *parent, size_t sep_idx) {
+	// Remove separator at sep_idx and the RIGHT child of that separator (child at sep_idx+1).
+	void remove_separator_and_child_right(Node *parent, size_t sep_idx) {
 		// Remove key at sep_idx
 		for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
 			parent->keys[k] = std::move(parent->keys[k + 1]);
 		}
-		// Remove child at sep_idx+1 (the right child of the separator)
+		// Remove child at sep_idx+1
 		for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
 			parent->children[c] = std::move(parent->children[c + 1]);
-			if (parent->children[c] != nullptr) {
-				parent->children[c]->parent = parent;
-			}
+			if (parent->children[c]) parent->children[c]->parent = parent;
 		}
 		--parent->count;
+		// Optional: null trailing child for cleanliness
+		parent->children[parent->count + 1].reset();
 	}
 
-	// Fix underflow for a child at index i in parent.
-	// If the child is a leaf, use the leaf borrow/merge rules.
-	// Otherwise, dispatch to internal child fix-up (below).
 	void fix_underflow(Node *parent, size_t i) {
 		Node *child = parent->children[i].get();
 
@@ -490,11 +455,14 @@ public:
 					return;
 				}
 			}
-			// Merge: prefer merging into right if exists, else into left
+
+			// Merge: always merge with right sibling if it exists,
+			// otherwise merge into left sibling.
 			if (i + 1 <= parent->count) {
-				this->merge_leaf_with_right(parent, i);
+				this->merge_leaf_keep_left(parent, i); // new helper
 			} else {
-				this->merge_leaf_with_left(parent, i);
+				// If no right sibling, merge current leaf into its left sibling
+				this->merge_leaf_keep_left(parent, i - 1);
 			}
 
 			// After merge, parent may underflow (internal node)
@@ -594,7 +562,7 @@ public:
 		child->count += 1 + right->count;
 
 		// Remove separator and right child from parent
-		this->remove_separator_and_child(parent, i);
+		this->remove_separator_and_child_right(parent, i);
 	}
 
 	// Fix underflow when parent’s child at i is an internal node.
@@ -655,12 +623,10 @@ public:
 		}
 
 		const size_t min_internal = this->min_keys(false);
-		if (node->count >= min_internal) {
-			return;
+		if (node->count < min_internal) {
+			// Reuse the same logic as fix_underflow_internal_child
+			this->fix_underflow_internal_child(parent, i);
 		}
-
-		// Reuse the same logic as fix_underflow_internal_child
-		this->fix_underflow_internal_child(parent, i);
 	}
 
 	// Return iterator to first element
