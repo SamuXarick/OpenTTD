@@ -78,7 +78,9 @@ public:
 	/**
 	 * Callback from the list after an item gets removed.
 	 */
-	virtual void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator value_post_erase) {}
+	virtual void PostErase(ScriptList::ScriptListMap::iterator)
+	{
+	}
 
 	/**
 	 * Attach the sorter to a new list and update internal iterators so they remain valid
@@ -343,7 +345,7 @@ public:
 	}
 
 
-	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator value_post_erase) override
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase) override
 	{
 		if (this->IsEnd()) return;
 
@@ -498,7 +500,7 @@ ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterat
 
 	auto post_erase = this->items.erase(item_iter);
 
-	if (this->initialized) this->sorter->PostErase(post_erase, {});
+	if (this->initialized) this->sorter->PostErase(post_erase);
 
 	return post_erase;
 }
@@ -512,7 +514,7 @@ void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 	auto item_iter = this->items.find(item);
 	auto post_erase = this->items.erase(item_iter);
 
-	if (this->initialized) this->sorter->PostErase(post_erase, {});
+	if (this->initialized) this->sorter->PostErase(post_erase);
 
 	this->values.erase(value_iter);
 }
