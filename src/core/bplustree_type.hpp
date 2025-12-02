@@ -10,7 +10,7 @@
 #ifndef BPLUSTREE_TYPE_HPP
 #define BPLUSTREE_TYPE_HPP
 
-#include <iostream>
+//#include <iostream>
 
 template <typename Key, typename Value, size_t B = 64>
 class BPlusTree;

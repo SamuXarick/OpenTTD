@@ -14,7 +14,6 @@
 #include "../../script/squirrel.hpp"
 
 #include "../../safeguards.h"
-#include <iostream>
 
 /**
  * Base class for any ScriptList sorter.
@@ -75,6 +74,11 @@ public:
 		/* If we remove the 'next' item, skip to the next */
 		if (item == this->item_next) this->FindNext();
 	}
+
+	/**
+	 * Callback from the list after an item gets removed.
+	 */
+	virtual void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator value_post_erase) {}
 
 	/**
 	 * Attach the sorter to a new list and update internal iterators so they remain valid
@@ -338,6 +342,18 @@ public:
 		if (this->item_iter != this->list->items.end()) this->item_next = (*this->item_iter).first;
 	}
 
+
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator value_post_erase) override
+	{
+		if (this->IsEnd()) return;
+
+		if (this->item_next) {
+			if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
+				this->item_iter = post_erase;
+			}
+		}
+	}
+
 	void Retarget(ScriptList *new_list) override
 	{
 		this->list = new_list;
@@ -416,79 +432,6 @@ void ScriptList::CopyList(const ScriptList *list)
 
 ScriptList::ScriptList()
 {
-	BPlusTree<int,int,4> tree; // small B to force splits quickly
-
-	//// Insert ascending keys
-	//for (int k = 1; k <= 10; ++k) {
-	//	tree.insert(k, k * 100);
-	//	std::cout << "Forward iteration:\n";
-	//	for (auto it = tree.begin(); it != tree.end(); ++it) {
-	//		std::cout << (*it).first << " => " << (*it).second << "\n";
-	//	}
-	//}
-
-	//// Forward iteration
-	//std::cout << "Forward iteration:\n";
-	//for (auto it = tree.begin(); it != tree.end(); ++it) {
-	//	std::cout << (*it).first << " => " << (*it).second << "\n";
-	//}
-
-	//// Reverse iteration
-	//std::cout << "\nReverse iteration:\n";
-	//for (auto it = tree.end(); it != tree.begin();) {
-	//	--it;
-	//	std::cout << (*it).first << " => " << (*it).second << "\n";
-	//}
-
-	//// Check leaf linkage
-	//std::cout << "\nLeaf linkage check:\n";
-	//auto leaf = tree.leftmost_leaf();
-	//while (leaf != nullptr) {
-	//	std::cout << "Leaf count=" << leaf->count
-	//		<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
-	//		<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
-	//		<< "\n";
-	//	leaf = leaf->next_leaf;
-	//}
-
-	//// Mixed inserts
-	//for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
-	//	tree.insert(k, k * 111);
-	//}
-
-	//// Iterator erase stress
-	//int count = 5;
-	//for (auto it = tree.end(); count > 0 && it != tree.begin();) {
-	//	--it;
-	//	std::cout << (*it).first << " => " << (*it).second << "\n";
-	//	auto leaf = tree.leftmost_leaf();
-	//	while (leaf != nullptr) {
-	//		std::cout << "Leaf count=" << leaf->count
-	//			<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
-	//			<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
-	//			<< "\n";
-	//		leaf = leaf->next_leaf;
-	//	}
-	//	it = tree.erase(it); // successor returned
-	//	assert(it == tree.end());
-	//	--count;
-	//}
-
-	//// Erase all to shrink root
-	//for (auto it = tree.begin(); it != tree.end();) {
-	//	std::cout << (*it).first << " => " << (*it).second << "\n";
-	//	auto leaf = tree.leftmost_leaf();
-	//	while (leaf != nullptr) {
-	//		std::cout << "Leaf count=" << leaf->count
-	//			<< " min=" << (leaf->count != 0 ? leaf->keys[0] : -1)
-	//			<< " max=" << (leaf->count != 0 ? leaf->keys[leaf->count - 1] : -1)
-	//			<< "\n";
-	//		leaf = leaf->next_leaf;
-	//	}
-	//	it = tree.erase(it);
-	//}
-
-
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
@@ -553,7 +496,11 @@ ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterat
 		this->values.erase(value_iter);
 	}
 
-	return this->items.erase(item_iter);
+	auto post_erase = this->items.erase(item_iter);
+
+	if (this->initialized) this->sorter->PostErase(post_erase, {});
+
+	return post_erase;
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
@@ -563,7 +510,9 @@ void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 	if (this->initialized) this->sorter->Remove(item);
 
 	auto item_iter = this->items.find(item);
-	this->items.erase(item_iter);
+	auto post_erase = this->items.erase(item_iter);
+
+	if (this->initialized) this->sorter->PostErase(post_erase, {});
 
 	this->values.erase(value_iter);
 }
@@ -805,11 +754,10 @@ void ScriptList::RemoveBottom(SQInteger count)
 			break;
 
 		case SORT_BY_ITEM:
-			for (auto iter = this->items.end(); count > 0 && iter != this->items.begin();) {
-				--iter; // move to last element
-				std::cout << (*iter).first << " => " << (*iter).second << "\n";
-				iter = this->RemoveIter(iter); // erase returns next valid iterator
-				--count;
+			for (auto iter = this->items.end(); iter != this->items.begin(); iter = this->items.end()) {
+				if (--count < 0) return;
+				--iter;
+				this->RemoveIter(iter);
 			}
 			break;
 	}
@@ -913,24 +861,6 @@ SQInteger ScriptList::_set(HSQUIRRELVM vm)
 
 SQInteger ScriptList::_nexti(HSQUIRRELVM vm)
 {
-	auto it30 = this->items.find(30);
-	auto it31 = this->items.find(31);
-	auto it32 = this->items.find(32);
-	auto it33 = this->items.find(33);
-
-//	for (auto it = this->items.end(); it != this->items.begin();) {
-//		--it;
-//		std::cout << (*it).first << " => " << (*it).second << "\n";
-//	}
-
-//	for (auto it : this->items) {
-//		std::cout << it.first << " => " << it.second << "\n";
-//	}
-
-//	for (auto it = this->items.begin(); it != this->items.end(); ++it) {
-//		std::cout << (*it).first << " => " << (*it).second << "\n";
-//	}
-
 	if (sq_gettype(vm, 2) == OT_NULL) {
 		if (this->IsEmpty()) {
 			sq_pushnull(vm);
