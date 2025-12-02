@@ -10,20 +10,20 @@
 #ifndef BPLUSTREE_TYPE_HPP
 #define BPLUSTREE_TYPE_HPP
 
-template <typename Key, typename Value, size_t B = 64>
+template <typename Tkey, typename Tvalue, size_t B = 64>
 class BPlusTree;
 
-template <typename Key, typename Value, size_t B>
+template <typename Tkey, typename Tvalue, size_t B>
 struct BPlusNode {
 	bool is_leaf;
 	size_t count; // number of keys currently stored
 
-	std::array<Key, B> keys;
+	std::array<Tkey, B> keys;
 	/* For internal nodes: child pointers */
 	std::array<std::unique_ptr<BPlusNode>, B + 1> children;
 
 	/* For leaf nodes: values + linked list */
-	std::array<Value, B> values;
+	std::array<Tvalue, B> values;
 	BPlusNode *next_leaf = nullptr;
 	BPlusNode *prev_leaf = nullptr;
 	BPlusNode *parent = nullptr;
@@ -33,9 +33,9 @@ struct BPlusNode {
 	}
 };
 
-template <typename Key, typename Value, size_t B>
+template <typename Tkey, typename Tvalue, size_t B>
 class BPlusTree {
-	using Node = BPlusNode<Key, Value, B>;
+	using Node = BPlusNode<Tkey, Tvalue, B>;
 	std::unique_ptr<Node> root;
 
 public:
@@ -50,10 +50,10 @@ public:
 	 */
 	struct iterator {
 		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = std::pair<const Key, Value>;
+		using value_type = std::pair<const Tkey, Tvalue>;
 		using difference_type = std::ptrdiff_t;
 		using pointer = void;
-		using reference = std::pair<const Key &, Value &>;
+		using reference = std::pair<const Tkey &, Tvalue &>;
 
 		Node *leaf_ = nullptr;
 		size_t index_ = 0;
@@ -121,10 +121,10 @@ public:
 
 	struct const_iterator {
 		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = std::pair<const Key, const Value>;
+		using value_type = std::pair<const Tkey, const Tvalue>;
 		using difference_type = std::ptrdiff_t;
 		using pointer = void;
-		using reference = std::pair<const Key &, const Value &>;
+		using reference = std::pair<const Tkey &, const Tvalue &>;
 
 		const Node *leaf_ = nullptr;
 		size_t index_ = 0;
@@ -171,7 +171,7 @@ public:
 		return node;
 	}
 
-	void insert(const Key &key, const Value &value)
+	void insert(const Tkey &key, const Tvalue &value)
 	{
 		if (this->root == nullptr) {
 			this->root = std::make_unique<Node>(true);
@@ -200,7 +200,7 @@ public:
 		}
 	}
 
-	Node *find_leaf(const Key &key) const
+	Node *find_leaf(const Tkey &key) const
 	{
 		Node *node = this->root.get();
 		if (node == nullptr) {
@@ -238,13 +238,13 @@ public:
 		leaf->next_leaf = new_leaf.get();
 
 		/* Separator = first key of new_leaf */
-		Key separator = new_leaf->keys[0];
+		Tkey separator = new_leaf->keys[0];
 
 		/* Insert separator into parent */
 		this->insert_into_parent(leaf, separator, new_leaf.release());
 	}
 
-	void insert_into_parent(Node *left, const Key &separator, Node *right)
+	void insert_into_parent(Node *left, const Tkey &separator, Node *right)
 	{
 		Node *parent = left->parent;
 
@@ -315,7 +315,7 @@ public:
 		auto new_node = std::make_unique<Node>(false);
 
 		/* Separator key to promote */
-		Key separator = node->keys[mid];
+		Tkey separator = node->keys[mid];
 
 		/* Copy keys[mid + 1..end] into new_node */
 		for (size_t j = mid + 1; j < node->count; ++j) {
@@ -766,12 +766,12 @@ public:
 		}
 	}
 
-	bool contains(const Key &key) const
+	bool contains(const Tkey &key) const
 	{
 		return this->find(key) != this->end();
 	}
 
-	iterator find(const Key &key)
+	iterator find(const Tkey &key)
 	{
 		Node *node = this->root.get();
 		while (node != nullptr && !node->is_leaf) {
@@ -791,7 +791,7 @@ public:
 		return this->end();
 	}
 
-	const_iterator find(const Key &key) const
+	const_iterator find(const Tkey &key) const
 	{
 		const Node *node = this->root.get();
 		while (node != nullptr && !node->is_leaf) {
@@ -832,7 +832,7 @@ public:
 		return this->count_recursive(this->root.get());
 	}
 
-	std::pair<iterator, bool> try_emplace(const Key &key, const Value &value)
+	std::pair<iterator, bool> try_emplace(const Tkey &key, const Tvalue &value)
 	{
 		/* First, search for key */
 		auto it = this->find(key);
@@ -864,7 +864,7 @@ public:
 		--leaf->count;
 
 		/* Remember the successor key (if any) before fix-up */
-		Key succ_key;
+		Tkey succ_key;
 		bool has_succ = false;
 		if (i < leaf->count) {
 			succ_key = leaf->keys[i];
@@ -918,7 +918,7 @@ private:
 	/**
 	 * Binary search over keys[0..count), returning first index i where keys[i] >= key.
 	 */
-	static size_t lower_bound(const std::array<Key, B> &keys, size_t count, const Key &key)
+	static size_t lower_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
 		size_t lo = 0;
 		size_t hi = count;
@@ -937,7 +937,7 @@ private:
 	/**
 	 * Binary search over keys[0..count), returning first index i where keys[i] > key.
 	 */
-	static size_t upper_bound(const std::array<Key, B> &keys, size_t count, const Key &key)
+	static size_t upper_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
 		size_t lo = 0;
 		size_t hi = count;
