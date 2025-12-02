@@ -967,6 +967,7 @@ private:
 		return lo;
 	}
 
+#if BPLUSTREE_CHECK
 	bool validate() const
 	{
 		if (this->root == nullptr) {
@@ -1069,6 +1070,7 @@ private:
 			return true;
 		}
 	}
+#endif
 
 };
 

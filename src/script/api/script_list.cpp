@@ -276,6 +276,17 @@ public:
 		if (this->item_iter != this->list->items.end()) this->item_next = (*this->item_iter).first;
 	}
 
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase) override
+	{
+		if (this->IsEnd()) return;
+
+		if (this->item_next) {
+			if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
+				this->item_iter = post_erase;
+			}
+		}
+	}
+
 	void Retarget(ScriptList *new_list) override
 	{
 		this->list = new_list;
