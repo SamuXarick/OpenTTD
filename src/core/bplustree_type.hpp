@@ -10,6 +10,17 @@
 #ifndef BPLUSTREE_TYPE_HPP
 #define BPLUSTREE_TYPE_HPP
 
+/** Enable it if you suspect b+ tree doesn't work well */
+#define BPLUSTREE_CHECK 1
+
+#if BPLUSTREE_CHECK
+	/** Validate nodes after insert / erase. */
+#	define VALIDATE_NODES() this->validate()
+#else
+	/** Don't check for consistency. */
+#	define VALIDATE_NODES() ;
+#endif
+
 template <typename Tkey, typename Tvalue, size_t B = 64>
 class BPlusTree;
 
@@ -19,16 +30,14 @@ struct BPlusNode {
 	size_t count; // number of keys currently stored
 
 	std::array<Tkey, B> keys;
-	/* For internal nodes: child pointers */
-	std::array<std::unique_ptr<BPlusNode>, B + 1> children;
+	std::array<std::unique_ptr<BPlusNode>, B + 1> children; ///< For internal nodes: child pointers
+	std::array<Tvalue, B> values; ///< For leaf nodes: values
 
-	/* For leaf nodes: values + linked list */
-	std::array<Tvalue, B> values;
 	BPlusNode *next_leaf = nullptr;
 	BPlusNode *prev_leaf = nullptr;
 	BPlusNode *parent = nullptr;
 
-	BPlusNode(bool leaf = true) : is_leaf(leaf), count(0), parent(nullptr)
+	BPlusNode(bool leaf = true) : is_leaf(leaf), count(0), next_leaf(nullptr), prev_leaf(nullptr), parent(nullptr)
 	{
 	}
 };
@@ -843,6 +852,9 @@ public:
 
 		/* Otherwise, insert new key/value */
 		this->insert(key, value);
+
+		VALIDATE_NODES();
+
 		it = this->find(key); // find again to get iterator to new element
 		return { it, true };
 	}
@@ -885,6 +897,8 @@ public:
 				this->fix_underflow(parent, ci);
 			}
 		}
+
+		VALIDATE_NODES();
 
 		/* If no successor, we’re at end */
 		if (!has_succ) {
@@ -951,6 +965,109 @@ private:
 			}
 		}
 		return lo;
+	}
+
+	bool validate() const
+	{
+		if (this->root == nullptr) {
+			return true;
+		}
+
+		/* Check invariants recursively */
+		bool ok = this->validate_node(this->root.get(), nullptr, nullptr);
+		if (!ok) {
+			assert(false);
+			return false;
+		}
+
+		/* Check leaf linkage */
+		Node *leaf = leftmost_leaf();
+		Node *prev = nullptr;
+		while (leaf != nullptr) {
+			/* Keys sorted */
+			for (size_t i = 1; i < leaf->count; ++i) {
+				if (leaf->keys[i - 1] > leaf->keys[i]) {
+					assert(false);
+					return false;
+				}
+			}
+			/* Link symmetry */
+			if (leaf->prev_leaf != prev) {
+				assert(false);
+				return false;
+			}
+			prev = leaf;
+			leaf = leaf->next_leaf;
+		}
+		return true;
+	}
+
+	/**
+	 * Recursive node validation
+	 */
+	bool validate_node(Node *node, const Tkey *min, const Tkey *max) const
+	{
+		if (node->is_leaf) {
+			/* Keys sorted */
+			for (size_t i = 1; i < node->count; ++i) {
+				if (node->keys[i - 1] > node->keys[i]) {
+					assert(false);
+					return false;
+				}
+			}
+			/* Range check */
+			if (min != nullptr && node->keys[0] < *min) {
+				assert(false);
+				return false;
+			}
+			if (max != nullptr && node->keys[node->count - 1] > *max) {
+				assert(false);
+				return false;
+			}
+			return true;
+		} else {
+			/* Internal node: keys sorted */
+			for (size_t i = 1; i < node->count; ++i) {
+				if (node->keys[i - 1] > node->keys[i]) {
+					assert(false);
+					return false;
+				}
+			}
+			/* Children count = keys + 1 */
+			for (size_t i = 0; i <= node->count; ++i) {
+				if (node->children[i] == nullptr) {
+					assert(false);
+					return false;
+				}
+			}
+			/* Separator consistency: parent key == min of right child */
+			for (size_t i = 0; i < node->count; ++i) {
+				Node *right = node->children[i + 1].get();
+				/* In leaves, separator == first key of right child */
+				if (right->is_leaf) {
+					if (node->keys[i] != right->keys[0]) {
+						assert(false);
+						return false;
+					}
+				} else {
+					/* In internal nodes, separator <= min key of right child */
+					if (node->keys[i] > right->keys[0]) {
+						assert(false);
+						return false;
+					}
+				}
+			}
+			/* Recurse into children with updated ranges */
+			for (size_t i = 0; i <= node->count; ++i) {
+				const Tkey *child_min = (i == 0 ? min : &node->keys[i - 1]);
+				const Tkey *child_max = (i == node->count ? max : &node->keys[i]);
+				if (!this->validate_node(node->children[i].get(), child_min, child_max)) {
+					assert(false);
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 
 };
