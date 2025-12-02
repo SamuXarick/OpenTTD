@@ -798,18 +798,18 @@ public:
 		}
 		--leaf->count;
 
-		// Capture successor before fix-up: typically {leaf, i} or next leaf
-		Node *succ_leaf = nullptr;
-		size_t succ_idx = 0;
+		// Remember the successor key (if any) before fix-up
+		Key succ_key;
+		bool has_succ = false;
 		if (i < leaf->count) {
-			succ_leaf = leaf;
-			succ_idx  = i;
-		} else if (leaf->next_leaf != nullptr) {
-			succ_leaf = leaf->next_leaf;
-			succ_idx  = 0;
+			succ_key = leaf->keys[i];
+			has_succ = true;
+		} else if (leaf->next_leaf != nullptr && leaf->next_leaf->count > 0) {
+			succ_key = leaf->next_leaf->keys[0];
+			has_succ = true;
 		}
 
-		// Fix underflow via parent
+		// Fix underflow
 		if (leaf->parent != nullptr && leaf->count < this->min_keys(true)) {
 			Node *parent = leaf->parent;
 			size_t ci = 0;
@@ -821,18 +821,17 @@ public:
 			}
 		}
 
-		// Map successor through potential merges:
-		// If succ_leaf was merged away, redirect to the neighbor.
-		if (succ_leaf == nullptr || succ_leaf->count == 0) {
-			// If rightmost path collapsed, end()
+		// If no successor, we’re at end
+		if (!has_succ) {
 			return this->end();
 		}
-		if (succ_idx >= succ_leaf->count) {
-			// If index shifted due to borrowing/merging, clamp to valid range
-			succ_idx = std::min(succ_idx, succ_leaf->count - 1);
-		}
+
+		// Re-find successor leaf after potential merges
+		Node *succ_leaf = this->find_leaf(succ_key);
+		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
 		return iterator(succ_leaf, succ_idx, this);
 	}
+
 
 
 private:
