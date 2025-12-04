@@ -11,7 +11,7 @@
 #define BPLUSTREE_TYPE_HPP
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 0
+#define BPLUSTREE_CHECK 1
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -267,19 +267,6 @@ public:
 	}
 
 	/**
-	 * Refresh parent separator if leaf’s minimum key changed
-	 */
-	void refresh_parent_separator_if_min_changed(Node *leaf) {
-		if (leaf->parent == nullptr || leaf->count == 0) {
-			return;
-		}
-		size_t idx = this->find_child_index(leaf->parent, leaf);
-		if (idx > 0) {
-			this->update_separator(leaf->parent, idx - 1);
-		}
-	}
-
-	/**
 	 * Map mode insert: enabled only if Tvalue is not void
 	 */
 	template <typename U = Tvalue>
@@ -308,9 +295,13 @@ public:
 		++leaf->count;
 
 		/* Centralized separator refresh */
-		if (i == 0) {
-			this->refresh_parent_separator_if_min_changed(leaf);
+		if (i == 0 && leaf->parent != nullptr) {
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (child_idx > 0) {
+				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
+			}
 		}
+
 
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
@@ -343,9 +334,13 @@ public:
 		++leaf->count;
 
 		/* Centralized separator refresh */
-		if (i == 0) {
-			this->refresh_parent_separator_if_min_changed(leaf);
+		if (i == 0 && leaf->parent != nullptr) {
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (child_idx > 0) {
+				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
+			}
 		}
+
 
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
@@ -496,24 +491,54 @@ public:
 	}
 
 	/**
-	 * Update the separator key at sep_idx in parent.
-	 * For leaf children, the separator equals the min key of the right child.
-	 * If the right child is empty, remove the separator and child entirely.
+	 * Maintain the parent boundary at sep_idx.
+	 * - For leaf children: parent->keys[sep_idx] must equal right->keys[0].
+	 *   If right is empty, remove the separator and right child.
+	 * - For internal children: parent->keys[sep_idx] must be <= right->keys[0].
+	 *   Borrow/merge operations already set the correct key; we only guard empties.
 	 */
-	void update_separator(Node *parent, size_t sep_idx)
+	void maintain_parent_boundary(Node *parent, size_t sep_idx)
 	{
 		Node *right = parent->children[sep_idx + 1].get();
 		assert(right != nullptr);
 
 		if (right->is_leaf) {
 			if (right->count == 0) {
-				/* No right minimum exists: remove this boundary */
-				this->remove_separator_and_child_right(parent, sep_idx);
+				/* Remove separator and right child entirely */
+				for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
+					parent->keys[k] = std::move(parent->keys[k + 1]);
+				}
+				for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
+					parent->children[c] = std::move(parent->children[c + 1]);
+					if (parent->children[c] != nullptr) {
+						parent->children[c]->parent = parent;
+					}
+				}
+				--parent->count;
+				parent->children[parent->count + 1].reset();
 			} else {
 				parent->keys[sep_idx] = right->keys[0];
 			}
 		} else {
-			/* For internal nodes, separator stays as stored unless explicitly changed elsewhere */
+			/* Internal node case */
+			if (right->count == 0) {
+				/* No keys in right child: remove separator and child */
+				for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
+					parent->keys[k] = std::move(parent->keys[k + 1]);
+				}
+				for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
+					parent->children[c] = std::move(parent->children[c + 1]);
+					if (parent->children[c] != nullptr) {
+						parent->children[c]->parent = parent;
+					}
+				}
+				--parent->count;
+				parent->children[parent->count + 1].reset();
+			} else {
+				/* For internal nodes, separator is already set by borrow/merge logic.
+				 * Optional: sanity check that parent->keys[sep_idx] <= right->keys[0]. */
+				assert(!(parent->keys[sep_idx] > right->keys[0]));
+			}
 		}
 	}
 
@@ -526,14 +551,12 @@ public:
 		Node *leaf = parent->children[child_idx].get();
 		Node *right = parent->children[child_idx + 1].get();
 
-		/* Preconditions: right exists and right->count > (B + 1) / 2 */
 		leaf->keys[leaf->count] = std::move(right->keys[0]);
 		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[leaf->count] = std::move(right->values[0]);
 		}
 		++leaf->count;
 
-		/* Shift right left */
 		for (size_t j = 0; j + 1 < right->count; ++j) {
 			right->keys[j] = std::move(right->keys[j + 1]);
 			if constexpr (!std::is_void_v<Tvalue>) {
@@ -542,8 +565,7 @@ public:
 		}
 		--right->count;
 
-		/* Update parent separator */
-		this->update_separator(parent, child_idx);
+		this->maintain_parent_boundary(parent, child_idx);
 	}
 
 	/**
@@ -555,7 +577,6 @@ public:
 		Node *leaf = parent->children[child_idx].get();
 		Node *left = parent->children[child_idx - 1].get();
 
-		/* Preconditions: left exists and left->count > (B + 1) / 2 */
 		for (size_t j = leaf->count; j > 0; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
 			if constexpr (!std::is_void_v<Tvalue>) {
@@ -563,7 +584,6 @@ public:
 			}
 		}
 
-		/* Move left[last] -> leaf[0] */
 		leaf->keys[0] = std::move(left->keys[left->count - 1]);
 		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[0] = std::move(left->values[left->count - 1]);
@@ -571,8 +591,7 @@ public:
 		++leaf->count;
 		--left->count;
 
-		/* Update parent separator at boundary (child_idx - 1) */
-		this->update_separator(parent, child_idx - 1);
+		this->maintain_parent_boundary(parent, child_idx - 1);
 	}
 
 	/**
@@ -581,10 +600,9 @@ public:
 	 */
 	void merge_leaf_keep_left(Node *parent, size_t i)
 	{
-		Node *left  = parent->children[i].get();
+		Node *left = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
 
-		/* Append right’s keys/values to left */
 		for (size_t j = 0; j < right->count; ++j) {
 			left->keys[left->count + j] = std::move(right->keys[j]);
 			if constexpr (!std::is_void_v<Tvalue>) {
@@ -593,19 +611,12 @@ public:
 		}
 		left->count += right->count;
 
-		/* Rewire leaf links to bypass right */
 		left->next_leaf = right->next_leaf;
 		if (left->next_leaf != nullptr) {
 			left->next_leaf->prev_leaf = left;
 		}
 
-		/* Remove separator at i and child i + 1 from parent */
-		this->remove_separator_and_child_right(parent, i);
-
-		/* Refresh boundary to the new right sibling (if any) */
-		if (i < parent->count) {
-			this->update_separator(parent, i);
-		}
+		this->maintain_parent_boundary(parent, i);
 	}
 
 	/**
@@ -668,25 +679,27 @@ public:
 	}
 
 	/**
-	 * Rotate from the right sibling: move parent.keys[i] down into child,
-	 * move sibling.keys[0] up into parent, and move sibling.children[0] into child.
+	 * Rotate from the right sibling:
+	 * - Move parent.keys[i] down into child at end
+	 * - Move right.keys[0] up into parent
+	 * - Move right.children[0] into child as new rightmost child
 	 */
 	void borrow_from_right_internal(Node *parent, size_t i)
 	{
 		Node *child = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
 
-		/* Move parent key down into child at end */
+		/* Move parent key down into child */
 		child->keys[child->count] = std::move(parent->keys[i]);
 
-		/* Move right's first child to child as new rightmost child */
+		/* Move right’s first child into child */
 		child->children[child->count + 1] = std::move(right->children[0]);
 		if (child->children[child->count + 1] != nullptr) {
 			child->children[child->count + 1]->parent = child;
 		}
 		++child->count;
 
-		/* Move right's first key up into parent */
+		/* Move right’s first key up into parent */
 		parent->keys[i] = std::move(right->keys[0]);
 
 		/* Shift right’s keys and children left */
@@ -700,18 +713,23 @@ public:
 			}
 		}
 		--right->count;
+
+		/* Refresh boundary */
+		this->maintain_parent_boundary(parent, i);
 	}
 
 	/**
-	 * Rotate from the left sibling: move parent.keys[i - 1] down into child at front,
-	 * move left’s last key up into parent, and move left’s last child to child as new leftmost child.
+	 * Rotate from the left sibling:
+	 * - Move parent.keys[i-1] down into child at front
+	 * - Move left’s last key up into parent
+	 * - Move left’s last child into child as new leftmost child
 	 */
 	void borrow_from_left_internal(Node *parent, size_t i)
 	{
 		Node *child = parent->children[i].get();
 		Node *left = parent->children[i - 1].get();
 
-		/* Shift child's keys and children right to make room at front */
+		/* Shift child’s keys/children right */
 		for (size_t k = child->count; k > 0; --k) {
 			child->keys[k] = std::move(child->keys[k - 1]);
 		}
@@ -725,7 +743,7 @@ public:
 		/* Move parent key down into child[0] */
 		child->keys[0] = std::move(parent->keys[i - 1]);
 
-		/* Move left’s last child to child[0] */
+		/* Move left’s last child into child[0] */
 		child->children[0] = std::move(left->children[left->count]);
 		if (child->children[0] != nullptr) {
 			child->children[0]->parent = child;
@@ -734,14 +752,15 @@ public:
 
 		/* Move left’s last key up into parent */
 		parent->keys[i - 1] = std::move(left->keys[left->count - 1]);
-
-		/* Pop left’s last key (and child already moved) */
 		--left->count;
+
+		/* Refresh boundary */
+		this->maintain_parent_boundary(parent, i - 1);
 	}
 
 	/**
-	 * Merge child at i with right sibling at i + 1 using parent.keys[i] as middle key.
-	 * All keys and children are combined into child; right sibling pointer and separator are removed from parent.
+	 * Merge child at i with right sibling at i+1 using parent.keys[i] as middle key.
+	 * All keys/children are combined into left child; right sibling and separator removed.
 	 */
 	void merge_internal(Node *parent, size_t i)
 	{
@@ -751,22 +770,25 @@ public:
 		/* Move parent key down */
 		left->keys[left->count] = std::move(parent->keys[i]);
 
-		/* Copy right’s keys and children */
+		/* Copy right’s keys */
 		for (size_t k = 0; k < right->count; ++k) {
 			left->keys[left->count + 1 + k] = std::move(right->keys[k]);
 		}
+
+		/* Copy right’s children */
 		for (size_t c = 0; c <= right->count; ++c) {
 			left->children[left->count + 1 + c] = std::move(right->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
 				left->children[left->count + 1 + c]->parent = left;
 			}
 		}
+
 		left->count += 1 + right->count;
 
 		/* Remove separator and right child */
-		this->remove_separator_and_child_right(parent, i);
+		this->maintain_parent_boundary(parent, i);
 
-		/* Cascade: parent may underflow */
+		/* Cascade if parent underflows */
 		this->fix_internal_underflow_cascade(parent);
 	}
 
@@ -1055,10 +1077,14 @@ public:
 		}
 		--leaf->count;
 
-		// Centralized separator refresh
-		if (i == 0) {
-			this->refresh_parent_separator_if_min_changed(leaf);
+		/* Centralized separator refresh */
+		if (i == 0 && leaf->parent != nullptr) {
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (child_idx > 0) {
+				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
+			}
 		}
+
 
 		/* Remember the successor key (if any) before fix-up */
 		Tkey succ_key;
