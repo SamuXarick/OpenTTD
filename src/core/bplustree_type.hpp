@@ -212,6 +212,9 @@ public:
 		return node;
 	}
 
+	/**
+	 * Find the index of a child in its parent
+	 */
 	size_t find_child_index(Node *parent, Node *child) const {
 		for (size_t i = 0; i <= parent->count; ++i) {
 			if (parent->children[i].get() == child) {
@@ -222,6 +225,18 @@ public:
 		return parent->count; // fallback
 	}
 
+	/**
+	 * Refresh parent separator if leaf’s minimum key changed
+	 */
+	void refresh_parent_separator_if_min_changed(Node *leaf) {
+		if (leaf->parent == nullptr || leaf->count == 0) {
+			return;
+		}
+		size_t idx = this->find_child_index(leaf->parent, leaf);
+		if (idx > 0) {
+			this->update_separator(leaf->parent, idx - 1);
+		}
+	}
 
 	/**
 	 * Map mode insert: enabled only if Tvalue is not void
@@ -251,13 +266,9 @@ public:
 		leaf->values[i] = value;
 		++leaf->count;
 
-		/* NEW: if leaf min changed, refresh boundary separator */
-		if (leaf->parent != nullptr && i == 0) {
-			Node *parent = leaf->parent;
-			size_t child_idx = this->find_child_index(parent, leaf);
-			if (child_idx > 0) {
-				this->update_separator(parent, child_idx - 1);
-			}
+		/* Centralized separator refresh */
+		if (i == 0) {
+			this->refresh_parent_separator_if_min_changed(leaf);
 		}
 
 		if (leaf->count == B) {
@@ -290,13 +301,9 @@ public:
 		leaf->keys[i] = key;
 		++leaf->count;
 
-		/* NEW: if leaf min changed, refresh boundary separator */
-		if (leaf->parent != nullptr && i == 0) {
-			Node *parent = leaf->parent;
-			size_t child_idx = this->find_child_index(parent, leaf);
-			if (child_idx > 0) {
-				this->update_separator(parent, child_idx - 1);
-			}
+		/* Centralized separator refresh */
+		if (i == 0) {
+			this->refresh_parent_separator_if_min_changed(leaf);
 		}
 
 		if (leaf->count == B) {
@@ -553,8 +560,11 @@ public:
 
 		/* Remove separator at i and child i + 1 from parent */
 		this->remove_separator_and_child_right(parent, i);
-		/* right gets deleted by unique_ptr when parent child slot is shifted away.
-		 * Note: left survives; any iterators pointing into right must be redirected. */
+
+		/* Refresh boundary to the new right sibling (if any) */
+		if (i < parent->count) {
+			this->update_separator(parent, i);
+		}
 	}
 
 	/**
@@ -694,26 +704,29 @@ public:
 	 */
 	void merge_internal(Node *parent, size_t i)
 	{
-		Node *child = parent->children[i].get();
+		Node *left  = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
 
 		/* Move parent key down */
-		child->keys[child->count] = std::move(parent->keys[i]);
+		left->keys[left->count] = std::move(parent->keys[i]);
 
 		/* Copy right’s keys and children */
 		for (size_t k = 0; k < right->count; ++k) {
-			child->keys[child->count + 1 + k] = std::move(right->keys[k]);
+			left->keys[left->count + 1 + k] = std::move(right->keys[k]);
 		}
 		for (size_t c = 0; c <= right->count; ++c) {
-			child->children[child->count + 1 + c] = std::move(right->children[c]);
-			if (child->children[child->count + 1 + c] != nullptr) {
-				child->children[child->count + 1 + c]->parent = child;
+			left->children[left->count + 1 + c] = std::move(right->children[c]);
+			if (left->children[left->count + 1 + c] != nullptr) {
+				left->children[left->count + 1 + c]->parent = left;
 			}
 		}
-		child->count += 1 + right->count;
+		left->count += 1 + right->count;
 
-		/* Remove separator and right child from parent */
+		/* Remove separator and right child */
 		this->remove_separator_and_child_right(parent, i);
+
+		/* Cascade: parent may underflow */
+		this->fix_internal_underflow_cascade(parent);
 	}
 
 	/**
@@ -1001,16 +1014,9 @@ public:
 		}
 		--leaf->count;
 
-		/* NEW: if we removed the leaf's minimum, refresh parent boundary */
-		if (leaf->parent != nullptr && i == 0) {
-			Node *parent = leaf->parent;
-
-			/* Find leaf index in parent */
-			size_t child_idx = this->find_child_index(parent, leaf);
-			/* The boundary separator for (left | leaf) sits at sep_idx = child_idx - 1 */
-			if (child_idx > 0) {
-				this->update_separator(parent, child_idx - 1);
-			}
+		// Centralized separator refresh
+		if (i == 0) {
+			this->refresh_parent_separator_if_min_changed(leaf);
 		}
 
 		/* Remember the successor key (if any) before fix-up */
