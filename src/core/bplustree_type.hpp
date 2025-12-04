@@ -212,6 +212,17 @@ public:
 		return node;
 	}
 
+	size_t find_child_index(Node *parent, Node *child) const {
+		for (size_t i = 0; i <= parent->count; ++i) {
+			if (parent->children[i].get() == child) {
+				return i;
+			}
+		}
+		assert(false); // child not found
+		return parent->count; // fallback
+	}
+
+
 	/**
 	 * Map mode insert: enabled only if Tvalue is not void
 	 */
@@ -243,10 +254,7 @@ public:
 		/* NEW: if leaf min changed, refresh boundary separator */
 		if (leaf->parent != nullptr && i == 0) {
 			Node *parent = leaf->parent;
-			size_t child_idx = 0;
-			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
-				++child_idx;
-			}
+			size_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
 				this->update_separator(parent, child_idx - 1);
 			}
@@ -285,10 +293,7 @@ public:
 		/* NEW: if leaf min changed, refresh boundary separator */
 		if (leaf->parent != nullptr && i == 0) {
 			Node *parent = leaf->parent;
-			size_t child_idx = 0;
-			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
-				++child_idx;
-			}
+			size_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
 				this->update_separator(parent, child_idx - 1);
 			}
@@ -377,10 +382,7 @@ public:
 		}
 
 		/* Find index of left in parent */
-		size_t i = 0;
-		while (i <= parent->count && parent->children[i].get() != left) {
-			++i;
-		}
+		size_t i = this->find_child_index(parent, left);
 
 		/* Shift keys/children right */
 		for (size_t j = parent->count; j > i; --j) {
@@ -771,10 +773,7 @@ public:
 
 		Node *parent = node->parent;
 		/* Find node’s index in parent */
-		size_t i = 0;
-		while (i <= parent->count && parent->children[i].get() != node) {
-			++i;
-		}
+		size_t i = this->find_child_index(parent, node);
 
 		const size_t min_internal = (B + 1) / 2;
 		if (node->count < min_internal) {
@@ -1007,10 +1006,7 @@ public:
 			Node *parent = leaf->parent;
 
 			/* Find leaf index in parent */
-			size_t child_idx = 0;
-			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
-				++child_idx;
-			}
+			size_t child_idx = this->find_child_index(parent, leaf);
 			/* The boundary separator for (left | leaf) sits at sep_idx = child_idx - 1 */
 			if (child_idx > 0) {
 				this->update_separator(parent, child_idx - 1);
@@ -1031,10 +1027,7 @@ public:
 		/* Fix underflow */
 		if (leaf->parent != nullptr && leaf->count < (B + 1) / 2) {
 			Node *parent = leaf->parent;
-			size_t ci = 0;
-			while (ci <= parent->count && parent->children[ci].get() != leaf) {
-				++ci;
-			}
+			size_t ci = this->find_child_index(parent, leaf);
 			if (ci <= parent->count) {
 				this->fix_underflow(parent, ci);
 			}
