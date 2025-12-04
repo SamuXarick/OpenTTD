@@ -524,17 +524,21 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 		return;
 	}
 
-	if (this->values_inited) this->values.try_emplace({ value, item });
+	if (this->values_inited) {
+		auto value_iter = this->values.try_emplace({ value, item }).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
+	}
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	bool inserted = this->items.try_emplace(item, value).second;
+	auto [item_iter, inserted] = this->items.try_emplace(item, value);
 
 	if (inserted && this->values_inited) {
-		this->values.try_emplace({ value, item });
+		auto value_iter = this->values.try_emplace({ value, item }).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
 	}
 }
 
