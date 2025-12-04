@@ -1666,6 +1666,7 @@ function Regression::TileList()
 	list.AddRectangle(27631 - 256 * 1, 256 * 1 + 27631 + 2);
 	print("  Count():             " + list.Count());
 
+	this.Break("1");
 	list.Valuate(AITile.GetSlope);
 	print("  Slope():             done");
 	print("  Count():             " + list.Count());
@@ -1684,6 +1685,7 @@ function Regression::TileList()
 	list.AddRectangle(34436, 256 * 2 + 34436 + 8);
 	print("  Count():             " + list.Count());
 
+	this.Break("2");
 	list.Valuate(AITile.GetCornerHeight, AITile.CORNER_N);
 	print("  Height():            done");
 	print("  Count():             " + list.Count());
@@ -1692,6 +1694,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("3");
 	list.Valuate(AITile.GetCornerHeight, AITile.CORNER_N);
 	print("  CornerHeight(North): done");
 	print("  Count():             " + list.Count());
@@ -1700,6 +1703,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("4");
 	list.Valuate(AITile.GetMinHeight);
 	print("  MinHeight():         done");
 	print("  Count():             " + list.Count());
@@ -1708,6 +1712,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("5");
 	list.Valuate(AITile.GetMaxHeight);
 	print("  MaxHeight():         done");
 	print("  Count():             " + list.Count());
@@ -1716,6 +1721,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("6");
 	list.Valuate(AITile.GetSlope);
 	list.KeepValue(0);
 	print("  Slope():             done");
@@ -1728,22 +1734,26 @@ function Regression::TileList()
 
 	list.Clear();
 	list.AddRectangle(41895 - 256 * 2, 256 * 2 + 41895 + 8);
+	this.Break("7");
 	list.Valuate(AITile.IsBuildable);
 	list.KeepValue(1);
 	print("  Buildable():         done");
 	print("  KeepValue(1):        done");
 	print("  Count():             " + list.Count());
 
+	this.Break("8");
 	list.Valuate(AITile.IsBuildableRectangle, 3, 3);
 	print("  BuildableRectangle(3, 3) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
+	this.Break("9");
 	list.Valuate(AITile.GetDistanceManhattanToTile, 30000);
 	print("  DistanceManhattanToTile(30000) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
+	this.Break("10");
 	list.Valuate(AITile.GetDistanceSquareToTile, 30000);
 	print("  DistanceSquareToTile(30000) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
@@ -1752,22 +1762,31 @@ function Regression::TileList()
 
 	list.AddRectangle(31895 - 256 * 5, 256 * 5 + 31895 + 8);
 
+	print("  Count():             " + list.Count());
+	print("  ListDump:");
+	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
+		print("    " + i + " => " + list.GetValue(i));
+	}
+	this.Break("11");
 	list.Valuate(AITile.GetOwner);
 	print("  GetOwner() ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
+	this.Break("12");
 	list.Valuate(AITile.GetTownAuthority);
 	print("  GetTownAuthority() ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
+	this.Break("13");
 	list.Valuate(AITile.GetClosestTown);
 	print("  GetClosestTown() ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("14");
 	list.Valuate(AITile.GetCargoAcceptance, 0, 1, 1, 3);
 	list.KeepAboveValue(10);
 	print("  CargoAcceptance():   done");
@@ -1778,6 +1797,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("15");
 	list.Valuate(AIRoad.IsRoadTile);
 	list.KeepValue(1);
 	print("  RoadTile():          done");
@@ -1788,6 +1808,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("16");
 	list.Valuate(AIRoad.GetNeighbourRoadCount);
 	list.KeepValue(1);
 	print("  NeighbourRoadCount():done");
@@ -1799,6 +1820,7 @@ function Regression::TileList()
 	}
 
 	list.AddRectangle(0x6F3F, 0x7248);
+	this.Break("17");
 	list.Valuate(AITile.IsWaterTile);
 	print("  IsWaterTile():       done");
 	print("  Count():             " + list.Count());
@@ -1807,6 +1829,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("18");
 	list.Valuate(AITile.IsSeaTile);
 	print("  IsSeaTile():         done");
 	print("  Count():             " + list.Count());
@@ -1815,6 +1838,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("19");
 	list.Valuate(AITile.IsRiverTile);
 	print("  IsRiverTile()        done");
 	print("  Count():             " + list.Count());
@@ -1823,6 +1847,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("20");
 	list.Valuate(AIMarine.IsCanalTile);
 	print("  IsCanalTile()        done");
 	print("  Count():             " + list.Count());
@@ -1831,6 +1856,7 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
+	this.Break("21");
 	list.Valuate(AITile.IsCoastTile);
 	print("  IsCoastTile()        done");
 	print("  Count():             " + list.Count());
@@ -1843,6 +1869,7 @@ function Regression::TileList()
 	print("");
 	print("--TileList_IndustryAccepting--");
 	print("  Count():             " + list.Count());
+	this.Break("22");
 	list.Valuate(AITile.GetCargoAcceptance, 3, 1, 1, 3);
 	print("  Location ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
@@ -1853,6 +1880,7 @@ function Regression::TileList()
 	print("");
 	print("--TileList_IndustryProducing--");
 	print("  Count():             " + list.Count());
+	this.Break("23");
 	list.Valuate(AITile.GetCargoProduction, 7, 1, 1, 3);
 	print("  Location ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {

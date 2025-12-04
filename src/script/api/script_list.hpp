@@ -37,7 +37,7 @@ public:
 	static const bool SORT_DESCENDING = false;
 
 	typedef BPlusTree<SQInteger, SQInteger> ScriptListMap;                 ///< Item to value map
-	typedef std::set<std::pair<SQInteger, SQInteger>> ScriptListValueSet; ///< [Value, Item] set
+	typedef BPlusTree<std::pair<SQInteger, SQInteger>> ScriptListValueSet; ///< [Value, Item] set
 
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm

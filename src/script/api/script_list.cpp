@@ -78,9 +78,7 @@ public:
 	/**
 	 * Callback from the list after an item gets removed.
 	 */
-	virtual void PostErase(ScriptList::ScriptListMap::iterator)
-	{
-	}
+	virtual void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator) = 0;
 
 	/**
 	 * Attach the sorter to a new list and update internal iterators so they remain valid
@@ -124,7 +122,7 @@ public:
 		this->has_no_more_items = false;
 
 		this->value_iter = this->list->values.begin();
-		this->item_next = this->value_iter->second;
+		this->item_next = (*this->value_iter).second;
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
@@ -142,7 +140,28 @@ public:
 			return;
 		}
 		++this->value_iter;
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
+		if (this->value_iter != this->list->values.end()) this->item_next = (*this->value_iter).second;
+	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator post_erase) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->values.end() && (*post_erase).second == this->item_next) {
+			this->value_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		auto item_iter = this->list->items.find(*this->item_next);
+		this->value_iter = this->list->values.find({ (*item_iter).second, *this->item_next });
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -151,7 +170,7 @@ public:
 		if (this->item_next) {
 			auto item_iter = this->list->items.find(*this->item_next);
 			SQInteger value = (*item_iter).second;
-			this->value_iter = this->list->values.find({value, *this->item_next});
+			this->value_iter = this->list->values.find({ value, *this->item_next });
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -189,7 +208,7 @@ public:
 
 		this->value_iter = this->list->values.end();
 		--this->value_iter;
-		this->item_next = this->value_iter->second;
+		this->item_next = (*this->value_iter).second;
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
@@ -212,7 +231,28 @@ public:
 		} else {
 			--this->value_iter;
 		}
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
+		if (this->value_iter != this->list->values.end()) this->item_next = (*this->value_iter).second;
+	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListValueSet::iterator post_erase) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->values.end() && (*post_erase).second == this->item_next) {
+			this->value_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		auto item_iter = this->list->items.find(*this->item_next);
+		this->value_iter = this->list->values.find({ (*item_iter).second, *this->item_next });
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -221,7 +261,7 @@ public:
 		if (this->item_next) {
 			auto item_iter = this->list->items.find(*this->item_next);
 			SQInteger value = (*item_iter).second;
-			this->value_iter = this->list->values.find({value, *this->item_next});
+			this->value_iter = this->list->values.find({ value, *this->item_next });
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -276,7 +316,7 @@ public:
 		if (this->item_iter != this->list->items.end()) this->item_next = (*this->item_iter).first;
 	}
 
-	void PostErase(ScriptList::ScriptListMap::iterator post_erase) override
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator) override
 	{
 		if (this->IsEnd()) return;
 
@@ -356,7 +396,7 @@ public:
 	}
 
 
-	void PostErase(ScriptList::ScriptListMap::iterator post_erase) override
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator) override
 	{
 		if (this->IsEnd()) return;
 
@@ -483,7 +523,7 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 		return;
 	}
 
-	if (this->values_inited) this->values.emplace(value, item);
+	if (this->values_inited) this->values.try_emplace({ value, item });
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
@@ -493,7 +533,7 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 	bool inserted = this->items.try_emplace(item, value).second;
 
 	if (inserted && this->values_inited) {
-		this->values.emplace(value, item);
+		this->values.try_emplace({ value, item });
 	}
 }
 
@@ -504,30 +544,31 @@ ScriptList::ScriptListMap::iterator ScriptList::RemoveIter(ScriptListMap::iterat
 
 	if (this->initialized) this->sorter->Remove(item);
 
+	auto item_iter_post_erase = this->items.erase(item_iter);
 	if (this->values_inited) {
-		auto value_iter = this->values.find({value, item});
-		this->values.erase(value_iter);
+		auto value_iter = this->values.find({ value, item });
+
+		auto value_iter_post_erase = this->values.erase(value_iter);
+		if (this->initialized) this->sorter->PostErase(item_iter_post_erase, value_iter_post_erase);
+	} else {
+		if (this->initialized) this->sorter->PostErase(item_iter_post_erase, {});
 	}
 
-	auto post_erase = this->items.erase(item_iter);
-
-	if (this->initialized) this->sorter->PostErase(post_erase);
-
-	return post_erase;
+	return item_iter_post_erase;
 }
 
 void ScriptList::RemoveValueIter(ScriptListValueSet::iterator value_iter)
 {
-	SQInteger item = value_iter->second;
+	SQInteger item = (*value_iter).second;
 
 	if (this->initialized) this->sorter->Remove(item);
 
 	auto item_iter = this->items.find(item);
-	auto post_erase = this->items.erase(item_iter);
+	auto item_iter_post_erase = this->items.erase(item_iter);
 
-	if (this->initialized) this->sorter->PostErase(post_erase);
+	auto value_iter_post_erase = this->values.erase(value_iter);
 
-	this->values.erase(value_iter);
+	if (this->initialized) this->sorter->PostErase(item_iter_post_erase, value_iter_post_erase);
 }
 
 void ScriptList::RemoveItem(SQInteger item)
@@ -542,7 +583,7 @@ void ScriptList::InitValues()
 {
 	this->values.clear();
 	for (const auto &[item, value] : this->items) {
-		this->values.emplace(value, item);
+		this->values.try_emplace({ value, item });
 	}
 	this->values_inited = true;
 }
@@ -627,9 +668,15 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 	(*item_iter).second = value;
 
 	if (this->values_inited) {
-		auto value_iter = this->values.find({value_old, item});
-		this->values.erase(value_iter);
-		this->values.emplace(value, item);
+		if (value_old == 0 && value == -1 && item == 31388) {
+			bool yes = true;
+		}
+		auto value_iter = this->values.find({ value_old, item });
+		auto value_iter_post_erase = this->values.erase(value_iter);
+
+		auto value_iter_post_insert = this->values.try_emplace({ value, item }).first;
+
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_insert);
 	}
 }
 

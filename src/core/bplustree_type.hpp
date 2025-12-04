@@ -20,18 +20,27 @@
 	/** Don't check for consistency. */
 #	define VALIDATE_NODES() ;
 #endif
-
-template <typename Tkey, typename Tvalue, size_t B = 64>
+/**
+ * Unified B+ tree template.
+ * - If Tvalue != void → behaves like std::map<Tkey,Tvalue>
+ * - If Tvalue == void → behaves like std::set<Tkey>
+ */
+template <typename Tkey, typename Tvalue = void, size_t B = 64>
 class BPlusTree;
 
 template <typename Tkey, typename Tvalue, size_t B>
 struct BPlusNode {
 	bool is_leaf;
-	size_t count; // number of keys currently stored
+	size_t count; ///< number of keys currently stored
 
 	std::array<Tkey, B> keys;
+
+	/* Only store values if not in set mode */
+	std::conditional_t<std::is_void_v<Tvalue>,
+		std::array<char, B>, // dummy storage
+		std::array<Tvalue, B>> values;
+
 	std::array<std::unique_ptr<BPlusNode>, B + 1> children; ///< For internal nodes: child pointers
-	std::array<Tvalue, B> values; ///< For leaf nodes: values
 
 	BPlusNode *next_leaf = nullptr;
 	BPlusNode *prev_leaf = nullptr;
@@ -48,32 +57,54 @@ class BPlusTree {
 	std::unique_ptr<Node> root;
 
 public:
-	BPlusTree() : root(std::make_unique<Node>())
+	BPlusTree() : root(std::make_unique<Node>(true))
 	{
 	}
 	BPlusTree(BPlusTree &&) = default;
 	BPlusTree &operator=(BPlusTree &&) = default;
 
 	/**
-	 * Iterator types
+	 * Iterator types: yields either pair<key,value> or const key &
 	 */
-	struct iterator {
-		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = std::pair<const Tkey, Tvalue>;
-		using difference_type = std::ptrdiff_t;
+	template <typename K, typename V>
+	struct BPlusIteratorTraits {
+		/* Map mode */
+		using reference = std::pair<const K &, V &>;
+		using value_type = std::pair<const K, V>;
 		using pointer = void;
-		using reference = std::pair<const Tkey &, Tvalue &>;
+	};
+
+	template <typename K>
+	struct BPlusIteratorTraits<K, void> {
+		/* Set mode */
+		using reference = const K &;
+		using value_type = K;
+		using pointer = void;
+	};
+
+
+	struct iterator {
+		using Traits = BPlusIteratorTraits<Tkey, Tvalue>;
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = typename Traits::value_type;
+		using reference = typename Traits::reference;
+		using pointer = typename Traits::pointer;
 
 		Node *leaf_ = nullptr;
 		size_t index_ = 0;
 		const BPlusTree *owner_ = nullptr;
 
-		/* Dereference */
+		/* Dereference: conditional return type */
 		reference operator*() const
 		{
 			assert(this->leaf_ != nullptr);
 			assert(this->index_ < this->leaf_->count);
-			return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] };
+			if constexpr (std::is_void_v<Tvalue>) {
+				return this->leaf_->keys[this->index_]; // set mode
+			} else {
+				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode
+			}
 		}
 
 		/* Increment */
@@ -129,11 +160,12 @@ public:
 	};
 
 	struct const_iterator {
+		using Traits = BPlusIteratorTraits<Tkey, std::conditional_t<std::is_void_v<Tvalue>, void, const Tvalue>>;
 		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = std::pair<const Tkey, const Tvalue>;
 		using difference_type = std::ptrdiff_t;
-		using pointer = void;
-		using reference = std::pair<const Tkey &, const Tvalue &>;
+		using value_type = typename Traits::value_type;   // For set: K; for map: pair<const K, const V>
+		using reference = typename Traits::reference;    // For set: const K&; for map: pair<const K&, const V&>
+		using pointer = typename Traits::pointer;
 
 		const Node *leaf_ = nullptr;
 		size_t index_ = 0;
@@ -180,7 +212,11 @@ public:
 		return node;
 	}
 
-	void insert(const Tkey &key, const Tvalue &value)
+	/**
+	 * Map mode insert: enabled only if Tvalue is not void
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<!std::is_void_v<U>, void> insert(const Tkey &key, const U &value)
 	{
 		if (this->root == nullptr) {
 			this->root = std::make_unique<Node>(true);
@@ -209,6 +245,36 @@ public:
 		}
 	}
 
+	/**
+	 * Set mode insert: enabled only if Tvalue is void
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<std::is_void_v<U>, void> insert(const Tkey &key)
+	{
+		if (this->root == nullptr) {
+			this->root = std::make_unique<Node>(true);
+		}
+		Node *leaf = this->find_leaf(key);
+		size_t i = this->lower_bound(leaf->keys, leaf->count, key);
+
+		/* Duplicate check */
+		if (i < leaf->count && leaf->keys[i] == key) {
+			/* Policy: ignore duplicate */
+			return;
+		}
+
+		/* Shift right */
+		for (size_t j = leaf->count; j > i; --j) {
+			leaf->keys[j] = std::move(leaf->keys[j - 1]);
+		}
+		leaf->keys[i] = key;
+		++leaf->count;
+
+		if (leaf->count == B) {
+			this->split_leaf(leaf);
+		}
+	}
+
 	Node *find_leaf(const Tkey &key) const
 	{
 		Node *node = this->root.get();
@@ -227,12 +293,14 @@ public:
 	void split_leaf(Node *leaf)
 	{
 		size_t mid = leaf->count / 2;
-		auto new_leaf = std::make_unique<Node>();
+		auto new_leaf = std::make_unique<Node>(true);
 
 		/* Copy half */
 		for (size_t j = mid; j < leaf->count; ++j) {
 			new_leaf->keys[j - mid] = std::move(leaf->keys[j]);
-			new_leaf->values[j - mid] = std::move(leaf->values[j]);
+			if (!std::is_void_v<Tvalue>) {
+				new_leaf->values[j - mid] = std::move(leaf->values[j]);
+			}
 		}
 		new_leaf->count = leaf->count - mid;
 		leaf->count = mid;
@@ -381,19 +449,30 @@ public:
 		/* Preconditions: right exists and right->count > (B + 1) / 2
 		 * Move right[0] -> leaf[end] */
 		leaf->keys[leaf->count] = std::move(right->keys[0]);
-		leaf->values[leaf->count] = std::move(right->values[0]);
+		if (!std::is_void_v<Tvalue>) {
+			leaf->values[leaf->count] = std::move(right->values[0]);
+		}
 		++leaf->count;
 
 		/* Shift right left */
 		for (size_t j = 0; j + 1 < right->count; ++j) {
 			right->keys[j] = std::move(right->keys[j + 1]);
-			right->values[j] = std::move(right->values[j + 1]);
+			if (!std::is_void_v<Tvalue>) {
+				right->values[j] = std::move(right->values[j + 1]);
+			}
 		}
 		--right->count;
+
+		/* Right before update_separator */
+		assert(parent->children[child_idx + 1].get() == right);
+		const Tkey before = parent->keys[child_idx];
 
 		/* Update linkage invariant for leaves (unchanged pointers)
 		 * Update parent separator (leaf | right) */
 		this->update_separator(parent, child_idx);
+
+		const Tkey after  = parent->keys[child_idx];
+		assert(after == parent->children[child_idx +1 ]->keys[0]);
 	}
 
 	/**
@@ -409,12 +488,16 @@ public:
 		 * Shift leaf right to make room at index 0 */
 		for (size_t j = leaf->count; j > 0; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
-			leaf->values[j] = std::move(leaf->values[j - 1]);
+			if (!std::is_void_v<Tvalue>) {
+				leaf->values[j] = std::move(leaf->values[j - 1]);
+			}
 		}
 
 		/* Move left[last] -> leaf[0] */
 		leaf->keys[0] = std::move(left->keys[left->count - 1]);
-		leaf->values[0] = std::move(left->values[left->count - 1]);
+		if (!std::is_void_v<Tvalue>) {
+			leaf->values[0] = std::move(left->values[left->count - 1]);
+		}
 		++leaf->count;
 		--left->count;
 
@@ -434,7 +517,9 @@ public:
 		/* Append right’s keys/values to left */
 		for (size_t j = 0; j < right->count; ++j) {
 			left->keys[left->count + j] = std::move(right->keys[j]);
-			left->values[left->count + j] = std::move(right->values[j]);
+			if (!std::is_void_v<Tvalue>) {
+				left->values[left->count + j] = std::move(right->values[j]);
+			}
 		}
 		left->count += right->count;
 
@@ -465,8 +550,8 @@ public:
 			if (parent->children[c]) parent->children[c]->parent = parent;
 		}
 		--parent->count;
-//		/* Optional: null trailing child for cleanliness */
-//		parent->children[parent->count + 1].reset();
+		/* null trailing child for cleanliness */
+		parent->children[parent->count + 1].reset();
 	}
 
 	void fix_underflow(Node *parent, size_t i)
@@ -733,7 +818,9 @@ public:
 		dst->keys = src->keys;
 
 		if (src->is_leaf) {
-			dst->values = src->values;
+			if (!std::is_void_v<Tvalue>) {
+				dst->values = src->values;
+			}
 			/* Leaf links (next/prev) are fixed later in a second pass */
 		} else {
 			for (size_t i = 0; i <= src->count; ++i) {
@@ -828,7 +915,7 @@ public:
 	void clear() noexcept
 	{
 		/* Reset to a fresh empty leaf node */
-		this->root = std::make_unique<Node>(); 
+		this->root = std::make_unique<Node>(true); 
 	}
 
 	bool empty() const noexcept
@@ -841,21 +928,39 @@ public:
 		return this->count_recursive(this->root.get());
 	}
 
-	std::pair<iterator, bool> try_emplace(const Tkey &key, const Tvalue &value)
+	/**
+	 * Map mode try_emplace
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key, const U &value)
 	{
-		/* First, search for key */
 		auto it = this->find(key);
 		if (it != this->end()) {
-			/* Already exists: return iterator and false */
-			return { it, false };
+			return { it, false }; // already exists
 		}
 
-		/* Otherwise, insert new key/value */
 		this->insert(key, value);
-
 		VALIDATE_NODES();
 
-		it = this->find(key); // find again to get iterator to new element
+		it = this->find(key);
+		return { it, true };
+	}
+
+	/**
+	 * Set mode try_emplace
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key)
+	{
+		auto it = this->find(key);
+		if (it != this->end()) {
+			return { it, false }; // already exists
+		}
+
+		this->insert(key);
+		VALIDATE_NODES();
+
+		it = this->find(key);
 		return { it, true };
 	}
 
@@ -866,12 +971,14 @@ public:
 		}
 
 		Node *leaf = pos.leaf_;
-		size_t i   = pos.index_;
+		size_t i = pos.index_;
 
 		/* Erase locally */
 		for (size_t j = i; j + 1 < leaf->count; ++j) {
 			leaf->keys[j] = std::move(leaf->keys[j + 1]);
-			leaf->values[j] = std::move(leaf->values[j + 1]);
+			if (!std::is_void_v<Tvalue>) {
+				leaf->values[j] = std::move(leaf->values[j + 1]);
+			}
 		}
 		--leaf->count;
 
