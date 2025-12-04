@@ -669,84 +669,11 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 	(*item_iter).second = value;
 
 	if (this->values_inited) {
-		if (value_old == 0 && value == -1 && item == 31388) {
-			for (auto it = this->values.begin(); it != this->values.end(); ++it) {
-				std::cout << (*it).first << " => " << (*it).second << "\n";
-			}
-			bool yes = true;
-			/* Check leaf linkage */
-			std::cout << "\nLeaf linkage check (before erase: (0 , 31388)):\n";
-			auto leaf = this->values.leftmost_leaf();
-			while (leaf != nullptr) {
-				std::ostringstream min;
-				std::ostringstream max;
-				if (leaf->count != 0) {
-					min << "(" << leaf->keys[0].first << " , " << leaf->keys[0].second << ")";
-					max << "(" << leaf->keys[leaf->count - 1].first << " , " << leaf->keys[leaf->count - 1].second << ")";
-				} else {
-					min << "n/a";
-					max << "n/a";
-				}
-
-				std::cout << " Leaf count=" << leaf->count << " min=" << min.str() << " max=" << max.str() << "\n";
-
-				leaf = leaf->next_leaf;
-			}
-		}
 		auto value_iter = this->values.find({ value_old, item });
-		auto value_iter_post_erase = this->values.erase(value_iter);
+		this->values.erase(value_iter);
 
-		if (value_old == 0 && value == -1 && item == 31388) {
-			for (auto it = this->values.begin(); it != this->values.end(); ++it) {
-				std::cout << (*it).first << " => " << (*it).second << "\n";
-			}
-			/* Check leaf linkage */
-			std::cout << "\nLeaf linkage check (after erase: (0 , 31388) eliminated):\n";
-			auto leaf = this->values.leftmost_leaf();
-			while (leaf != nullptr) {
-				std::ostringstream min;
-				std::ostringstream max;
-				if (leaf->count != 0) {
-					min << "(" << leaf->keys[0].first << " , " << leaf->keys[0].second << ")";
-					max << "(" << leaf->keys[leaf->count - 1].first << " , " << leaf->keys[leaf->count - 1].second << ")";
-				} else {
-					min << "n/a";
-					max << "n/a";
-				}
-
-				std::cout << " Leaf count=" << leaf->count << " min=" << min.str() << " max=" << max.str() << "\n";
-
-				leaf = leaf->next_leaf;
-			}
-		}
-
-		auto value_iter_post_insert = this->values.try_emplace({ value, item }).first;
-
-		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_insert);
-
-		if (value_old == 0 && value == -1 && item == 31388) {
-			for (auto it = this->values.begin(); it != this->values.end(); ++it) {
-				std::cout << (*it).first << " => " << (*it).second << "\n";
-			}
-			/* Check leaf linkage */
-			std::cout << "\nLeaf linkage check (after try_emplace: (-1 , 31388)):\n";
-			auto leaf = this->values.leftmost_leaf();
-			while (leaf != nullptr) {
-				std::ostringstream min;
-				std::ostringstream max;
-				if (leaf->count != 0) {
-					min << "(" << leaf->keys[0].first << " , " << leaf->keys[0].second << ")";
-					max << "(" << leaf->keys[leaf->count - 1].first << " , " << leaf->keys[leaf->count - 1].second << ")";
-				} else {
-					min << "n/a";
-					max << "n/a";
-				}
-
-				std::cout << " Leaf count=" << leaf->count << " min=" << min.str() << " max=" << max.str() << "\n";
-
-				leaf = leaf->next_leaf;
-			}
-		}
+		auto value_iter_post_erase = this->values.try_emplace({ value, item }).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_erase);
 	}
 }
 

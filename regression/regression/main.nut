@@ -1666,7 +1666,6 @@ function Regression::TileList()
 	list.AddRectangle(27631 - 256 * 1, 256 * 1 + 27631 + 2);
 	print("  Count():             " + list.Count());
 
-	this.Break("1");
 	list.Valuate(AITile.GetSlope);
 	print("  Slope():             done");
 	print("  Count():             " + list.Count());
@@ -1685,7 +1684,6 @@ function Regression::TileList()
 	list.AddRectangle(34436, 256 * 2 + 34436 + 8);
 	print("  Count():             " + list.Count());
 
-	this.Break("2");
 	list.Valuate(AITile.GetCornerHeight, AITile.CORNER_N);
 	print("  Height():            done");
 	print("  Count():             " + list.Count());
@@ -1694,7 +1692,6 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
-	this.Break("3");
 	list.Valuate(AITile.GetCornerHeight, AITile.CORNER_N);
 	print("  CornerHeight(North): done");
 	print("  Count():             " + list.Count());
@@ -1703,7 +1700,6 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
-	this.Break("4");
 	list.Valuate(AITile.GetMinHeight);
 	print("  MinHeight():         done");
 	print("  Count():             " + list.Count());
@@ -1712,7 +1708,6 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
-	this.Break("5");
 	list.Valuate(AITile.GetMaxHeight);
 	print("  MaxHeight():         done");
 	print("  Count():             " + list.Count());
@@ -1721,7 +1716,6 @@ function Regression::TileList()
 		print("    " + i + " => " + list.GetValue(i));
 	}
 
-	this.Break("6");
 	list.Valuate(AITile.GetSlope);
 	list.KeepValue(0);
 	print("  Slope():             done");
@@ -1734,26 +1728,22 @@ function Regression::TileList()
 
 	list.Clear();
 	list.AddRectangle(41895 - 256 * 2, 256 * 2 + 41895 + 8);
-	this.Break("7");
 	list.Valuate(AITile.IsBuildable);
 	list.KeepValue(1);
 	print("  Buildable():         done");
 	print("  KeepValue(1):        done");
 	print("  Count():             " + list.Count());
 
-	this.Break("8");
 	list.Valuate(AITile.IsBuildableRectangle, 3, 3);
 	print("  BuildableRectangle(3, 3) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
-	this.Break("9");
 	list.Valuate(AITile.GetDistanceManhattanToTile, 30000);
 	print("  DistanceManhattanToTile(30000) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
 		print("    " + i + " => " + list.GetValue(i));
 	}
-	this.Break("10");
 	list.Valuate(AITile.GetDistanceSquareToTile, 30000);
 	print("  DistanceSquareToTile(30000) ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
@@ -1762,12 +1752,6 @@ function Regression::TileList()
 
 	list.AddRectangle(31895 - 256 * 5, 256 * 5 + 31895 + 8);
 
-	print("  Count():             " + list.Count());
-	print("  ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	this.Break("11");
 	list.Valuate(AITile.GetOwner);
 	print("  GetOwner() ListDump:");
 	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {

@@ -925,6 +925,9 @@ ERROR: IsEnd() is invalid as Begin() is never called
       => RemoveItem(1) => 0 / false  (false)
     2 => 6 / true  (false)
       => RemoveItem(2) => 0 / false  (false)
+    3 => 6 / true  (false)
+      => RemoveItem(3) => 0 / false  (true)
+      => AddItem(3, 6) => 6 / true  (false)
     Post loop:  0 => 0  (true)
     Post loop Next:  0 => 0  (true)
     Post loop Next:  0 => 0  (true)
@@ -10833,7 +10836,7 @@ Your script made an error: excessive CPU usage in valuator function
 
 CALLSTACK
 *FUNCTION [Valuate()] Valuate line [5]
-*FUNCTION [Start()] regression/main.nut line [2383]
+*FUNCTION [Start()] regression/main.nut line [2395]
 
 LOCALS
 [args] ARRAY
