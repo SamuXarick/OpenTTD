@@ -11,7 +11,7 @@
 #define BPLUSTREE_TYPE_HPP
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 1
+#define BPLUSTREE_CHECK 0
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -20,6 +20,7 @@
 	/** Don't check for consistency. */
 #	define VALIDATE_NODES() ;
 #endif
+
 /**
  * Unified B+ tree template.
  * - If Tvalue != void → behaves like std::map<Tkey,Tvalue>
@@ -28,32 +29,73 @@
 template <typename Tkey, typename Tvalue = void, size_t B = 64>
 class BPlusTree;
 
+/**
+ * Map mode
+ */
 template <typename Tkey, typename Tvalue, size_t B>
-struct BPlusNode {
+struct BPlusNodeMap {
 	bool is_leaf;
-	size_t count; ///< number of keys currently stored
+	size_t count;
 
 	std::array<Tkey, B> keys;
+	std::array<Tvalue, B> values;
 
-	/* Only store values if not in set mode */
-	std::conditional_t<std::is_void_v<Tvalue>,
-		std::array<char, B>, // dummy storage
-		std::array<Tvalue, B>> values;
+	/* Children must point to the same instantiation of BPlusNode (map mode) */
+	std::array<std::unique_ptr<BPlusNodeMap<Tkey, Tvalue, B>>, B + 1> children;
 
-	std::array<std::unique_ptr<BPlusNode>, B + 1> children; ///< For internal nodes: child pointers
+	BPlusNodeMap *next_leaf = nullptr;
+	BPlusNodeMap *prev_leaf = nullptr;
+	BPlusNodeMap *parent = nullptr;
 
-	BPlusNode *next_leaf = nullptr;
-	BPlusNode *prev_leaf = nullptr;
-	BPlusNode *parent = nullptr;
-
-	BPlusNode(bool leaf = true) : is_leaf(leaf), count(0), next_leaf(nullptr), prev_leaf(nullptr), parent(nullptr)
+	explicit BPlusNodeMap(bool leaf = true) : is_leaf(leaf), count(0)
 	{
 	}
 };
 
+/**
+ * Set mode
+ */
+template <typename Tkey, size_t B>
+struct BPlusNodeSet {
+	bool is_leaf;
+	size_t count;
+
+	std::array<Tkey, B> keys;
+
+	/* Children point to the set-mode specialization */
+	std::array<std::unique_ptr<BPlusNodeSet<Tkey, B>>, B + 1> children;
+
+	BPlusNodeSet *next_leaf = nullptr;
+	BPlusNodeSet *prev_leaf = nullptr;
+	BPlusNodeSet *parent = nullptr;
+
+	explicit BPlusNodeSet(bool leaf = true) : is_leaf(leaf), count(0)
+	{
+	}
+};
+
+template <typename Tkey, typename Tvalue, size_t B, bool = std::is_void_v<Tvalue>>
+struct BPlusNodeSelector;
+
+/**
+ * Map mode
+ */
+template <typename Tkey, typename Tvalue, size_t B>
+struct BPlusNodeSelector<Tkey, Tvalue, B, false> {
+	using type = BPlusNodeMap<Tkey, Tvalue, B>;
+};
+
+/**
+ * Set mode
+ */
+template <typename Tkey, typename Tvalue, size_t B>
+struct BPlusNodeSelector<Tkey, Tvalue, B, true> {
+	using type = BPlusNodeSet<Tkey, B>;
+};
+
 template <typename Tkey, typename Tvalue, size_t B>
 class BPlusTree {
-	using Node = BPlusNode<Tkey, Tvalue, B>;
+	using Node = typename BPlusNodeSelector<Tkey,Tvalue,B>::type;
 	std::unique_ptr<Node> root;
 
 public:
@@ -81,7 +123,6 @@ public:
 		using value_type = K;
 		using pointer = void;
 	};
-
 
 	struct iterator {
 		using Traits = BPlusIteratorTraits<Tkey, Tvalue>;
@@ -334,7 +375,7 @@ public:
 		/* Copy half */
 		for (size_t j = mid; j < leaf->count; ++j) {
 			new_leaf->keys[j - mid] = std::move(leaf->keys[j]);
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				new_leaf->values[j - mid] = std::move(leaf->values[j]);
 			}
 		}
@@ -487,7 +528,7 @@ public:
 
 		/* Preconditions: right exists and right->count > (B + 1) / 2 */
 		leaf->keys[leaf->count] = std::move(right->keys[0]);
-		if (!std::is_void_v<Tvalue>) {
+		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[leaf->count] = std::move(right->values[0]);
 		}
 		++leaf->count;
@@ -495,7 +536,7 @@ public:
 		/* Shift right left */
 		for (size_t j = 0; j + 1 < right->count; ++j) {
 			right->keys[j] = std::move(right->keys[j + 1]);
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				right->values[j] = std::move(right->values[j + 1]);
 			}
 		}
@@ -517,14 +558,14 @@ public:
 		/* Preconditions: left exists and left->count > (B + 1) / 2 */
 		for (size_t j = leaf->count; j > 0; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				leaf->values[j] = std::move(leaf->values[j - 1]);
 			}
 		}
 
 		/* Move left[last] -> leaf[0] */
 		leaf->keys[0] = std::move(left->keys[left->count - 1]);
-		if (!std::is_void_v<Tvalue>) {
+		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[0] = std::move(left->values[left->count - 1]);
 		}
 		++leaf->count;
@@ -546,7 +587,7 @@ public:
 		/* Append right’s keys/values to left */
 		for (size_t j = 0; j < right->count; ++j) {
 			left->keys[left->count + j] = std::move(right->keys[j]);
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				left->values[left->count + j] = std::move(right->values[j]);
 			}
 		}
@@ -850,7 +891,7 @@ public:
 		dst->keys = src->keys;
 
 		if (src->is_leaf) {
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				dst->values = src->values;
 			}
 			/* Leaf links (next/prev) are fixed later in a second pass */
@@ -1008,7 +1049,7 @@ public:
 		/* Erase locally (keys/values shift left) */
 		for (size_t j = i; j + 1 < leaf->count; ++j) {
 			leaf->keys[j] = std::move(leaf->keys[j + 1]);
-			if (!std::is_void_v<Tvalue>) {
+			if constexpr (!std::is_void_v<Tvalue>) {
 				leaf->values[j] = std::move(leaf->values[j + 1]);
 			}
 		}
