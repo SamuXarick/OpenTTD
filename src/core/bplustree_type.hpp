@@ -240,6 +240,18 @@ public:
 		leaf->values[i] = value;
 		++leaf->count;
 
+		/* NEW: if leaf min changed, refresh boundary separator */
+		if (leaf->parent != nullptr && i == 0) {
+			Node *parent = leaf->parent;
+			size_t child_idx = 0;
+			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
+				++child_idx;
+			}
+			if (child_idx > 0) {
+				this->update_separator(parent, child_idx - 1);
+			}
+		}
+
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
 		}
@@ -269,6 +281,18 @@ public:
 		}
 		leaf->keys[i] = key;
 		++leaf->count;
+
+		/* NEW: if leaf min changed, refresh boundary separator */
+		if (leaf->parent != nullptr && i == 0) {
+			Node *parent = leaf->parent;
+			size_t child_idx = 0;
+			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
+				++child_idx;
+			}
+			if (child_idx > 0) {
+				this->update_separator(parent, child_idx - 1);
+			}
+		}
 
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
@@ -424,16 +448,22 @@ public:
 	/**
 	 * Update the separator key at sep_idx in parent.
 	 * For leaf children, the separator equals the min key of the right child.
+	 * If the right child is empty, remove the separator and child entirely.
 	 */
 	void update_separator(Node *parent, size_t sep_idx)
 	{
-		/* parent->keys[sep_idx] separates children[sep_idx] | children[sep_idx + 1] */
 		Node *right = parent->children[sep_idx + 1].get();
+		assert(right != nullptr);
+
 		if (right->is_leaf) {
-			parent->keys[sep_idx] = right->keys[0];
+			if (right->count == 0) {
+				/* No right minimum exists: remove this boundary */
+				this->remove_separator_and_child_right(parent, sep_idx);
+			} else {
+				parent->keys[sep_idx] = right->keys[0];
+			}
 		} else {
-			/* For internal nodes, separator stays as stored; no recomputation here.
-			 * If you use redistribution, you will explicitly set parent->keys[sep_idx]. */
+			/* For internal nodes, separator stays as stored unless explicitly changed elsewhere */
 		}
 	}
 
@@ -443,11 +473,10 @@ public:
 	 */
 	void borrow_from_right_leaf(Node *parent, size_t child_idx)
 	{
-		Node *leaf  = parent->children[child_idx].get();
+		Node *leaf = parent->children[child_idx].get();
 		Node *right = parent->children[child_idx + 1].get();
 
-		/* Preconditions: right exists and right->count > (B + 1) / 2
-		 * Move right[0] -> leaf[end] */
+		/* Preconditions: right exists and right->count > (B + 1) / 2 */
 		leaf->keys[leaf->count] = std::move(right->keys[0]);
 		if (!std::is_void_v<Tvalue>) {
 			leaf->values[leaf->count] = std::move(right->values[0]);
@@ -463,16 +492,8 @@ public:
 		}
 		--right->count;
 
-		/* Right before update_separator */
-		assert(parent->children[child_idx + 1].get() == right);
-		const Tkey before = parent->keys[child_idx];
-
-		/* Update linkage invariant for leaves (unchanged pointers)
-		 * Update parent separator (leaf | right) */
+		/* Update parent separator */
 		this->update_separator(parent, child_idx);
-
-		const Tkey after  = parent->keys[child_idx];
-		assert(after == parent->children[child_idx +1 ]->keys[0]);
 	}
 
 	/**
@@ -484,8 +505,7 @@ public:
 		Node *leaf = parent->children[child_idx].get();
 		Node *left = parent->children[child_idx - 1].get();
 
-		/* Preconditions: left exists and left->count > (B + 1) / 2
-		 * Shift leaf right to make room at index 0 */
+		/* Preconditions: left exists and left->count > (B + 1) / 2 */
 		for (size_t j = leaf->count; j > 0; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
 			if (!std::is_void_v<Tvalue>) {
@@ -501,8 +521,8 @@ public:
 		++leaf->count;
 		--left->count;
 
-		/* Update parent separator (left | leaf) becomes leaf.min */
-		parent->keys[child_idx - 1] = leaf->keys[0];
+		/* Update parent separator at boundary (child_idx - 1) */
+		this->update_separator(parent, child_idx - 1);
 	}
 
 	/**
@@ -973,7 +993,7 @@ public:
 		Node *leaf = pos.leaf_;
 		size_t i = pos.index_;
 
-		/* Erase locally */
+		/* Erase locally (keys/values shift left) */
 		for (size_t j = i; j + 1 < leaf->count; ++j) {
 			leaf->keys[j] = std::move(leaf->keys[j + 1]);
 			if (!std::is_void_v<Tvalue>) {
@@ -981,6 +1001,21 @@ public:
 			}
 		}
 		--leaf->count;
+
+		/* NEW: if we removed the leaf's minimum, refresh parent boundary */
+		if (leaf->parent != nullptr && i == 0) {
+			Node *parent = leaf->parent;
+
+			/* Find leaf index in parent */
+			size_t child_idx = 0;
+			while (child_idx <= parent->count && parent->children[child_idx].get() != leaf) {
+				++child_idx;
+			}
+			/* The boundary separator for (left | leaf) sits at sep_idx = child_idx - 1 */
+			if (child_idx > 0) {
+				this->update_separator(parent, child_idx - 1);
+			}
+		}
 
 		/* Remember the successor key (if any) before fix-up */
 		Tkey succ_key;
