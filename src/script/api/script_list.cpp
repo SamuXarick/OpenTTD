@@ -15,6 +15,7 @@
 
 #include "../../safeguards.h"
 #include <iostream>
+#include <random>
 
 /**
  * Base class for any ScriptList sorter.
@@ -486,6 +487,102 @@ void ScriptList::CopyList(const ScriptList *list)
 
 ScriptList::ScriptList()
 {
+	BPlusTree<int,int,4> tree; // small B to force splits quickly
+
+	std::cout << "\n/* Mixed inserts */";
+	for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
+		tree.insert(k, k * 100);
+		std::cout << "\ninsert key=" << k << "\n";
+		tree.dump_node(tree.root.get());
+	}
+
+	std::cout << "\n/* Iterator erase stress */";
+	int count = 5;
+	for (auto it = tree.end(); count > 0 && it != tree.begin();) {
+		--it;
+		std::cout << "\nerase key=" << (*it).first << "\n";
+		it = tree.erase(it); // successor returned
+		tree.dump_node(tree.root.get());
+		--count;
+	}
+
+	std::cout << "\n/* Erase all to shrink root */";
+	for (auto it = tree.begin(); it != tree.end();) {
+		std::cout << "\nerase key=" << (*it).first << "\n";
+		it = tree.erase(it);
+		tree.dump_node(tree.root.get());
+	}
+
+	{
+		using Tree = BPlusTree<int,int,4>;
+		Tree tree;
+
+		std::mt19937 rng(12345); // fixed seed for reproducibility
+		std::uniform_int_distribution<int> dist_key(1, 50);
+
+		// Insert a batch of random keys
+		for (int i = 0; i < 100; ++i) {
+			int k = dist_key(rng);
+			tree.try_emplace(k, k * 10);
+		}
+
+		// Forward iteration check
+		{
+			std::cout << "Forward iteration:\n";
+			int prev = -999999;
+			for (auto it = tree.begin(); it != tree.end(); ++it) {
+				auto [key, val] = *it;
+				std::cout << key << " ";
+				assert(prev < key); // strictly increasing
+				prev = key;
+			}
+			std::cout << "\n";
+		}
+
+		// Backward iteration check
+		{
+			std::cout << "Backward iteration:\n";
+			int prev = 999999;
+			for (auto it = tree.end(); it != tree.begin();) {
+				--it;
+				auto [key, val] = *it;
+				std::cout << key << " ";
+				assert(prev > key); // strictly decreasing
+				prev = key;
+			}
+			std::cout << "\n";
+		}
+
+		// Random erase stress
+		for (int i = 0; i < 30; ++i) {
+			int k = dist_key(rng);
+			auto it = tree.find(k);
+			if (it != tree.end()) {
+				std::cout << "Erasing " << k << "\n";
+				tree.erase(it);
+				tree.validate(); // your invariant checker
+			}
+		}
+
+		// Final forward/backward sweep
+		{
+			std::cout << "Final forward sweep:\n";
+			for (auto it = tree.begin(); it != tree.end(); ++it) {
+				auto [key, val] = *it;
+				std::cout << key << " ";
+			}
+			std::cout << "\n";
+
+			std::cout << "Final backward sweep:\n";
+			for (auto it = tree.end(); it != tree.begin();) {
+				--it;
+				auto [key, val] = *it;
+				std::cout << key << " ";
+			}
+			std::cout << "\n";
+		}
+	}
+
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;

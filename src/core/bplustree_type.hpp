@@ -10,6 +10,8 @@
 #ifndef BPLUSTREE_TYPE_HPP
 #define BPLUSTREE_TYPE_HPP
 
+#include <iostream>
+
 /** Enable it if you suspect b+ tree doesn't work well */
 #define BPLUSTREE_CHECK 1
 
@@ -95,10 +97,14 @@ struct BPlusNodeSelector<Tkey, Tvalue, B, true> {
 
 template <typename Tkey, typename Tvalue, size_t B>
 class BPlusTree {
-	using Node = typename BPlusNodeSelector<Tkey,Tvalue,B>::type;
-	std::unique_ptr<Node> root;
+	using Node = typename BPlusNodeSelector<Tkey, Tvalue, B>::type;
+
+	static constexpr size_t MIN_LEAF = (B + 1) / 2;
+	static constexpr size_t MIN_INTERNAL = (B + 1) / 2;
 
 public:
+	std::unique_ptr<Node> root;
+
 	BPlusTree() : root(std::make_unique<Node>(true))
 	{
 	}
@@ -134,7 +140,7 @@ public:
 
 		Node *leaf_ = nullptr;
 		size_t index_ = 0;
-		const BPlusTree *owner_ = nullptr;
+		const BPlusTree *tree_ = nullptr;
 
 		/* Dereference: conditional return type */
 		reference operator*() const
@@ -167,20 +173,28 @@ public:
 		{
 			if (this->leaf_ == nullptr) {
 				/* Special case: --end() should land on the last element */
-				this->leaf_ = this->owner_->rightmost_leaf(); // helper to find last leaf
-				if (this->leaf_ != nullptr) {
-					this->index_ = this->leaf_->count - 1;
+				Node *last = this->tree_->rightmost_leaf();
+				this->leaf_ = last;
+				if (last != nullptr) {
+					if (last->count > 0) {
+						this->index_ = last->count - 1;
+					} else {
+						this->index_ = 0;
+					}
 				} else {
 					this->index_ = 0;
 				}
 				return *this;
 			}
-
 			if (this->index_ == 0) {
 				/* Move to previous leaf */
 				this->leaf_ = this->leaf_->prev_leaf;
 				if (this->leaf_ != nullptr) {
-					this->index_ = this->leaf_->count - 1;
+					if (this->leaf_->count > 0) {
+						this->index_ = this->leaf_->count - 1;
+					} else {
+						this->index_ = 0;
+					}
 				}
 			} else {
 				--this->index_;
@@ -204,13 +218,72 @@ public:
 		using Traits = BPlusIteratorTraits<Tkey, std::conditional_t<std::is_void_v<Tvalue>, void, const Tvalue>>;
 		using iterator_category = std::bidirectional_iterator_tag;
 		using difference_type = std::ptrdiff_t;
-		using value_type = typename Traits::value_type;   // For set: K; for map: pair<const K, const V>
-		using reference = typename Traits::reference;    // For set: const K&; for map: pair<const K&, const V&>
+		using value_type = typename Traits::value_type;
+		using reference = typename Traits::reference;
 		using pointer = typename Traits::pointer;
 
 		const Node *leaf_ = nullptr;
 		size_t index_ = 0;
-		const BPlusTree *owner_ = nullptr; // back-pointer to the tree
+		const BPlusTree *tree_ = nullptr;
+
+		/* Dereference */
+		reference operator*() const
+		{
+			assert(this->leaf_ != nullptr);
+			assert(this->index_ < this->leaf_->count);
+			if constexpr (std::is_void_v<Tvalue>) {
+				return this->leaf_->keys[this->index_]; // set mode
+			} else {
+				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode (const V&)
+			}
+		}
+
+		/* Increment */
+		const_iterator &operator++()
+		{
+			if (this->leaf_ == nullptr) {
+				return *this;
+			}
+			++this->index_;
+			if (this->index_ >= this->leaf_->count) {
+				this->leaf_ = this->leaf_->next_leaf;
+				this->index_ = 0;
+			}
+			return *this;
+		}
+
+		/* Decrement */
+		const_iterator &operator--()
+		{
+			if (this->leaf_ == nullptr) {
+				/* --end() => last element */
+				const Node *last = this->tree_->rightmost_leaf();
+				this->leaf_ = last;
+				if (last != nullptr) {
+					if (last->count > 0) {
+						this->index_ = last->count - 1;
+					} else {
+						this->index_ = 0;
+					}
+				} else {
+					this->index_ = 0;
+				}
+				return *this;
+			}
+			if (this->index_ == 0) {
+				this->leaf_ = this->leaf_->prev_leaf;
+				if (this->leaf_ != nullptr) {
+					if (this->leaf_->count > 0) {
+						this->index_ = this->leaf_->count - 1;
+					} else {
+						this->index_ = 0;
+					}
+				}
+			} else {
+				--this->index_;
+			}
+			return *this;
+		}
 
 		friend bool operator==(const const_iterator &a, const const_iterator &b)
 		{
@@ -222,6 +295,187 @@ public:
 			return !(a == b);
 		}
 	};
+
+	/**
+	 * Return iterator to first element
+	 */
+	iterator begin()
+	{ 
+		Node *first = this->leftmost_leaf();
+		if (first == nullptr || first->count == 0) {
+			return this->end();
+		}
+		return iterator(first, 0, this);
+	}
+
+	/**
+	 * Return iterator to "one past the last element"
+	 */
+	iterator end()
+	{
+		return iterator(nullptr, 0, this); // sentinel
+	}
+
+	const_iterator end() const
+	{
+		return const_iterator(nullptr, 0, this); // sentinel
+	}
+
+	const_iterator cend() const
+	{
+		return this->end();
+	}
+
+	iterator find(const Tkey &key)
+	{
+		Node *node = this->root.get();
+		while (node != nullptr && !node->is_leaf) {
+			size_t i = this->upper_bound(node->keys, node->count, key);
+			assert(i <= node->count); // children size is count + 1
+			assert(node->children[i] != nullptr);
+			node = node->children[i].get();
+		}
+		if (node == nullptr) {
+			return this->end();
+		}
+
+		size_t i = this->lower_bound(node->keys, node->count, key);
+		if (i < node->count && node->keys[i] == key) {
+			return iterator(node, i, this);
+		}
+		return this->end();
+	}
+
+	const_iterator find(const Tkey &key) const
+	{
+		const Node *node = this->root.get();
+		while (node != nullptr && !node->is_leaf) {
+			size_t i = this->upper_bound(node->keys, node->count, key);
+			assert(i <= node->count); // children size is count + 1
+			assert(node->children[i] != nullptr);
+			node = node->children[i].get();
+		}
+		if (node == nullptr) {
+			return this->cend();
+		}
+
+		size_t i = this->lower_bound(node->keys, node->count, key);
+		if (i < node->count && node->keys[i] == key) {
+			return const_iterator(node, i, this);
+		}
+		return this->cend();
+	}
+
+	/**
+	 * Map mode try_emplace
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key, const U &value)
+	{
+		auto it = this->find(key);
+		if (it != this->end()) {
+			return { it, false }; // already exists
+		}
+
+		this->insert(key, value);
+		VALIDATE_NODES();
+
+		it = this->find(key);
+		return { it, true };
+	}
+
+	/**
+	 * Set mode try_emplace
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key)
+	{
+		auto it = this->find(key);
+		if (it != this->end()) {
+			return { it, false }; // already exists
+		}
+
+		this->insert(key);
+		VALIDATE_NODES();
+
+		it = this->find(key);
+		return { it, true };
+	}
+
+	iterator erase(iterator pos)
+	{
+		if (pos == this->end()) {
+			return this->end();
+		}
+
+		/* Resolve the key at iterator safely */
+		const Tkey key = pos.leaf_->keys[pos.index_];
+
+		/* Find its current leaf (defensive against prior structure shifts) */
+		Node *leaf = this->find_leaf(key);
+
+		/* Locate exact position by lower_bound */
+		size_t i = lower_bound(leaf->keys, leaf->count, key);
+		if (i >= leaf->count || leaf->keys[i] != key) {
+			/* Key vanished (shouldn’t happen), return iterator to next key we had computed earlier */
+			return this->end();
+		}
+
+		/* Erase locally (keys/values shift left) */
+		for (size_t j = i; j + 1 < leaf->count; ++j) {
+			leaf->keys[j] = std::move(leaf->keys[j + 1]);
+			if constexpr (!std::is_void_v<Tvalue>) {
+				leaf->values[j] = std::move(leaf->values[j + 1]);
+			}
+		}
+		--leaf->count;
+
+		/* Compute successor key BEFORE any structural changes */
+		Tkey succ_key{};
+		bool has_succ = false;
+		if (i < leaf->count) { // next in same leaf
+			succ_key = leaf->keys[i];
+			has_succ = true;
+		} else if (leaf->next_leaf != nullptr && leaf->next_leaf->count > 0) { // first of next leaf
+			succ_key = leaf->next_leaf->keys[0];
+			has_succ = true;
+		}
+
+		/* Refresh boundary if min changed */
+		if (i == 0 && leaf->parent != nullptr) {
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (child_idx > 0) {
+				this->refresh_boundary_upward(leaf->parent, child_idx - 1);
+			} else {
+				/*If the erased leaf is the leftmost child, its parent’s own min may change,
+				 * which can affect ancestors along the leftmost path.
+				 * Refresh parent’s nearest ancestor separator as needed. */
+				this->refresh_boundary_upward(leaf->parent, 0); // conservative: refresh sep 0 at parent, then propagate
+			}
+		}
+
+
+		/* Fix underflow */
+		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
+			Node *parent = leaf->parent;
+			size_t ci = this->find_child_index(parent, leaf);
+			if (ci <= parent->count) {
+				this->fix_underflow(parent, ci);
+			}
+		}
+
+		VALIDATE_NODES();
+
+		/* If no successor, we’re at end */
+		if (!has_succ) {
+			return this->end();
+		}
+
+		/* Re-find successor leaf after potential merges */
+		Node *succ_leaf = this->find_leaf(succ_key);
+		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
+		return iterator(succ_leaf, succ_idx, this);
+	}
 
 	Node *leftmost_leaf() const
 	{
@@ -301,7 +555,6 @@ public:
 				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
 			}
 		}
-
 
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
@@ -491,54 +744,70 @@ public:
 	}
 
 	/**
-	 * Maintain the parent boundary at sep_idx.
-	 * - For leaf children: parent->keys[sep_idx] must equal right->keys[0].
-	 *   If right is empty, remove the separator and right child.
-	 * - For internal children: parent->keys[sep_idx] must be <= right->keys[0].
-	 *   Borrow/merge operations already set the correct key; we only guard empties.
+	 * Refresh the separator at sep_idx in 'parent' to match right subtree min,
+	 * then, if that changed the ancestor view, propagate the change upward.
+	 * This is a conservative, correctness-first approach for debug builds.
 	 */
+	void refresh_boundary_upward(Node *parent, size_t sep_idx)
+	{
+		/* 1) Refresh at this parent */
+		this->maintain_parent_boundary(parent, sep_idx);
+
+		/* 2) Propagate upward if the parent’s subtree minimum may have changed.
+		 * The parent’s subtree minimum is the leftmost leaf under parent->children[0].
+		 * Changing sep_idx can affect the ancestor only when the leftmost path of 'parent'
+		 * changed; we conservatively re-check the ancestor’s separator that points to 'parent'
+		 * as its right child. */
+		Node *p = parent;
+		while (p != nullptr && p->parent != nullptr) {
+			Node *gp = p->parent;
+			size_t idx_in_gp = this->find_child_index(gp, p);
+
+			/* If this subtree is the right child at idx_in_gp, its ancestor separator is (idx_in_gp - 1). */
+			if (idx_in_gp > 0) {
+				this->maintain_parent_boundary(gp, idx_in_gp - 1);
+			}
+
+			/* Move up one level; continue only if p sits on the leftmost path (idx_in_gp == 0),
+			 * which can change the ancestor’s subtree minimum. */
+			if (idx_in_gp == 0) {
+				p = gp;
+				continue;
+			} else {
+				break;
+			}
+		}
+	}
+
 	void maintain_parent_boundary(Node *parent, size_t sep_idx)
 	{
+		assert(parent != nullptr);
+		assert(sep_idx < parent->count);
+
 		Node *right = parent->children[sep_idx + 1].get();
-		assert(right != nullptr);
+		if (right == nullptr) {
+			/* After a merge, the right child may have been removed explicitly.
+			 * Nothing to update here.*/
+			return;
+		}
 
 		if (right->is_leaf) {
-			if (right->count == 0) {
-				/* Remove separator and right child entirely */
-				for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
-					parent->keys[k] = std::move(parent->keys[k + 1]);
-				}
-				for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
-					parent->children[c] = std::move(parent->children[c + 1]);
-					if (parent->children[c] != nullptr) {
-						parent->children[c]->parent = parent;
-					}
-				}
-				--parent->count;
-				parent->children[parent->count + 1].reset();
-			} else {
+			/* In a B+ tree, separator must equal the first key of the right leaf. */
+			if (right->count > 0) {
 				parent->keys[sep_idx] = right->keys[0];
+			} else {
+				/* Empty right leaf should not persist; merge helpers must remove it. */
+				assert(false && "Empty right leaf should have been removed in merge");
 			}
 		} else {
-			/* Internal node case */
-			if (right->count == 0) {
-				/* No keys in right child: remove separator and child */
-				for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
-					parent->keys[k] = std::move(parent->keys[k + 1]);
-				}
-				for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
-					parent->children[c] = std::move(parent->children[c + 1]);
-					if (parent->children[c] != nullptr) {
-						parent->children[c]->parent = parent;
-					}
-				}
-				--parent->count;
-				parent->children[parent->count + 1].reset();
-			} else {
-				/* For internal nodes, separator is already set by borrow/merge logic.
-				 * Optional: sanity check that parent->keys[sep_idx] <= right->keys[0]. */
-				assert(!(parent->keys[sep_idx] > right->keys[0]));
+			/* Internal node: separator must equal the minimum of the right subtree.
+			 * Walk down to the leftmost leaf of the right child. */
+			Node *cur = right;
+			while (cur != nullptr && !cur->is_leaf) {
+				cur = cur->children[0].get();
 			}
+			assert(cur != nullptr && cur->count > 0);
+			parent->keys[sep_idx] = cur->keys[0];
 		}
 	}
 
@@ -565,7 +834,7 @@ public:
 		}
 		--right->count;
 
-		this->maintain_parent_boundary(parent, child_idx);
+		this->refresh_boundary_upward(parent, child_idx);
 	}
 
 	/**
@@ -591,7 +860,7 @@ public:
 		++leaf->count;
 		--left->count;
 
-		this->maintain_parent_boundary(parent, child_idx - 1);
+		this->refresh_boundary_upward(parent, child_idx - 1);
 	}
 
 	/**
@@ -603,6 +872,10 @@ public:
 		Node *left = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
 
+		/* Defensive: right must not contain duplicates of left.max or any erased key */
+		assert(left != nullptr && right != nullptr && left->is_leaf && right->is_leaf);
+
+		/* Copy only existing keys post-erase */
 		for (size_t j = 0; j < right->count; ++j) {
 			left->keys[left->count + j] = std::move(right->keys[j]);
 			if constexpr (!std::is_void_v<Tvalue>) {
@@ -611,68 +884,104 @@ public:
 		}
 		left->count += right->count;
 
+		/* Stitch leaves */
 		left->next_leaf = right->next_leaf;
 		if (left->next_leaf != nullptr) {
 			left->next_leaf->prev_leaf = left;
 		}
 
-		this->maintain_parent_boundary(parent, i);
+		/* Explicitly remove the separator and right child */
+		this->remove_separator_and_right_child(parent, i);
+
+		/* Optional hygiene: clear right leaf links (not strictly necessary since it's detached) */
+		right->prev_leaf = nullptr;
+		right->next_leaf = nullptr;
+
+		/* After removal, the next separator at i (old i+1) may now reflect a different right-min. */
+		if (i < parent->count) {
+			this->refresh_boundary_upward(parent, i);
+		}
 	}
 
 	/**
 	 * Remove separator at sep_idx and the RIGHT child of that separator (child at sep_idx + 1).
 	 */
-	void remove_separator_and_child_right(Node *parent, size_t sep_idx)
+	void remove_separator_and_right_child(Node *parent, size_t sep_idx)
 	 {
-		/* Remove key at sep_idx */
+		assert(parent != nullptr);
+		assert(sep_idx < parent->count);
+
+		/* Shift keys left */
 		for (size_t k = sep_idx; k + 1 < parent->count; ++k) {
 			parent->keys[k] = std::move(parent->keys[k + 1]);
 		}
-		/* Remove child at sep_idx + 1 */
+		/* Shift children left (starting from right child position) */
 		for (size_t c = sep_idx + 1; c + 1 <= parent->count; ++c) {
 			parent->children[c] = std::move(parent->children[c + 1]);
-			if (parent->children[c]) parent->children[c]->parent = parent;
+			if (parent->children[c] != nullptr) {
+				parent->children[c]->parent = parent;
+			}
 		}
+
+		/* Decrement count and clear the now-unused last child slot */
 		--parent->count;
-		/* null trailing child for cleanliness */
 		parent->children[parent->count + 1].reset();
 	}
 
 	void fix_underflow(Node *parent, size_t i)
 	{
 		Node *child = parent->children[i].get();
-
 		if (child->is_leaf) {
-			const size_t min_leaf = (B + 1) / 2;
+			/* Snapshot BEFORE any mutation */
+			const size_t parent_count_before = parent->count;
+			const size_t left_count_before = (i > 0 && parent->children[i - 1]) ? parent->children[i - 1]->count : 0;
+			const size_t child_count_before = child->count;
+			const size_t right_count_before = (i + 1 <= parent->count && parent->children[i + 1]) ? parent->children[i + 1]->count : 0;
+
+			auto log_enter = [&] {
+				std::cerr << "UNDERFLOW-ENTER parent.sepCount=" << parent_count_before
+					<< " i=" << i
+					<< " left.count=" << left_count_before
+					<< " child.count=" << child_count_before
+					<< " right.count=" << right_count_before
+					<< "\n";
+			};
+			log_enter();
 
 			/* Try borrow from right */
 			if (i + 1 <= parent->count) {
 				Node *right = parent->children[i + 1].get();
-				if (right != nullptr && right->count > min_leaf) {
+				if (right != nullptr && right->count > MIN_LEAF) {
 					this->borrow_from_right_leaf(parent, i);
+					this->refresh_boundary_upward(parent, i);
+					std::cerr << "BORROW-RIGHT\n";
 					return;
 				}
 			}
 			/* Try borrow from left */
 			if (i > 0) {
 				Node *left = parent->children[i - 1].get();
-				if (left != nullptr && left->count > min_leaf) {
+				if (left != nullptr && left->count > MIN_LEAF) {
 					this->borrow_from_left_leaf(parent, i);
+					this->refresh_boundary_upward(parent, i - 1);
+					std::cerr << "BORROW-LEFT\n";
 					return;
 				}
 			}
 
-			/* Merge: always merge with right sibling if it exists,
-			 * otherwise merge into left sibling. */
+			/* Merge */
 			if (i + 1 <= parent->count) {
-				this->merge_leaf_keep_left(parent, i); // new helper
+				this->merge_leaf_keep_left(parent, i);
+				std::cerr << "MERGE-KEEP-LEFT\n";
 			} else {
-				/* If no right sibling, merge current leaf into its left sibling */
+				/* Merge into left sibling */
 				this->merge_leaf_keep_left(parent, i - 1);
+				std::cerr << "MERGE-INTO-LEFT\n";
 			}
 
-			/* After merge, parent may underflow (internal node) */
+			/* After merge, parent->count changed. Cascade if needed: */
 			this->fix_internal_underflow_cascade(parent);
+			std::cerr << "CASCADE-DONE parent.sepCount=" << parent->count << "\n";
 		} else {
 			this->fix_underflow_internal_child(parent, i);
 		}
@@ -715,7 +1024,7 @@ public:
 		--right->count;
 
 		/* Refresh boundary */
-		this->maintain_parent_boundary(parent, i);
+		this->refresh_boundary_upward(parent, i);
 	}
 
 	/**
@@ -755,7 +1064,7 @@ public:
 		--left->count;
 
 		/* Refresh boundary */
-		this->maintain_parent_boundary(parent, i - 1);
+		this->refresh_boundary_upward(parent, i - 1);
 	}
 
 	/**
@@ -767,15 +1076,17 @@ public:
 		Node *left  = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
 
+		assert(left != nullptr && right != nullptr && !left->is_leaf && !right->is_leaf);
+
 		/* Move parent key down */
 		left->keys[left->count] = std::move(parent->keys[i]);
 
-		/* Copy right’s keys */
+		/* Move right's keys */
 		for (size_t k = 0; k < right->count; ++k) {
 			left->keys[left->count + 1 + k] = std::move(right->keys[k]);
 		}
 
-		/* Copy right’s children */
+		/* Move right's children */
 		for (size_t c = 0; c <= right->count; ++c) {
 			left->children[left->count + 1 + c] = std::move(right->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
@@ -785,11 +1096,13 @@ public:
 
 		left->count += 1 + right->count;
 
-		/* Remove separator and right child */
-		this->maintain_parent_boundary(parent, i);
+		/* Explicitly remove separator and right child */
+		this->remove_separator_and_right_child(parent, i);
 
 		/* Cascade if parent underflows */
-		this->fix_internal_underflow_cascade(parent);
+		if (i < parent->count) {
+			this->refresh_boundary_upward(parent, i);
+		}
 	}
 
 	/**
@@ -797,12 +1110,10 @@ public:
 	 */
 	void fix_underflow_internal_child(Node *parent, size_t i)
 	{
-		const size_t min_internal = (B + 1) / 2;
-
 		/* Try borrow from right */
 		if (i + 1 <= parent->count) {
 			Node *right = parent->children[i + 1].get();
-			if (right != nullptr && right->count > min_internal) {
+			if (right != nullptr && right->count > MIN_INTERNAL) {
 				this->borrow_from_right_internal(parent, i);
 				return;
 			}
@@ -811,7 +1122,7 @@ public:
 		/* Try borrow from left */
 		if (i > 0) {
 			Node *left = parent->children[i - 1].get();
-			if (left != nullptr && left->count > min_internal) {
+			if (left != nullptr && left->count > MIN_INTERNAL) {
 				this->borrow_from_left_internal(parent, i);
 				return;
 			}
@@ -851,41 +1162,10 @@ public:
 		/* Find node’s index in parent */
 		size_t i = this->find_child_index(parent, node);
 
-		const size_t min_internal = (B + 1) / 2;
-		if (node->count < min_internal) {
+		if (node->count < MIN_INTERNAL) {
 			/* Reuse the same logic as fix_underflow_internal_child */
 			this->fix_underflow_internal_child(parent, i);
 		}
-	}
-
-	/**
-	 * Return iterator to first element
-	 */
-	iterator begin()
-	{ 
-		Node *first = this->leftmost_leaf();
-		if (first == nullptr || first->count == 0) {
-			return this->end();
-		}
-		return iterator(first, 0, this);
-	}
-
-	/**
-	 * Return iterator to "one past the last element"
-	 */
-	iterator end()
-	{
-		return iterator(nullptr, 0, this); // sentinel
-	}
-
-	const_iterator end() const
-	{
-		return const_iterator(nullptr, 0, this); // sentinel
-	}
-
-	const_iterator cend() const
-	{
-		return this->end();
 	}
 
 	/**
@@ -962,46 +1242,6 @@ public:
 		return this->find(key) != this->end();
 	}
 
-	iterator find(const Tkey &key)
-	{
-		Node *node = this->root.get();
-		while (node != nullptr && !node->is_leaf) {
-			size_t i = this->upper_bound(node->keys, node->count, key);
-			assert(i <= node->count); // children size is count + 1
-			assert(node->children[i] != nullptr);
-			node = node->children[i].get();
-		}
-		if (node == nullptr) {
-			return this->end();
-		}
-
-		size_t i = this->lower_bound(node->keys, node->count, key);
-		if (i < node->count && node->keys[i] == key) {
-			return iterator(node, i, this);
-		}
-		return this->end();
-	}
-
-	const_iterator find(const Tkey &key) const
-	{
-		const Node *node = this->root.get();
-		while (node != nullptr && !node->is_leaf) {
-			size_t i = this->upper_bound(node->keys, node->count, key);
-			assert(i <= node->count); // children size is count + 1
-			assert(node->children[i] != nullptr);
-			node = node->children[i].get();
-		}
-		if (node == nullptr) {
-			return this->cend();
-		}
-
-		size_t i = this->lower_bound(node->keys, node->count, key);
-		if (i < node->count && node->keys[i] == key) {
-			return const_iterator(node, i, this);
-		}
-		return this->cend();
-	}
-
 	void swap(BPlusTree &other) noexcept
 	{
 		this->root.swap(other.root);
@@ -1022,104 +1262,6 @@ public:
 	{
 		return this->count_recursive(this->root.get());
 	}
-
-	/**
-	 * Map mode try_emplace
-	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key, const U &value)
-	{
-		auto it = this->find(key);
-		if (it != this->end()) {
-			return { it, false }; // already exists
-		}
-
-		this->insert(key, value);
-		VALIDATE_NODES();
-
-		it = this->find(key);
-		return { it, true };
-	}
-
-	/**
-	 * Set mode try_emplace
-	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key)
-	{
-		auto it = this->find(key);
-		if (it != this->end()) {
-			return { it, false }; // already exists
-		}
-
-		this->insert(key);
-		VALIDATE_NODES();
-
-		it = this->find(key);
-		return { it, true };
-	}
-
-	iterator erase(iterator pos)
-	{
-		if (pos == this->end()) {
-			return this->end();
-		}
-
-		Node *leaf = pos.leaf_;
-		size_t i = pos.index_;
-
-		/* Erase locally (keys/values shift left) */
-		for (size_t j = i; j + 1 < leaf->count; ++j) {
-			leaf->keys[j] = std::move(leaf->keys[j + 1]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				leaf->values[j] = std::move(leaf->values[j + 1]);
-			}
-		}
-		--leaf->count;
-
-		/* Centralized separator refresh */
-		if (i == 0 && leaf->parent != nullptr) {
-			size_t child_idx = this->find_child_index(leaf->parent, leaf);
-			if (child_idx > 0) {
-				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
-			}
-		}
-
-
-		/* Remember the successor key (if any) before fix-up */
-		Tkey succ_key;
-		bool has_succ = false;
-		if (i < leaf->count) {
-			succ_key = leaf->keys[i];
-			has_succ = true;
-		} else if (leaf->next_leaf != nullptr && leaf->next_leaf->count > 0) {
-			succ_key = leaf->next_leaf->keys[0];
-			has_succ = true;
-		}
-
-		/* Fix underflow */
-		if (leaf->parent != nullptr && leaf->count < (B + 1) / 2) {
-			Node *parent = leaf->parent;
-			size_t ci = this->find_child_index(parent, leaf);
-			if (ci <= parent->count) {
-				this->fix_underflow(parent, ci);
-			}
-		}
-
-		VALIDATE_NODES();
-
-		/* If no successor, we’re at end */
-		if (!has_succ) {
-			return this->end();
-		}
-
-		/* Re-find successor leaf after potential merges */
-		Node *succ_leaf = this->find_leaf(succ_key);
-		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
-		return iterator(succ_leaf, succ_idx, this);
-	}
-
-
 
 private:
 	size_t count_recursive(const Node *node) const
@@ -1176,110 +1318,268 @@ private:
 	}
 
 #if BPLUSTREE_CHECK
-	bool validate() const
+	template <typename Node>
+	const Tkey &subtree_min(const Node *node) const
+	{
+		const Node *cur = node;
+		while (cur != nullptr && !cur->is_leaf) {
+			cur = cur->children[0].get();
+		}
+		assert(cur != nullptr && cur->count > 0);
+		return cur->keys[0];
+	}
+public:
+	void validate() const
 	{
 		if (this->root == nullptr) {
-			return true;
+			return;
+		}
+
+		/* Root invariants */
+		if (this->root->is_leaf) {
+			assert(this->root->count <= B);
+		} else {
+			assert(this->root->count <= B);
+			/* Root must have at least one child unless the tree is empty */
+			for (size_t i = 0; i <= this->root->count; ++i) {
+				assert(this->root->children[i] != nullptr);
+				assert(this->root->children[i]->parent == this->root.get());
+			}
 		}
 
 		/* Check invariants recursively */
-		bool ok = this->validate_node(this->root.get(), nullptr, nullptr);
-		if (!ok) {
-			assert(false);
-			return false;
-		}
+		this->validate_node(this->root.get(), nullptr, nullptr);
 
 		/* Check leaf linkage */
-		Node *leaf = leftmost_leaf();
+		Node *leaf = this->leftmost_leaf();
 		Node *prev = nullptr;
 		while (leaf != nullptr) {
-			/* Keys sorted */
+			/* Keys strictly ascending within leaf */
 			for (size_t i = 1; i < leaf->count; ++i) {
-				if (leaf->keys[i - 1] > leaf->keys[i]) {
-					assert(false);
-					return false;
-				}
+				assert(leaf->keys[i - 1] < leaf->keys[i]);
 			}
-			/* Link symmetry */
-			if (leaf->prev_leaf != prev) {
-				assert(false);
-				return false;
+			/* Link symmetry (both directions) */
+			assert(leaf->prev_leaf == prev);
+			if (prev != nullptr) {
+				assert(prev->next_leaf == leaf);
 			}
 			prev = leaf;
 			leaf = leaf->next_leaf;
 		}
-		return true;
+
+		this->assert_no_leaf_duplicates();
+		this->validate_leaf_chain();
 	}
 
+private:
 	/**
 	 * Recursive node validation
 	 */
-	bool validate_node(Node *node, const Tkey *min, const Tkey *max) const
+	void validate_node(Node *node, const Tkey *min, const Tkey *max) const
 	{
 		if (node->is_leaf) {
-			/* Keys sorted */
-			for (size_t i = 1; i < node->count; ++i) {
-				if (node->keys[i - 1] > node->keys[i]) {
-					assert(false);
-					return false;
+			/* Capacity bounds */
+			assert(node->count <= B);
+
+			if (node->count > 0) {
+				/* Keys strictly ascending */
+				for (size_t i = 1; i < node->count; ++i) {
+					assert(node->keys[i - 1] < node->keys[i]);
+				}
+				/* Range check */
+				if (min != nullptr) {
+					assert(node->keys[0] >= *min);
+				}
+				if (max != nullptr) {
+					assert(node->keys[node->count - 1] <= *max);
 				}
 			}
-			/* Range check */
-			if (min != nullptr && node->keys[0] < *min) {
-				assert(false);
-				return false;
+			/* Leaf has no children */
+			for (size_t i = 0; i <= B; ++i) {
+				assert(node->children[i] == nullptr);
 			}
-			if (max != nullptr && node->keys[node->count - 1] > *max) {
-				assert(false);
-				return false;
+			return;
+		}
+
+		if (node->count > 0) {
+			/* Internal keys non-decreasing (B+ trees often allow equal internal keys via redistribution) */
+			for (size_t i = 1; i < node->count; ++i) {
+				assert(node->keys[i - 1] <= node->keys[i]);
 			}
-			return true;
+		}
+
+		/* Children count = keys + 1, all non-null */
+		for (size_t i = 0; i <= node->count; ++i) {
+			assert(node->children[i] != nullptr);
+			assert(node->children[i]->parent == node);
+		}
+
+		/* Separator consistency: parent key == min of right child */
+		for (size_t i = 0; i < node->count; ++i) {
+			Node *right = node->children[i + 1].get();
+			/* right must exist and have a min */
+			assert(right != nullptr);
+			assert(right->count > 0 || !right->is_leaf); // tolerate transient empty internal if you allow it
+			const Tkey &right_min = this->subtree_min(right);
+			this->assert_sep(node, i); // this assert triggered
+		}
+		
+		/* Recurse into children with updated ranges */
+		for (size_t i = 0; i <= node->count; ++i) {
+			const Tkey *child_min = min;
+			if (i > 0) {
+				child_min = &node->keys[i - 1];
+			}
+			const Tkey *child_max = max;
+			if (i < node->count) {
+				child_max = &node->keys[i];
+			}
+			this->validate_node(node->children[i].get(), child_min, child_max);
+		}
+	}
+
+	void validate_leaf_chain() const
+	{
+		Node *leaf = this->leftmost_leaf();
+		bool has_prev = false;
+		Tkey prev{};
+		while (leaf != nullptr) {
+			for (size_t i = 0; i < leaf->count; ++i) {
+				if (has_prev) {
+					assert(prev < leaf->keys[i]);
+				}
+				prev = leaf->keys[i];
+				has_prev = true;
+			}
+			leaf = leaf->next_leaf;
+		}
+	}
+
+	void validate_separators(Node *node) const
+	{
+		if (node == nullptr || node->is_leaf) {
+			return;
+		}
+		for (size_t i = 0; i < node->count; ++i) {
+			Node *right = node->children[i + 1].get();
+			assert(right != nullptr);
+			const Tkey &right_min = this->subtree_min(right);
+			assert(node->keys[i] == right_min);
+		}
+		for (size_t i = 0; i <= node->count; ++i) {
+			this->validate_separators(node->children[i].get());
+		}
+	}
+
+	/* No duplicates across leaves (global check) */
+	void assert_no_leaf_duplicates() const
+	{
+		std::vector<Tkey> leaves;
+		for (Node *leaf = this->leftmost_leaf(); leaf != nullptr; leaf = leaf->next_leaf) {
+			for (size_t i = 0; i < leaf->count; ++i) {
+				leaves.push_back(leaf->keys[i]);
+			}
+		}
+		for (size_t i = 1; i < leaves.size(); ++i) {
+			assert(leaves[i - 1] < leaves[i]); // strictly increasing across leaf chain
+		}
+	}
+
+	/**
+	 * Generic key-to-string helper
+	 */
+	template <typename K>
+	std::string key_to_string(const K &k) const {
+		std::ostringstream oss;
+		oss << k; // works if K has operator<<
+		return oss.str();
+	}
+
+	/**
+	 * Specialization for std::pair
+	 */
+	template <typename A, typename B>
+	std::string key_to_string(const std::pair<A, B> &p) const {
+		std::ostringstream oss;
+		oss << "(" << p.first << "," << p.second << ")";
+		return oss.str();
+	}
+
+	void assert_sep(Node *parent, size_t sep_idx) const
+	{
+		Node *right = parent->children[sep_idx + 1].get();
+		const auto &sep = parent->keys[sep_idx];
+		const auto &right_min = this->subtree_min(right);
+
+		if (sep != right_min) {
+			std::cerr << "[SEP MISMATCH] parent=" << parent
+				<< " sep_idx=" << sep_idx
+				<< " sep=" << this->key_to_string(sep)
+				<< " right_min=" << this->key_to_string(right_min)
+				<< " parent.count=" << parent->count << "\n";
+			dump_node(parent, 0);
+			dump_node(right, 2);
+			assert(false);
+		}
+	}
+
+public:
+	void dump_node(const Node *node, int indent = 0) const
+	{
+		std::string pad(indent, ' ');
+
+		if (node == nullptr) {
+			std::cerr << pad << "null\n";
+			return;
+		}
+
+		if (node->is_leaf) {
+			std::cerr << pad << "Leaf count=" << node->count << " keys=[";
+			for (size_t i = 0; i < node->count; ++i) {
+				std::cerr << this->key_to_string(node->keys[i]);
+				if (i + 1 < node->count) {
+					std::cerr << ",";
+				}
+			}
+			std::cerr << "]\n";
+
+			if constexpr (!std::is_void_v<Tvalue>) {
+				std::cerr << pad << "  values=[";
+				for (size_t i = 0; i < node->count; ++i) {
+					std::cerr << node->values[i];
+					if (i + 1 < node->count) {
+						std::cerr << ",";
+					}
+				}
+				std::cerr << "]\n";
+			}
 		} else {
-			/* Internal node: keys sorted */
-			for (size_t i = 1; i < node->count; ++i) {
-				if (node->keys[i - 1] > node->keys[i]) {
-					assert(false);
-					return false;
+			std::cerr << pad << "Internal count=" << node->count << " keys=[";
+			for (size_t i = 0; i < node->count; ++i) {
+				std::cerr << this->key_to_string(node->keys[i]);
+				if (i + 1 < node->count) {
+					std::cerr << ",";
 				}
 			}
-			/* Children count = keys + 1 */
+			std::cerr << "]\n";
+
 			for (size_t i = 0; i <= node->count; ++i) {
-				if (node->children[i] == nullptr) {
-					assert(false);
-					return false;
-				}
+				std::cerr << pad << "  child[" << i << "] ->\n";
+				this->dump_node(node->children[i].get(), indent + 4);
 			}
-			/* Separator consistency: parent key == min of right child */
+
+			/* Print separators with right.min */
 			for (size_t i = 0; i < node->count; ++i) {
 				Node *right = node->children[i + 1].get();
-				/* In leaves, separator == first key of right child */
-				if (right->is_leaf) {
-					if (node->keys[i] != right->keys[0]) {
-						assert(false);
-						return false;
-					}
-				} else {
-					/* In internal nodes, separator <= min key of right child */
-					if (node->keys[i] > right->keys[0]) {
-						assert(false);
-						return false;
-					}
+				if (right != nullptr) {
+					std::cerr << pad << "  separator[" << i << "]="
+						<< this->key_to_string(node->keys[i])
+						<< " (right.min=" << this->key_to_string(this->subtree_min(right)) << ")\n";
 				}
 			}
-			/* Recurse into children with updated ranges */
-			for (size_t i = 0; i <= node->count; ++i) {
-				const Tkey *child_min = (i == 0 ? min : &node->keys[i - 1]);
-				const Tkey *child_max = (i == node->count ? max : &node->keys[i]);
-				if (!this->validate_node(node->children[i].get(), child_min, child_max)) {
-					assert(false);
-					return false;
-				}
-			}
-			return true;
 		}
 	}
 #endif
-
 };
 
 #endif /* BPLUSTREE_TYPE_HPP */
