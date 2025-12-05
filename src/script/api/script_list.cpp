@@ -487,30 +487,32 @@ void ScriptList::CopyList(const ScriptList *list)
 
 ScriptList::ScriptList()
 {
-	BPlusTree<int,int,4> tree; // small B to force splits quickly
+	{
+		BPlusTree<int, int, 4> tree; // small B to force splits quickly
 
-	std::cout << "\n/* Mixed inserts */";
-	for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
-		tree.insert(k, k * 100);
-		std::cout << "\ninsert key=" << k << "\n";
-		tree.dump_node(tree.root.get());
-	}
+		std::cout << "\n/* Mixed inserts */";
+		for (int k : {5, 1, 9, 3, 7, 2, 8, 4, 6, 10}) {
+			tree.insert(k, k * 100);
+			std::cout << "\ninsert key=" << k << "\n";
+			tree.dump_node(tree.root.get());
+		}
 
-	std::cout << "\n/* Iterator erase stress */";
-	int count = 5;
-	for (auto it = tree.end(); count > 0 && it != tree.begin();) {
-		--it;
-		std::cout << "\nerase key=" << (*it).first << "\n";
-		it = tree.erase(it); // successor returned
-		tree.dump_node(tree.root.get());
-		--count;
-	}
+		std::cout << "\n/* Iterator erase stress */";
+		int count = 5;
+		for (auto it = tree.end(); count > 0 && it != tree.begin();) {
+			--it;
+			std::cout << "\nerase key=" << (*it).first << "\n";
+			it = tree.erase(it); // successor returned
+			tree.dump_node(tree.root.get());
+			--count;
+		}
 
-	std::cout << "\n/* Erase all to shrink root */";
-	for (auto it = tree.begin(); it != tree.end();) {
-		std::cout << "\nerase key=" << (*it).first << "\n";
-		it = tree.erase(it);
-		tree.dump_node(tree.root.get());
+		std::cout << "\n/* Erase all to shrink root */";
+		for (auto it = tree.begin(); it != tree.end();) {
+			std::cout << "\nerase key=" << (*it).first << "\n";
+			it = tree.erase(it);
+			tree.dump_node(tree.root.get());
+		}
 	}
 
 	{
@@ -583,6 +585,69 @@ ScriptList::ScriptList()
 		}
 	}
 
+	{
+		using Tree = BPlusTree<int,int,4>; // small B to force splits quickly
+		Tree tree;
+
+		// Step 1: Insert enough keys to force root split
+		for (int k = 1; k <= 20; ++k) {
+			tree.try_emplace(k, k*10);
+		}
+		tree.validate(); // should pass
+
+		// Step 2: Erase keys to trigger underflow/borrows
+		// These erases are chosen to hit leftmost/rightmost children
+		int sequence[] = {1,2,3,4,5,6,7,8};
+		for (int k : sequence) {
+			auto it = tree.find(k);
+			if (it != tree.end()) {
+				std::cout << "Erasing " << k << "\n";
+				tree.erase(it);
+				tree.validate(); // will trip if parent pointers not rewired
+			}
+		}
+
+		// Step 3: Final sweep to show structure
+		std::cout << "Final forward sweep:\n";
+		for (auto it = tree.begin(); it != tree.end(); ++it) {
+			auto [key,val] = *it;
+			std::cout << key << " ";
+		}
+		std::cout << "\n";
+	}
+
+	{
+		using Tree = BPlusTree<int,int,4>;
+		Tree t;
+
+		// Seed to force multiple internals and tight underflow thresholds
+		for (int k : {1,2,3,5,6,7,8,9,10,11,12,13,15,16,17,19,20,21,22,23,24,25,26,27,
+			28,29,30,32,33,34,35,36,37,38,40,41,42,44,45,46,47,48,49,50}) {
+			t.try_emplace(k, k*10);
+		}
+		t.validate();
+
+		// Replay the exact problematic sequence
+		for (int k : {27,2,9,42,20,47,15,1,8,22}) {
+			auto it = t.find(k);
+			if (it != t.end()) {
+				std::cout << "Erasing " << k << "\n";
+				t.erase(it);
+				t.validate();
+			}
+		}
+
+		// Force more underflows on the left chain
+		for (int k : {25,37}) {
+			auto it = t.find(k);
+			if (it != t.end()) {
+				std::cout << "Erasing " << k << "\n";
+				t.erase(it);
+				t.validate();
+			}
+		}
+	}
+
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
@@ -613,6 +678,10 @@ void ScriptList::Clear()
 void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
+
+	if (item == 1813 && value == 1085) {
+		this->items.dump_node(this->items.root.get());
+	}
 
 	auto [item_iter, inserted] = this->items.try_emplace(item, value);
 	if (!inserted) {
