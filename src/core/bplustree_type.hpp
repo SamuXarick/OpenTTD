@@ -13,7 +13,7 @@
 #include <iostream>
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 1
+#define BPLUSTREE_CHECK 0
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -972,10 +972,6 @@ public:
 
 		/* Explicitly remove the separator and right child */
 		this->remove_separator_and_right_child(parent, i);
-
-		/* Optional hygiene: clear right leaf links (not strictly necessary since it's detached) */
-		right->prev_leaf = nullptr;
-		right->next_leaf = nullptr;
 
 		/* After removal, the next separator at i (old i + 1) may now reflect a different right-min. */
 		if (i < parent->count) {
