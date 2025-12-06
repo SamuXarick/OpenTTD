@@ -99,8 +99,8 @@ template <typename Tkey, typename Tvalue, size_t B>
 class BPlusTree {
 	using Node = typename BPlusNodeSelector<Tkey, Tvalue, B>::type;
 
-	static constexpr size_t MIN_LEAF = (B + 1) / 2;
-	static constexpr size_t MIN_INTERNAL = (B + 1) / 2;
+	static constexpr size_t MIN_LEAF = (B + 1) / 2;  // ceil(B/2)
+	static constexpr size_t MIN_INTERNAL = (B - 1) / 2;  // ceil(B/2) - 1
 
 public:
 	std::unique_ptr<Node> root;
