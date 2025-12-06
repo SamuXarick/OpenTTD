@@ -320,13 +320,22 @@ public:
 
 	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator) override
 	{
-		if (this->IsEnd()) return;
-
-		if (this->item_next) {
-			if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
-				this->item_iter = post_erase;
-			}
+		if (this->IsEnd()) {
+			return;
 		}
+
+		if (!this->item_next) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
+			this->item_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		this->item_iter = this->list->items.find(*this->item_next);
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -400,13 +409,22 @@ public:
 
 	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListValueSet::iterator) override
 	{
-		if (this->IsEnd()) return;
-
-		if (this->item_next) {
-			if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
-				this->item_iter = post_erase;
-			}
+		if (this->IsEnd()) {
+			return;
 		}
+
+		if (!this->item_next) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->items.end() && (*post_erase).first == this->item_next) {
+			this->item_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		this->item_iter = this->list->items.find(*this->item_next);
 	}
 
 	void Retarget(ScriptList *new_list) override
@@ -648,6 +666,16 @@ ScriptList::ScriptList()
 		}
 	}
 
+	{
+		BPlusTree<int, int, 64> t;
+		for (int k = 1; k <= 1000; ++k) t.try_emplace(k, k);
+		BPlusTree<int, int, 64> copy = t; // deep copy
+		copy.validate();
+		for (int k = 1001; k <= 2000; ++k) copy.try_emplace(k, k);
+		copy.validate();
+	}
+
+
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
@@ -679,8 +707,9 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	if (item == 1813 && value == 1085) {
+	if (item == 2905 && value == 760) {
 		this->items.dump_node(this->items.root.get());
+		this->items.validate();
 	}
 
 	auto [item_iter, inserted] = this->items.try_emplace(item, value);
@@ -842,6 +871,9 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 		auto value_iter = this->values.find({ value_old, item });
 		this->values.erase(value_iter);
 
+		if (value_old == 1680 && value == 1261 && item == 1922) {
+			this->values.dump_node(this->values.root.get());
+		}
 		auto value_iter_post_erase = this->values.try_emplace({ value, item }).first;
 		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_erase);
 	}
