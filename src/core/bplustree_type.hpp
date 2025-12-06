@@ -1452,7 +1452,7 @@ public:
 	BPlusTree(const BPlusTree &other) {
 		if (other.root) {
 			std::vector<Node *> leaves;
-			this->root = clone_node(other.root.get(), nullptr, leaves);
+			this->root = this->clone_node(other.root.get(), nullptr, leaves);
 			this->rebuild_leaf_chain(leaves);
 		}
 	}
@@ -1462,7 +1462,7 @@ public:
 			this->root.reset();
 			if (other.root != nullptr) {
 				std::vector<Node *> leaves;
-				this->root = clone_node(other.root.get(), nullptr, leaves);
+				this->root = this->clone_node(other.root.get(), nullptr, leaves);
 				this->rebuild_leaf_chain(leaves);
 			}
 		}
