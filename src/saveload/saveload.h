@@ -412,6 +412,7 @@ enum SaveLoadVersion : uint16_t {
 	SLV_DOCKS_UNDER_BRIDGES,                ///< 360  PR#14594 Allow docks under bridges.
 	SLV_LOCKS_UNDER_BRIDGES,                ///< 361  PR#14595 Allow locks under bridges.
 	SLV_ENGINE_MULTI_RAILTYPE,              ///< 362  PR#14357 Train engines can have multiple railtypes.
+	SLV_SELF_REGULATE_MAX_OPCODE,           ///< 363  PR#7459 Self-adjusting AI/GS max opcodes.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
