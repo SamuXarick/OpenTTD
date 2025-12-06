@@ -534,7 +534,7 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto [item_iter, inserted] = this->items.try_emplace(item, value);
+	auto [item_iter, inserted] = this->items.emplace(item, value);
 	if (!inserted) {
 		/* Key was already present, insertion did not take place */
 		this->SetIterValue(item_iter, value);
@@ -542,7 +542,7 @@ void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
 	}
 
 	if (this->values_inited) {
-		auto value_iter = this->values.try_emplace({ value, item }).first;
+		auto value_iter = this->values.emplace({ value, item }).first;
 		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
 	}
 }
@@ -551,10 +551,10 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto [item_iter, inserted] = this->items.try_emplace(item, value);
+	auto [item_iter, inserted] = this->items.emplace(item, value);
 
 	if (inserted && this->values_inited) {
-		auto value_iter = this->values.try_emplace({ value, item }).first;
+		auto value_iter = this->values.emplace({ value, item }).first;
 		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
 	}
 }
@@ -605,7 +605,7 @@ void ScriptList::InitValues()
 {
 	this->values.clear();
 	for (const auto &[item, value] : this->items) {
-		this->values.try_emplace({ value, item });
+		this->values.emplace({ value, item });
 	}
 	this->values_inited = true;
 }
@@ -693,7 +693,7 @@ void ScriptList::SetIterValue(ScriptListMap::iterator item_iter, SQInteger value
 		auto value_iter = this->values.find({ value_old, item });
 		this->values.erase(value_iter);
 
-		auto value_iter_post_erase = this->values.try_emplace({ value, item }).first;
+		auto value_iter_post_erase = this->values.emplace({ value, item }).first;
 		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_erase);
 	}
 }

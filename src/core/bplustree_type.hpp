@@ -97,20 +97,91 @@ struct BPlusNodeSelector<Tkey, Tvalue, B, true> {
 
 template <typename Tkey, typename Tvalue, size_t B>
 class BPlusTree {
+private:
 	using Node = typename BPlusNodeSelector<Tkey, Tvalue, B>::type;
 
 	static constexpr size_t MIN_LEAF = (B + 1) / 2; // ceil(B/2)
 	static constexpr size_t MIN_INTERNAL = (B - 1) / 2; // ceil(B/2) - 1
 
-public:
 	std::unique_ptr<Node> root;
 
+public:
 	BPlusTree() : root(std::make_unique<Node>(true))
 	{
 	}
 
-	BPlusTree(BPlusTree &&) = default;
-	BPlusTree &operator=(BPlusTree &&) = default;
+	bool contains(const Tkey &key) const
+	{
+		return this->find(key) != this->end();
+	}
+
+	void swap(BPlusTree &other) noexcept
+	{
+		this->root.swap(other.root);
+	}
+
+	void clear() noexcept
+	{
+		/* Reset to a fresh empty leaf node */
+		this->root = std::make_unique<Node>(true); 
+	}
+
+	bool empty() const noexcept
+	{
+		return this->root == nullptr || this->root->count == 0;
+	}
+
+	size_t size() const noexcept
+	{
+		return this->count_recursive(this->root.get());
+	}
+
+	BPlusTree &operator=(const BPlusTree &other)
+	{
+		if (this != &other) {
+			this->root.reset();
+			if (other.root != nullptr) {
+				std::vector<Node *> leaves;
+				this->root = this->clone_node(other.root.get(), nullptr, leaves);
+				this->rebuild_leaf_chain(leaves);
+			}
+		}
+		return *this;
+	}
+
+private:
+	/**
+	 * Rebuild prev/next pointers
+	 */
+	void rebuild_leaf_chain(std::vector<Node *> &leaves)
+	{
+		Node *prev = nullptr;
+		for (Node *leaf : leaves) {
+			leaf->prev_leaf = prev;
+			if (prev != nullptr) {
+				prev->next_leaf = leaf;
+			}
+			prev = leaf;
+		}
+		if (prev != nullptr) {
+			prev->next_leaf = nullptr;
+		}
+	}
+
+	size_t count_recursive(const Node *node) const
+	{
+		if (node == nullptr) {
+			return 0;
+		}
+		if (node->is_leaf) {
+			return node->count;
+		}
+		size_t total = 0;
+		for (size_t i = 0; i <= node->count; ++i) {
+			total += this->count_recursive(node->children[i].get());
+		}
+		return total;
+	}
 
 	/**
 	 * Iterator types: yields either pair<key,value> or const key &
@@ -131,6 +202,7 @@ public:
 		using pointer = void;
 	};
 
+public:
 	struct iterator {
 		using Traits = BPlusIteratorTraits<Tkey, Tvalue>;
 		using iterator_category = std::bidirectional_iterator_tag;
@@ -368,10 +440,10 @@ public:
 	}
 
 	/**
-	 * Map mode try_emplace
+	 * Map mode emplace
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key, const U &value)
+	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key, const U &value)
 	{
 		auto it = this->find(key);
 		if (it != this->end()) {
@@ -386,10 +458,10 @@ public:
 	}
 
 	/**
-	 * Set mode try_emplace
+	 * Set mode emplace
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> try_emplace(const Tkey &key)
+	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key)
 	{
 		auto it = this->find(key);
 		if (it != this->end()) {
@@ -480,6 +552,7 @@ public:
 		return iterator(succ_leaf, succ_idx, this);
 	}
 
+private:
 	Node *leftmost_leaf() const
 	{
 		Node *node = this->root.get();
@@ -1377,26 +1450,6 @@ public:
 		/* Optional defensive: if parent becomes empty and isn’t root, its own parent will handle it when reached. */
 	}
 
-	BPlusTree(const BPlusTree &other) {
-		if (other.root) {
-			std::vector<Node *> leaves;
-			this->root = this->clone_node(other.root.get(), nullptr, leaves);
-			this->rebuild_leaf_chain(leaves);
-		}
-	}
-
-	BPlusTree &operator=(const BPlusTree &other) {
-		if (this != &other) {
-			this->root.reset();
-			if (other.root != nullptr) {
-				std::vector<Node *> leaves;
-				this->root = this->clone_node(other.root.get(), nullptr, leaves);
-				this->rebuild_leaf_chain(leaves);
-			}
-		}
-		return *this;
-	}
-
 	/**
 	 * Recursive clone with leaf collection
 	 */
@@ -1419,65 +1472,6 @@ public:
 			}
 		}
 		return dst;
-	}
-
-	/**
-	 * Rebuild prev/next pointers
-	 */
-	void rebuild_leaf_chain(std::vector<Node *> &leaves) {
-		Node *prev = nullptr;
-		for (Node *leaf : leaves) {
-			leaf->prev_leaf = prev;
-			if (prev != nullptr) {
-				prev->next_leaf = leaf;
-			}
-			prev = leaf;
-		}
-		if (prev != nullptr) {
-			prev->next_leaf = nullptr;
-		}
-	}
-
-	bool contains(const Tkey &key) const
-	{
-		return this->find(key) != this->end();
-	}
-
-	void swap(BPlusTree &other) noexcept
-	{
-		this->root.swap(other.root);
-	}
-
-	void clear() noexcept
-	{
-		/* Reset to a fresh empty leaf node */
-		this->root = std::make_unique<Node>(true); 
-	}
-
-	bool empty() const noexcept
-	{
-		return this->root == nullptr || this->root->count == 0;
-	}
-
-	size_t size() const noexcept
-	{
-		return this->count_recursive(this->root.get());
-	}
-
-private:
-	size_t count_recursive(const Node *node) const
-	{
-		if (node == nullptr) {
-			return 0;
-		}
-		if (node->is_leaf) {
-			return node->count;
-		}
-		size_t total = 0;
-		for (size_t i = 0; i <= node->count; ++i) {
-			total += this->count_recursive(node->children[i].get());
-		}
-		return total;
 	}
 
 	/**
@@ -1529,7 +1523,7 @@ private:
 		assert(cur != nullptr && cur->count > 0);
 		return cur->keys[0];
 	}
-public:
+
 	void validate() const
 	{
 		if (this->root == nullptr) {
@@ -1581,7 +1575,6 @@ public:
 		this->validate_leaf_chain();
 	}
 
-private:
 	/**
 	 * Recursive node validation
 	 */
@@ -1734,7 +1727,6 @@ private:
 		}
 	}
 
-public:
 	void dump_node(const Node *node, int indent = 0) const
 	{
 		std::string pad(indent, ' ');
