@@ -49,6 +49,9 @@ struct BPlusNodeMap {
 	BPlusNodeMap *prev_leaf = nullptr;
 	BPlusNodeMap *parent = nullptr;
 
+	/* cache our position in parent's children[] */
+	size_t index_in_parent = 0;
+
 	explicit BPlusNodeMap(bool leaf = true) : is_leaf(leaf), count(0)
 	{
 	}
@@ -70,6 +73,9 @@ struct BPlusNodeSet {
 	BPlusNodeSet *next_leaf = nullptr;
 	BPlusNodeSet *prev_leaf = nullptr;
 	BPlusNodeSet *parent = nullptr;
+
+	/* cache our position in parent's children[] */
+	size_t index_in_parent = 0;
 
 	explicit BPlusNodeSet(bool leaf = true) : is_leaf(leaf), count(0)
 	{
@@ -146,32 +152,31 @@ public:
 			this->root.reset();
 			if (other.root != nullptr) {
 				std::vector<Node *> leaves;
-				this->root = this->clone_node(other.root.get(), nullptr, leaves);
+				this->root = this->clone_node(other.root.get(), nullptr, 0, leaves);
+				this->root->parent = nullptr;
+				this->root->index_in_parent = 0; // root invariant
 				this->rebuild_leaf_chain(leaves);
 			}
 		}
+#if BPLUSTREE_CHECK
+		auto *p = this->root.get();
+		std::function<void(Node *)> verify = [&](Node *n) {
+			if (!n->is_leaf) {
+				for (size_t j = 0; j <= n->count; ++j) {
+					if (n->children[j] != nullptr) {
+						assert(n->children[j]->parent == n);
+						assert(n->children[j]->index_in_parent == j);
+						verify(n->children[j].get());
+					}
+				}
+			}
+		};
+		verify(p);
+#endif
 		return *this;
 	}
 
 private:
-	/**
-	 * Rebuild prev/next pointers
-	 */
-	void rebuild_leaf_chain(std::vector<Node *> &leaves)
-	{
-		Node *prev = nullptr;
-		for (Node *leaf : leaves) {
-			leaf->prev_leaf = prev;
-			if (prev != nullptr) {
-				prev->next_leaf = leaf;
-			}
-			prev = leaf;
-		}
-		if (prev != nullptr) {
-			prev->next_leaf = nullptr;
-		}
-	}
-
 	size_t count_recursive(const Node *node) const
 	{
 		if (node == nullptr) {
@@ -185,6 +190,66 @@ private:
 			total += this->count_recursive(node->children[i].get());
 		}
 		return total;
+	}
+
+	/**
+	 * Recursive clone with leaf collection.
+	 * 'slot' is the child index within 'parent' for 'src' and used to set dst->index_in_parent.
+	 */
+	std::unique_ptr<Node> clone_node(const Node *src, Node *parent, size_t slot, std::vector<Node *> &leaves)
+	{
+		auto dst = std::make_unique<Node>(src->is_leaf);
+		dst->count = src->count;
+		dst->keys = src->keys;
+		if constexpr (!std::is_void_v<Tvalue>) {
+			dst->values = src->values;
+		}
+		dst->parent = parent;
+		if (parent != nullptr) {
+			dst->index_in_parent = slot;
+		} else {
+			dst->index_in_parent = 0; // root becomes 0
+		}
+
+		if (src->is_leaf) {
+			leaves.push_back(dst.get());
+		} else {
+			for (size_t i = 0; i <= src->count; ++i) {
+				if (src->children[i] != nullptr) {
+					/* Use set_child to attach recursively cloned child */
+					this->set_child(dst.get(), i, this->clone_node(src->children[i].get(), dst.get(), i, leaves));
+				} else {
+					dst->children[i].reset();
+				}
+			}
+		}
+
+		return dst;
+	}
+
+	inline void set_child(Node *parent, size_t j, std::unique_ptr<Node> child)
+	{
+		parent->children[j] = std::move(child);
+		if (parent->children[j] != nullptr) {
+			parent->children[j]->parent = parent;
+			parent->children[j]->index_in_parent = j;
+		}
+	}
+
+	/**
+	 * Rebuild prev/next pointers
+	 */
+	void rebuild_leaf_chain(std::vector<Node *> &leaves)
+	{
+		Node *prev = nullptr;
+		for (Node *leaf : leaves) {
+			leaf->prev_leaf = prev;
+			leaf->next_leaf = nullptr; // will be set when next links back
+			if (prev != nullptr) {
+				prev->next_leaf = leaf;
+			}
+			prev = leaf;
+		}
 	}
 
 	/**
@@ -558,6 +623,7 @@ private:
 	Node *leftmost_leaf() const
 	{
 		assert(this->root != nullptr);
+
 		Node *node = this->root.get();
 		while (!node->is_leaf) {
 			assert(node->children[0] != nullptr);
@@ -569,11 +635,11 @@ private:
 	Node *rightmost_leaf() const
 	{
 		assert(this->root != nullptr);
-		Node *node = this->root.get();
 
+		Node *node = this->root.get();
 		while (!node->is_leaf) {
 			assert(node->children[node->count] != nullptr);
-			node = node->children[node->count].get(); // rightmost child
+			node = node->children[node->count].get();
 		}
 		return node;
 	}
@@ -581,15 +647,12 @@ private:
 	/**
 	 * Find the index of a child in its parent
 	 */
-	size_t find_child_index(Node *parent, Node *child) const
+	size_t find_child_index([[maybe_unused]] Node *parent, Node *child) const
 	{
-		for (size_t i = 0; i <= parent->count; ++i) {
-			if (parent->children[i].get() == child) {
-				return i;
-			}
-		}
-		assert(false); // child not found
-		return parent->count; // fallback
+		assert(child->index_in_parent <= parent->count);
+		assert(parent->children[child->index_in_parent].get() == child);
+
+		return child->index_in_parent;
 	}
 
 	/**
@@ -666,9 +729,9 @@ private:
 			return;
 		}
 		for (size_t i = 0; i <= parent->count; ++i) {
-			Node *c = parent->children[i].get();
-			if (c != nullptr) {
-				c->parent = parent;
+			if (parent->children[i] != nullptr) {
+				assert(parent->children[i]->parent == parent);
+				assert(parent->children[i]->index_in_parent == i);
 			}
 		}
 	}
@@ -727,7 +790,9 @@ private:
 
 			/* Wire parents */
 			old_root->parent = new_root.get();
+			old_root->index_in_parent = 0;
 			right->parent = new_root.get();
+			right->index_in_parent = 1;
 
 			/* Install the new root */
 			this->root = std::move(new_root);
@@ -762,6 +827,7 @@ private:
 			parent->children[j] = std::move(parent->children[j - 1]);
 			if (parent->children[j] != nullptr) {
 				parent->children[j]->parent = parent;
+				parent->children[j]->index_in_parent = j;
 			}
 		}
 
@@ -774,6 +840,7 @@ private:
 		assert(parent->children[i + 1] == nullptr && "Attach must go to empty slot when using raw pointer");
 		parent->children[i + 1].reset(right);
 		right->parent = parent;
+		right->index_in_parent = i + 1;
 
 		++parent->count;
 
@@ -802,6 +869,7 @@ private:
 			new_node->children[j - (mid + 1)] = std::move(node->children[j]);
 			if (new_node->children[j - (mid + 1)] != nullptr) {
 				new_node->children[j - (mid + 1)]->parent = new_node.get();
+				new_node->children[j - (mid + 1)]->index_in_parent = j - (mid + 1);
 			}
 		}
 
@@ -1014,6 +1082,7 @@ private:
 			parent->children[j] = std::move(parent->children[j + 1]);
 			if (parent->children[j] != nullptr) {
 				parent->children[j]->parent = parent;
+				parent->children[j]->index_in_parent = j;
 			}
 		}
 
@@ -1130,6 +1199,7 @@ private:
 		child->children[child->count + 1] = std::move(right->children[0]);
 		if (child->children[child->count + 1] != nullptr) {
 			child->children[child->count + 1]->parent = child;
+			child->children[child->count + 1]->index_in_parent = child->count + 1;
 		}
 		++child->count;
 
@@ -1144,6 +1214,7 @@ private:
 			right->children[c] = std::move(right->children[c + 1]);
 			if (right->children[c] != nullptr) {
 				right->children[c]->parent = right;
+				right->children[c]->index_in_parent = c;
 			}
 		}
 		--right->count;
@@ -1176,6 +1247,7 @@ private:
 			child->children[c] = std::move(child->children[c - 1]);
 			if (child->children[c] != nullptr) {
 				child->children[c]->parent = child;
+				child->children[c]->index_in_parent = c;
 			}
 		}
 
@@ -1186,6 +1258,7 @@ private:
 		child->children[0] = std::move(left->children[left->count]);
 		if (child->children[0] != nullptr) {
 			child->children[0]->parent = child;
+			child->children[0]->index_in_parent = 0;
 		}
 		++child->count;
 
@@ -1235,6 +1308,7 @@ private:
 			left->children[left->count + 1 + c] = std::move(right->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
 				left->children[left->count + 1 + c]->parent = left;
+				left->children[left->count + 1 + c]->index_in_parent = left->count + 1 + c;
 			}
 		}
 		left->count += 1 + right->count;
@@ -1276,6 +1350,7 @@ private:
 			left->children[left->count + 1 + c] = std::move(child->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
 				left->children[left->count + 1 + c]->parent = left;
+				left->children[left->count + 1 + c]->index_in_parent = left->count + 1 + c;
 			}
 		}
 		left->count += 1 + child->count;
@@ -1419,30 +1494,6 @@ private:
 		}
 
 		/* Optional defensive: if parent becomes empty and isn’t root, its own parent will handle it when reached. */
-	}
-
-	/**
-	 * Recursive clone with leaf collection
-	 */
-	std::unique_ptr<Node> clone_node(const Node *src, Node *parent, std::vector<Node *> &leaves) {
-		auto dst = std::make_unique<Node>(src->is_leaf);
-		dst->count = src->count;
-		dst->keys = src->keys;
-		if constexpr (!std::is_void_v<Tvalue>) {
-			dst->values = src->values;
-		}
-		dst->parent = parent;
-
-		if (src->is_leaf) {
-			leaves.push_back(dst.get());
-		} else {
-			for (size_t i = 0; i <= src->count; ++i) {
-				if (src->children[i] != nullptr) {
-					dst->children[i] = this->clone_node(src->children[i].get(), dst.get(), leaves);
-				}
-			}
-		}
-		return dst;
 	}
 
 	/**
