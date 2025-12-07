@@ -427,18 +427,35 @@ public:
 		return this->cend();
 	}
 
+	iterator lower_bound(const Tkey &key)
+	{
+		assert(this->root != nullptr);
+
+		Node *node = this->root.get();
+		while (!node->is_leaf) {
+			size_t i = this->upper_bound(node->keys, node->count, key);
+			node = node->children[i].get();
+		}
+
+		size_t i = this->lower_bound(node->keys, node->count, key);
+		return iterator(node, i, this); // valid slot, even if i == node->count
+	}
+
 	/**
 	 * Map mode emplace
 	 */
 	template <typename U = Tvalue>
 	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key, const U &value)
 	{
-		auto it = this->find(key);
-		if (it != this->end()) {
+		auto it = this->lower_bound(key);
+		Node *leaf = it.leaf_;
+		size_t idx = it.index_;
+
+		if (idx < leaf->count && leaf->keys[idx] == key) {
 			return { it, false }; // already exists
 		}
 
-		this->insert(key, value);
+		this->insert(leaf, idx, key, value);
 		VALIDATE_NODES();
 
 		it = this->find(key);
@@ -451,12 +468,15 @@ public:
 	template <typename U = Tvalue>
 	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key)
 	{
-		auto it = this->find(key);
-		if (it != this->end()) {
+		auto it = this->lower_bound(key);
+		Node *leaf = it.leaf_;
+		size_t idx = it.index_;
+
+		if (idx < leaf->count && leaf->keys[idx] == key) {
 			return { it, false }; // already exists
 		}
 
-		this->insert(key);
+		this->insert(leaf, idx, key);
 		VALIDATE_NODES();
 
 		it = this->find(key);
@@ -564,7 +584,8 @@ private:
 	/**
 	 * Find the index of a child in its parent
 	 */
-	size_t find_child_index(Node *parent, Node *child) const {
+	size_t find_child_index(Node *parent, Node *child) const
+	{
 		for (size_t i = 0; i <= parent->count; ++i) {
 			if (parent->children[i].get() == child) {
 				return i;
@@ -578,21 +599,8 @@ private:
 	 * Map mode insert: enabled only if Tvalue is not void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, void> insert(const Tkey &key, const U &value)
+	std::enable_if_t<!std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, const U &value)
 	{
-		if (this->root == nullptr) {
-			this->root = std::make_unique<Node>(true);
-		}
-		Node *leaf = this->find_leaf(key);
-		size_t i = this->lower_bound(leaf->keys, leaf->count, key);
-
-		/* Duplicate check */
-		if (i < leaf->count && leaf->keys[i] == key) {
-			/* Policy: overwrite */
-			leaf->values[i] = value;
-			return;
-		}
-
 		/* Shift right */
 		for (size_t j = leaf->count; j > i; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
@@ -619,20 +627,8 @@ private:
 	 * Set mode insert: enabled only if Tvalue is void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, void> insert(const Tkey &key)
+	std::enable_if_t<std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key)
 	{
-		if (this->root == nullptr) {
-			this->root = std::make_unique<Node>(true);
-		}
-		Node *leaf = this->find_leaf(key);
-		size_t i = this->lower_bound(leaf->keys, leaf->count, key);
-
-		/* Duplicate check */
-		if (i < leaf->count && leaf->keys[i] == key) {
-			/* Policy: ignore duplicate */
-			return;
-		}
-
 		/* Shift right */
 		for (size_t j = leaf->count; j > i; --j) {
 			leaf->keys[j] = std::move(leaf->keys[j - 1]);
