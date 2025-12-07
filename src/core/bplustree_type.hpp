@@ -401,13 +401,7 @@ public:
 
 	iterator find(const Tkey &key)
 	{
-		Node *node = this->root.get();
-		while (node != nullptr && !node->is_leaf) {
-			size_t i = this->upper_bound(node->keys, node->count, key);
-			assert(i <= node->count); // children size is count + 1
-			assert(node->children[i] != nullptr);
-			node = node->children[i].get();
-		}
+		Node *node = this->find_leaf(key);
 		if (node == nullptr) {
 			return this->end();
 		}
@@ -421,13 +415,7 @@ public:
 
 	const_iterator find(const Tkey &key) const
 	{
-		const Node *node = this->root.get();
-		while (node != nullptr && !node->is_leaf) {
-			size_t i = this->upper_bound(node->keys, node->count, key);
-			assert(i <= node->count); // children size is count + 1
-			assert(node->children[i] != nullptr);
-			node = node->children[i].get();
-		}
+		const Node *node = this->find_leaf(key);
 		if (node == nullptr) {
 			return this->cend();
 		}
