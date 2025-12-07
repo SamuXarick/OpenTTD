@@ -307,7 +307,7 @@ public:
 			if constexpr (std::is_void_v<Tvalue>) {
 				return this->leaf_->keys[this->index_]; // set mode
 			} else {
-				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode (const V&)
+				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode (const V &)
 			}
 		}
 
@@ -469,18 +469,8 @@ public:
 			return this->end();
 		}
 
-		/* Resolve the key at iterator safely */
-		const Tkey key = pos.leaf_->keys[pos.index_];
-
-		/* Find its current leaf (defensive against prior structure shifts) */
-		Node *leaf = this->find_leaf(key);
-
-		/* Locate exact position by lower_bound */
-		size_t i = this->lower_bound(leaf->keys, leaf->count, key);
-		if (i >= leaf->count || leaf->keys[i] != key) {
-			/* Key vanished (shouldn’t happen), return iterator to next key we had computed earlier */
-			return this->end();
-		}
+		Node *leaf = pos.leaf_;
+		size_t i = pos.index_;
 
 		/* Erase locally (keys/values shift left) */
 		for (size_t j = i; j + 1 < leaf->count; ++j) {
