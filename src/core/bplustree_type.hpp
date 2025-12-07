@@ -128,11 +128,15 @@ public:
 
 	bool empty() const noexcept
 	{
-		return this->root == nullptr || this->root->count == 0;
+		assert(this->root != nullptr);
+
+		return this->root->count == 0;
 	}
 
 	size_t size() const noexcept
 	{
+		assert(this->root != nullptr);
+
 		return this->count_recursive(this->root.get());
 	}
 
@@ -553,14 +557,10 @@ public:
 private:
 	Node *leftmost_leaf() const
 	{
+		assert(this->root != nullptr);
 		Node *node = this->root.get();
-		if (node == nullptr) {
-			return nullptr;
-		}
-		while (node != nullptr && !node->is_leaf) {
-			if (node->children[0] == nullptr) {
-				return nullptr; // guard
-			}
+		while (!node->is_leaf) {
+			assert(node->children[0] != nullptr);
 			node = node->children[0].get();
 		}
 		return node;
@@ -568,14 +568,11 @@ private:
 
 	Node *rightmost_leaf() const
 	{
+		assert(this->root != nullptr);
 		Node *node = this->root.get();
-		if (node == nullptr) {
-			return nullptr;
-		}
-		while (node != nullptr && !node->is_leaf) {
-			if (node->children[node->count] == nullptr) {
-				return nullptr; // guard
-			}
+
+		while (!node->is_leaf) {
+			assert(node->children[node->count] != nullptr);
 			node = node->children[node->count].get(); // rightmost child
 		}
 		return node;
