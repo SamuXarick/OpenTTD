@@ -1449,10 +1449,24 @@ private:
 	}
 
 	/**
-	 * Binary search over keys[0..count), returning first index i where keys[i] >= key.
+	 * Hybrid search over keys[0..count), returning first index i where keys[i] >= key.
+	 * Uses linear scan for small counts, binary search otherwise.
 	 */
 	static size_t lower_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
+		constexpr size_t linear_cutoff = 8;
+
+		if (count <= linear_cutoff) {
+			/* Linear scan */
+			for (size_t i = 0; i < count; ++i) {
+				if (keys[i] >= key) {
+					return i;
+				}
+			}
+			return count;
+		}
+
+		/* Binary search */
 		size_t lo = 0;
 		size_t hi = count;
 		/* Invariant: [lo, hi) is the search range. */
@@ -1468,10 +1482,24 @@ private:
 	}
 
 	/**
-	 * Binary search over keys[0..count), returning first index i where keys[i] > key.
+	 * Hybrid search over keys[0..count), returning first index i where keys[i] > key.
+	 * Uses linear scan for small counts, binary search otherwise.
 	 */
 	static size_t upper_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
+		constexpr size_t linear_cutoff = 8;
+
+		if (count <= linear_cutoff) {
+			/* Linear scan */
+			for (size_t i = 0; i < count; ++i) {
+				if (keys[i] > key) {
+					return i;
+				}
+			}
+			return count;
+		}
+
+		/* Binary search */
 		size_t lo = 0;
 		size_t hi = count;
 		/* Invariant: [lo, hi) is the search range. */
