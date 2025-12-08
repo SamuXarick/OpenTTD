@@ -511,7 +511,7 @@ public:
 	}
 
 	/**
-	 * Map mode emplace
+	 * Map mode emplace without re-find
 	 */
 	template <typename U = Tvalue>
 	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key, const U &value)
@@ -524,15 +524,50 @@ public:
 			return { it, false }; // already exists
 		}
 
+		/* Perform insert (may split) */
 		this->insert(leaf, idx, key, value);
 		VALIDATE_NODES();
 
-		it = this->find(key);
-		return { it, true };
+		/* Iterator mapping:
+		 * - If no split: new element sits at idx in leaf.
+		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
+		 *   Use key compare against split pivot to choose side deterministically. */
+		Node *ret_leaf = leaf;
+		size_t ret_idx = idx;
+
+		/* Fast path: still in same leaf */
+		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
+			return { iterator(ret_leaf, ret_idx, this), true };
+		}
+
+		/* Split-aware fallback: check right neighbor first (most common) */
+		Node *r = ret_leaf->next_leaf;
+		if (r != nullptr) {
+			/* If key is in the right leaf range, locate locally without full find
+			 * lower_bound over the single leaf is O(B). */
+			size_t j = this->lower_bound(r->keys, r->count, key);
+			if (j < r->count && r->keys[j] == key) {
+				return { iterator(r, j, this), true };
+			}
+		}
+
+		/* Rare: insert could have gone to a left neighbor (e.g., idx==0 and pivot adjustments). */
+		Node *l = ret_leaf->prev_leaf;
+		if (l != nullptr) {
+			size_t j = this->lower_bound(l->keys, l->count, key);
+			if (j < l->count && l->keys[j] == key) {
+				return { iterator(l, j, this), true };
+			}
+		}
+
+		/* As a final guard (should be effectively unreachable), use full find.
+		 * Keeps robustness without changing overall perf profile. */
+		auto it2 = this->find(key);
+		return { it2, true };
 	}
 
 	/**
-	 * Set mode emplace
+	 * Set mode emplace without re-find
 	 */
 	template <typename U = Tvalue>
 	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key)
@@ -548,8 +583,31 @@ public:
 		this->insert(leaf, idx, key);
 		VALIDATE_NODES();
 
-		it = this->find(key);
-		return { it, true };
+		Node *ret_leaf = leaf;
+		size_t ret_idx = idx;
+
+		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
+			return { iterator(ret_leaf, ret_idx, this), true };
+		}
+
+		Node *r = ret_leaf->next_leaf;
+		if (r != nullptr) {
+			size_t j = this->lower_bound(r->keys, r->count, key);
+			if (j < r->count && r->keys[j] == key) {
+				return { iterator(r, j, this), true };
+			}
+		}
+
+		Node *l = ret_leaf->prev_leaf;
+		if (l != nullptr) {
+			size_t j = this->lower_bound(l->keys, l->count, key);
+			if (j < l->count && l->keys[j] == key) {
+				return { iterator(l, j, this), true };
+			}
+		}
+
+		auto it2 = this->find(key);
+		return { it2, true };
 	}
 
 	iterator erase(iterator pos)
