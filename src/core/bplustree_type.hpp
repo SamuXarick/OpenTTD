@@ -610,6 +610,14 @@ public:
 		return { it2, true };
 	}
 
+	bool verify_erase_iterator(const iterator &a, const Tkey &succ_key)
+	{
+		Node *succ_leaf = this->find_leaf(succ_key);
+		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
+
+		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
+	}
+
 	iterator erase(iterator pos)
 	{
 		if (pos == this->end()) {
@@ -619,61 +627,59 @@ public:
 		Node *leaf = pos.leaf_;
 		size_t i = pos.index_;
 
-		/* Erase locally (keys/values shift left) */
+		/* Erase locally (shift left) */
 		std::move(leaf->keys.begin() + i + 1, leaf->keys.begin() + leaf->count, leaf->keys.begin() + i);
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(leaf->values.begin() + i + 1, leaf->values.begin() + leaf->count, leaf->values.begin() + i);
 		}
-
 		--leaf->count;
 
-		/* Compute successor key BEFORE any structural changes */
+		/* Prepare iterator to retarget */
+		iterator succ_it(this->end());
+
+		/* Compute successor key before structural changes */
 		Tkey succ_key{};
 		bool has_succ = false;
-		if (i < leaf->count) { // next in same leaf
+		if (i < leaf->count) {
 			succ_key = leaf->keys[i];
 			has_succ = true;
-		} else if (leaf->next_leaf != nullptr && leaf->next_leaf->count > 0) { // first of next leaf
+			succ_it = iterator(leaf, i, this);
+		} else if (leaf->next_leaf != nullptr && leaf->next_leaf->count > 0) {
 			succ_key = leaf->next_leaf->keys[0];
 			has_succ = true;
+			succ_it = iterator(leaf->next_leaf, 0, this);
 		}
 
-		/* Refresh boundary if min changed */
+		/* Boundary refresh if min changed */
 		if (i == 0 && leaf->parent != nullptr) {
-			Node *p = leaf->parent;
-			size_t child_idx = this->find_child_index(p, leaf);
-			if (p->count > 0) {
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (leaf->parent->count > 0) {
 				if (child_idx > 0) {
-					this->refresh_boundary_upward(p, child_idx - 1);
+					this->refresh_boundary_upward(leaf->parent, child_idx - 1);
 				} else {
-					this->refresh_boundary_upward(p, 0);
+					this->refresh_boundary_upward(leaf->parent, 0);
 				}
 			} else {
-				/* No separators at this parent; just propagate upward along leftmost path */
-				this->refresh_boundary_upward(p, 0);
+				this->refresh_boundary_upward(leaf->parent, 0);
 			}
 		}
 
-		/* Fix underflow */
+		/* Fix underflow, passing iterator by reference */
 		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
-			Node *parent = leaf->parent;
-			size_t ci = this->find_child_index(parent, leaf);
-			if (ci <= parent->count) {
-				this->fix_underflow(parent, ci);
+			size_t child_idx = this->find_child_index(leaf->parent, leaf);
+			if (child_idx <= leaf->parent->count) {
+				this->fix_underflow(leaf->parent, child_idx, succ_it);
 			}
 		}
 
 		VALIDATE_NODES();
 
-		/* If no successor, we’re at end */
 		if (!has_succ) {
 			return this->end();
 		}
 
-		/* Re-find successor leaf after potential merges */
-		Node *succ_leaf = this->find_leaf(succ_key);
-		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
-		return iterator(succ_leaf, succ_idx, this);
+		assert(this->verify_erase_iterator(succ_it, succ_key));
+		return succ_it;
 	}
 
 private:
@@ -1015,7 +1021,7 @@ private:
 	/**
 	 * Borrow the first key of right into the end of leaf
 	 */
-	void borrow_from_right_leaf(Node *parent, size_t child_idx)
+	void borrow_from_right_leaf(Node *parent, size_t child_idx, iterator &succ_it)
 	{
 		Node *leaf = parent->children[child_idx].get();
 		Node *right = parent->children[child_idx + 1].get();
@@ -1027,6 +1033,13 @@ private:
 		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[leaf->count] = right->values[0];
 		}
+
+		/* Retarget iterator */
+		if (succ_it.leaf_ == right) {
+			succ_it.leaf_ = leaf;
+			succ_it.index_ = leaf->count;
+		}
+
 		++leaf->count;
 
 		/* Shift right’s keys/values left */
@@ -1044,7 +1057,7 @@ private:
 	/**
 	 * Borrow the last key of left into the front of leaf
 	 */
-	void borrow_from_left_leaf(Node *parent, size_t child_idx)
+	void borrow_from_left_leaf(Node *parent, size_t child_idx, iterator &succ_it)
 	{
 		Node *leaf = parent->children[child_idx].get();
 		Node *left = parent->children[child_idx - 1].get();
@@ -1062,6 +1075,12 @@ private:
 		if constexpr (!std::is_void_v<Tvalue>) {
 			leaf->values[0] = std::move(left->values[left->count - 1]);
 		}
+
+		/* Retarget iterator */
+		if (succ_it.leaf_ == leaf) {
+			++succ_it.index_;
+		}
+
 		++leaf->count;
 
 		/* Reduce left count */
@@ -1075,7 +1094,7 @@ private:
 	 * Merge leaf at i + 1 into leaf at i, keep the left leaf.
 	 * Preconditions: parent->children[i] and parent->children[i + 1] exist.
 	 */
-	void merge_leaf_keep_left(Node *parent, size_t i)
+	void merge_leaf_keep_left(Node *parent, size_t i, iterator &succ_it)
 	{
 		Node *left = parent->children[i].get();
 		Node *right = parent->children[i + 1].get();
@@ -1087,6 +1106,12 @@ private:
 		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(right->values.begin(), right->values.begin() + right->count, left->values.begin() + left->count);
+		}
+
+		/* Retarget iterator */
+		if (succ_it.leaf_ == right) {
+			succ_it.leaf_ = left;
+			succ_it.index_ += left->count;
 		}
 
 		left->count += right->count;
@@ -1143,7 +1168,7 @@ private:
 		return (left->count + right->count) <= B; // leaf capacity
 	}
 
-	void fix_underflow(Node *parent, size_t i)
+	void fix_underflow(Node *parent, size_t i, iterator &succ_it)
 	{
 		Node *child = parent->children[i].get();
 		assert(child != nullptr);
@@ -1153,7 +1178,7 @@ private:
 			if (i < parent->count) {
 				Node *right = parent->children[i + 1].get();
 				if (right != nullptr && right->count > MIN_LEAF) {
-					this->borrow_from_right_leaf(parent, i);
+					this->borrow_from_right_leaf(parent, i, succ_it);
 					this->refresh_boundary_upward(parent, i);
 					return;
 				}
@@ -1163,7 +1188,7 @@ private:
 			if (i > 0) {
 				Node *left = parent->children[i - 1].get();
 				if (left != nullptr && left->count > MIN_LEAF) {
-					this->borrow_from_left_leaf(parent, i);
+					this->borrow_from_left_leaf(parent, i, succ_it);
 					this->refresh_boundary_upward(parent, i - 1);
 					return;
 				}
@@ -1173,7 +1198,7 @@ private:
 			if (i < parent->count) {
 				Node *right = parent->children[i + 1].get();
 				if (right != nullptr && this->can_merge_leaf(child, right)) {
-					this->merge_leaf_keep_left(parent, i);
+					this->merge_leaf_keep_left(parent, i, succ_it);
 					if (i < parent->count) {
 						this->refresh_boundary_upward(parent, i);
 					}
@@ -1181,13 +1206,13 @@ private:
 					/* Fall back: borrow from left if possible */
 					Node *left = (i > 0) ? parent->children[i - 1].get() : nullptr;
 					if (left != nullptr && left->count > MIN_LEAF) {
-						this->borrow_from_left_leaf(parent, i);
+						this->borrow_from_left_leaf(parent, i, succ_it);
 						this->refresh_boundary_upward(parent, i - 1);
 						return;
 					}
 					/* Last resort: force merge into left */
 					assert(i > 0 && "Right merge overflow and no left sibling to merge into");
-					this->merge_leaf_keep_left(parent, i - 1);
+					this->merge_leaf_keep_left(parent, i - 1, succ_it);
 					if ((i - 1) < parent->count) {
 						this->refresh_boundary_upward(parent, i - 1);
 					}
@@ -1197,14 +1222,14 @@ private:
 				assert(i > 0);
 				Node *left = parent->children[i - 1].get();
 				if (left != nullptr && this->can_merge_leaf(left, child)) {
-					this->merge_leaf_keep_left(parent, i - 1);
+					this->merge_leaf_keep_left(parent, i - 1, succ_it);
 					if ((i - 1) < parent->count) {
 						this->refresh_boundary_upward(parent, i - 1);
 					}
 				} else {
 					/* Fall back: borrow from left */
 					if (left != nullptr && left->count > MIN_LEAF) {
-						this->borrow_from_left_leaf(parent, i);
+						this->borrow_from_left_leaf(parent, i, succ_it);
 						this->refresh_boundary_upward(parent, i - 1);
 						return;
 					}
