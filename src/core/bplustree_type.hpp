@@ -562,12 +562,11 @@ public:
 		size_t i = pos.index_;
 
 		/* Erase locally (keys/values shift left) */
-		for (size_t j = i; j + 1 < leaf->count; ++j) {
-			leaf->keys[j] = std::move(leaf->keys[j + 1]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				leaf->values[j] = std::move(leaf->values[j + 1]);
-			}
+		std::move(leaf->keys.begin() + i + 1, leaf->keys.begin() + leaf->count, leaf->keys.begin() + i);
+		if constexpr (!std::is_void_v<Tvalue>) {
+			std::move(leaf->values.begin() + i + 1, leaf->values.begin() + leaf->count, leaf->values.begin() + i);
 		}
+
 		--leaf->count;
 
 		/* Compute successor key BEFORE any structural changes */
@@ -662,10 +661,9 @@ private:
 	std::enable_if_t<!std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, const U &value)
 	{
 		/* Shift right */
-		for (size_t j = leaf->count; j > i; --j) {
-			leaf->keys[j] = std::move(leaf->keys[j - 1]);
-			leaf->values[j] = std::move(leaf->values[j - 1]);
-		}
+		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
+
 		leaf->keys[i] = key;
 		leaf->values[i] = value;
 		++leaf->count;
@@ -690,9 +688,8 @@ private:
 	std::enable_if_t<std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key)
 	{
 		/* Shift right */
-		for (size_t j = leaf->count; j > i; --j) {
-			leaf->keys[j] = std::move(leaf->keys[j - 1]);
-		}
+		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+
 		leaf->keys[i] = key;
 		++leaf->count;
 
@@ -741,13 +738,12 @@ private:
 		size_t mid = leaf->count / 2;
 		auto new_leaf = std::make_unique<Node>(true);
 
-		/* Copy half */
-		for (size_t j = mid; j < leaf->count; ++j) {
-			new_leaf->keys[j - mid] = std::move(leaf->keys[j]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				new_leaf->values[j - mid] = std::move(leaf->values[j]);
-			}
+		/* Move half */
+		std::move(leaf->keys.begin() + mid, leaf->keys.begin() + leaf->count, new_leaf->keys.begin());
+		if constexpr (!std::is_void_v<Tvalue>) {
+			std::move(leaf->values.begin() + mid, leaf->values.begin() + leaf->count, new_leaf->values.begin());
 		}
+
 		new_leaf->count = leaf->count - mid;
 		leaf->count = mid;
 		assert(new_leaf->count > 0);
@@ -783,10 +779,8 @@ private:
 			new_root->children[1].reset(right);
 			new_root->count = 1;
 
-			/* Null-out remaining child slots for safety */
-			for (size_t j = 2; j <= B; ++j) {
-				new_root->children[j].reset();
-			}
+			/* Null‑out remaining child slots for safety */
+			std::fill(new_root->children.begin() + 2, new_root->children.begin() + B + 1, nullptr);
 
 			/* Wire parents */
 			old_root->parent = new_root.get();
@@ -810,21 +804,20 @@ private:
 			assert(parent != nullptr);
 		}
 
-
 		/* Now parent must have room for one more separator */
 		assert(parent->count <= (B - 2));
 
 		/* Find index of 'left' in parent AFTER potential split */
 		size_t i = this->find_child_index(parent, left);
 
-		/* Shift keys/children right to open slot at i
-		 * Keys valid indices: [0..parent->count] after split guarantee parent->count <= B - 2 */
-		for (size_t j = parent->count; j > i; --j) {
-			parent->keys[j] = std::move(parent->keys[j - 1]);
-		}
-		/* Children valid indices: [0..parent->count + 1] after split guarantee parent->count + 1 <= B - 1 */
-		for (size_t j = parent->count + 1; j > i + 1; --j) {
-			parent->children[j] = std::move(parent->children[j - 1]);
+		/* Shift keys right to open slot at i */
+		std::move_backward(parent->keys.begin() + i, parent->keys.begin() + parent->count, parent->keys.begin() + parent->count + 1);
+
+		/* Shift children right to open slot at i+1 */
+		std::move_backward(parent->children.begin() + i + 1, parent->children.begin() + parent->count + 1, parent->children.begin() + parent->count + 2);
+
+		/* Fix parent/index_in_parent pointers for shifted children */
+		for (size_t j = i + 1; j <= parent->count + 1; ++j) {
 			if (parent->children[j] != nullptr) {
 				parent->children[j]->parent = parent;
 				parent->children[j]->index_in_parent = j;
@@ -834,9 +827,6 @@ private:
 		/* Insert separator and right child */
 		parent->keys[i] = separator;
 
-		/* Prefer attaching a unique_ptr if you own 'right'; otherwise ensure current slot is empty
-		 * parent->children[i + 1] = std::move(new_right_uptr);
-		 * If you must use raw pointer: */
 		assert(parent->children[i + 1] == nullptr && "Attach must go to empty slot when using raw pointer");
 		parent->children[i + 1].reset(right);
 		right->parent = parent;
@@ -847,7 +837,7 @@ private:
 		/* Rewire defensively */
 		this->rewire_children_parent(parent);
 
-		/* If parent became full (count == B - 1), it’s fine; it will be split on the next insert into this parent. */
+		/* If parent became full (count == B - 1), it’s fine; it will be split on the next insert. */
 	}
 
 	void split_internal(Node *node) {
@@ -858,26 +848,26 @@ private:
 		auto new_node = std::make_unique<Node>(false);
 		Tkey separator = node->keys[mid];
 
-		/* Move keys */
-		for (size_t j = mid + 1; j < old_count; ++j) {
-			new_node->keys[j - (mid + 1)] = std::move(node->keys[j]);
-		}
+		/* Move keys: everything after mid goes into new_node */
+		std::move(node->keys.begin() + mid + 1, node->keys.begin() + old_count, new_node->keys.begin());
 		new_node->count = old_count - mid - 1;
 
-		/* Move children */
-		for (size_t j = mid + 1; j <= old_count; ++j) {
-			new_node->children[j - (mid + 1)] = std::move(node->children[j]);
-			if (new_node->children[j - (mid + 1)] != nullptr) {
-				new_node->children[j - (mid + 1)]->parent = new_node.get();
-				new_node->children[j - (mid + 1)]->index_in_parent = j - (mid + 1);
+		/* Move children: everything after mid goes into new_node */
+		std::move(node->children.begin() + mid + 1, node->children.begin() + old_count + 1, new_node->children.begin());
+
+		/* Fix parent/index_in_parent pointers for moved children */
+		for (size_t j = 0; j <= new_node->count; ++j) {
+			if (new_node->children[j] != nullptr) {
+				new_node->children[j]->parent = new_node.get();
+				new_node->children[j]->index_in_parent = j;
 			}
 		}
 
-		/* Left node keeps first mid keys and mid + 1 children */
+		/* Left node keeps first mid keys and mid+1 children */
 		node->count = mid;
-		for (size_t j = mid + 1; j <= B; ++j) {
-			node->children[j].reset();
-		}
+
+		/* Clear out any dangling child slots beyond mid */
+		std::fill(node->children.begin() + mid + 1, node->children.begin() + B + 1, nullptr);
 
 		/* Ensure remaining children have correct parent */
 		this->rewire_children_parent(node);
@@ -888,7 +878,7 @@ private:
 		this->insert_into_parent(node, separator, new_node.release());
 
 		/* After insert, parent’s children changed; rewire as well */
-		this->rewire_children_parent(node->parent); 
+		this->rewire_children_parent(node->parent);
 	}
 
 	/**
@@ -903,15 +893,14 @@ private:
 		}
 
 		/* 1) Refresh at this parent only if there is a valid separator. */
-		if (parent->count > 0 && sep_idx < parent->count) {
+		if (sep_idx < parent->count) {
 			this->maintain_parent_boundary(parent, sep_idx);
 		}
 
 		/* 2) Propagate upward along the leftmost path.
 		 * Even if parent->count == 0, the leftmost path’s subtree minimum can change
 		 * and its ancestor separator may need updating. */
-		Node *p = parent;
-		while (p != nullptr && p->parent != nullptr) {
+		for (Node *p = parent; p != nullptr && p->parent != nullptr; p = p->parent) {
 			Node *gp = p->parent;
 			size_t idx_in_gp = this->find_child_index(gp, p);
 
@@ -922,9 +911,6 @@ private:
 				/* Not on leftmost path anymore; we can stop. */
 				break;
 			}
-
-			/* Still on the leftmost path; move up. */
-			p = gp;
 		}
 	}
 
@@ -937,8 +923,7 @@ private:
 			return;
 		}
 
-		/* If the requested separator is out of range (e.g., after a merge),
-		 * skip the refresh silently. */
+		/* If the requested separator is out of range (e.g., after a merge), skip silently. */
 		if (sep_idx >= parent->count) {
 			return;
 		}
@@ -978,6 +963,7 @@ private:
 		Node *right = parent->children[child_idx + 1].get();
 
 		assert(leaf->count < B && right->count > MIN_LEAF);
+
 		/* Append right’s min key to leaf */
 		leaf->keys[leaf->count] = right->keys[0];
 		if constexpr (!std::is_void_v<Tvalue>) {
@@ -986,12 +972,11 @@ private:
 		++leaf->count;
 
 		/* Shift right’s keys/values left */
-		for (size_t j = 0; j + 1 < right->count; ++j) {
-			right->keys[j] = std::move(right->keys[j + 1]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				right->values[j] = std::move(right->values[j + 1]);
-			}
+		std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
+		if constexpr (!std::is_void_v<Tvalue>) {
+			std::move(right->values.begin() + 1, right->values.begin() + right->count, right->values.begin());
 		}
+
 		--right->count;
 
 		/* Refresh separator that points to right */
@@ -1009,11 +994,9 @@ private:
 		assert(leaf->count < B && left->count > MIN_LEAF);
 
 		/* Shift leaf right to make space at index 0 */
-		for (size_t j = leaf->count; j > 0; --j) {
-			leaf->keys[j] = std::move(leaf->keys[j - 1]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				leaf->values[j] = std::move(leaf->values[j - 1]);
-			}
+		std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+		if constexpr (!std::is_void_v<Tvalue>) {
+			std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
 		}
 
 		/* Move left’s max key to leaf[0] */
@@ -1042,13 +1025,12 @@ private:
 		/* Defensive: right must not contain duplicates of left.max or any erased key */
 		assert(left != nullptr && right != nullptr && left->is_leaf && right->is_leaf);
 
-		/* Copy only existing keys post-erase */
-		for (size_t j = 0; j < right->count; ++j) {
-			left->keys[left->count + j] = std::move(right->keys[j]);
-			if constexpr (!std::is_void_v<Tvalue>) {
-				left->values[left->count + j] = std::move(right->values[j]);
-			}
+		/* Move only existing keys post-erase */
+		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
+		if constexpr (!std::is_void_v<Tvalue>) {
+			std::move(right->values.begin(), right->values.begin() + right->count, left->values.begin() + left->count);
 		}
+
 		left->count += right->count;
 
 		/* Stitch leaves */
@@ -1072,14 +1054,14 @@ private:
 		assert(parent != nullptr && !parent->is_leaf);
 		assert(sep_idx < parent->count);
 
-		/* Shift keys left: [sep_idx + 1..count - 1] -> [sep_idx..count - 2] */
-		for (size_t j = sep_idx; j + 1 < parent->count; ++j) {
-			parent->keys[j] = std::move(parent->keys[j + 1]);
-		}
+		/* Shift keys left: [sep_idx+1..count-1] -> [sep_idx..count-2] */
+		std::move(parent->keys.begin() + sep_idx + 1, parent->keys.begin() + parent->count, parent->keys.begin() + sep_idx);
 
-		/* Shift children left: [sep_idx + 2..count] -> [sep_idx + 1..count - 1] */
-		for (size_t j = sep_idx + 1; j + 1 <= parent->count; ++j) {
-			parent->children[j] = std::move(parent->children[j + 1]);
+		/* Shift children left: [sep_idx+2..count] -> [sep_idx+1..count-1] */
+		std::move(parent->children.begin() + sep_idx + 2, parent->children.begin() + parent->count + 1, parent->children.begin() + sep_idx + 1);
+
+		/* Fix parent/index_in_parent pointers for shifted children */
+		for (size_t j = sep_idx + 1; j < parent->count; ++j) {
 			if (parent->children[j] != nullptr) {
 				parent->children[j]->parent = parent;
 				parent->children[j]->index_in_parent = j;
@@ -1109,7 +1091,7 @@ private:
 		assert(child != nullptr);
 
 		if (child->is_leaf) {
-			/* Borrow from right if exists and can donate */
+			/* Borrow from right if possible */
 			if (i < parent->count) {
 				Node *right = parent->children[i + 1].get();
 				if (right != nullptr && right->count > MIN_LEAF) {
@@ -1119,7 +1101,7 @@ private:
 				}
 			}
 
-			/* Borrow from left if exists and can donate */
+			/* Borrow from left if possible */
 			if (i > 0) {
 				Node *left = parent->children[i - 1].get();
 				if (left != nullptr && left->count > MIN_LEAF) {
@@ -1129,23 +1111,23 @@ private:
 				}
 			}
 
-			/* Merge direction chosen by sibling existence */
+			/* Merge logic */
 			if (i < parent->count) {
 				Node *right = parent->children[i + 1].get();
-
-				if (right != nullptr && this->can_merge_leaf(parent->children[i].get(), right)) {
+				if (right != nullptr && this->can_merge_leaf(child, right)) {
 					this->merge_leaf_keep_left(parent, i);
 					if (i < parent->count) {
 						this->refresh_boundary_upward(parent, i);
 					}
 				} else {
 					/* Fall back: borrow from left if possible */
-					if (i > 0 && parent->children[i - 1] && parent->children[i - 1]->count > MIN_LEAF) {
+					Node *left = (i > 0) ? parent->children[i - 1].get() : nullptr;
+					if (left != nullptr && left->count > MIN_LEAF) {
 						this->borrow_from_left_leaf(parent, i);
 						this->refresh_boundary_upward(parent, i - 1);
 						return;
 					}
-					/* As last resort, force merge into left (must exist) */
+					/* Last resort: force merge into left */
 					assert(i > 0 && "Right merge overflow and no left sibling to merge into");
 					this->merge_leaf_keep_left(parent, i - 1);
 					if ((i - 1) < parent->count) {
@@ -1156,9 +1138,8 @@ private:
 				/* Rightmost child: must merge into left */
 				assert(i > 0);
 				Node *left = parent->children[i - 1].get();
-
-				if (left != nullptr && this->can_merge_leaf(left, parent->children[i].get())) {
-					this->merge_leaf_keep_left(parent, i - 1); // mirror call
+				if (left != nullptr && this->can_merge_leaf(left, child)) {
+					this->merge_leaf_keep_left(parent, i - 1);
 					if ((i - 1) < parent->count) {
 						this->refresh_boundary_upward(parent, i - 1);
 					}
@@ -1206,17 +1187,20 @@ private:
 		/* Move right’s first key up into parent */
 		parent->keys[i] = std::move(right->keys[0]);
 
-		/* Shift right’s keys and children left */
-		for (size_t k = 0; k + 1 < right->count; ++k) {
-			right->keys[k] = std::move(right->keys[k + 1]);
-		}
-		for (size_t c = 0; c + 1 <= right->count; ++c) {
-			right->children[c] = std::move(right->children[c + 1]);
+		/* Shift right’s keys left */
+		std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
+
+		/* Shift right’s children left */
+		std::move(right->children.begin() + 1, right->children.begin() + right->count + 1, right->children.begin());
+
+		/* Fix parent/index_in_parent pointers for shifted children */
+		for (size_t c = 0; c < right->count; ++c) {
 			if (right->children[c] != nullptr) {
 				right->children[c]->parent = right;
 				right->children[c]->index_in_parent = c;
 			}
 		}
+
 		--right->count;
 
 		/* Rewire parents defensively */
@@ -1239,12 +1223,14 @@ private:
 		Node *child = parent->children[i].get();
 		Node *left = parent->children[i - 1].get();
 
-		/* Shift child’s keys/children right */
-		for (size_t k = child->count; k > 0; --k) {
-			child->keys[k] = std::move(child->keys[k - 1]);
-		}
-		for (size_t c = child->count + 1; c > 0; --c) {
-			child->children[c] = std::move(child->children[c - 1]);
+		/* Shift child’s keys right to open slot at 0 */
+		std::move_backward(child->keys.begin(), child->keys.begin() + child->count, child->keys.begin() + child->count + 1);
+
+		/* Shift child’s children right to open slot at 0 */
+		std::move_backward(child->children.begin(), child->children.begin() + child->count + 1, child->children.begin() + child->count + 2);
+
+		/* Fix parent/index_in_parent pointers for shifted children */
+		for (size_t c = 1; c <= child->count + 1; ++c) {
 			if (child->children[c] != nullptr) {
 				child->children[c]->parent = child;
 				child->children[c]->index_in_parent = c;
@@ -1299,21 +1285,26 @@ private:
 			return;
 		}
 
-		/* Append separator i, then right’s keys and children */
+		/* Append separator i */
 		left->keys[left->count] = std::move(parent->keys[i]);
-		for (size_t k = 0; k < right->count; ++k) {
-			left->keys[left->count + 1 + k] = std::move(right->keys[k]);
-		}
+
+		/* Move right’s keys into left */
+		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count + 1);
+
+		/* Move right’s children into left */
+		std::move(right->children.begin(), right->children.begin() + right->count + 1, left->children.begin() + left->count + 1);
+
+		/* Fix parent/index_in_parent pointers for moved children */
 		for (size_t c = 0; c <= right->count; ++c) {
-			left->children[left->count + 1 + c] = std::move(right->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
 				left->children[left->count + 1 + c]->parent = left;
 				left->children[left->count + 1 + c]->index_in_parent = left->count + 1 + c;
 			}
 		}
+
 		left->count += 1 + right->count;
 
-		/* Remove separator i and child i+1 from parent */
+		/* Remove separator i and child i + 1 from parent */
 		this->remove_separator_and_right_child(parent, i);
 
 		/* Rewire and boundary refresh */
@@ -1329,12 +1320,12 @@ private:
 	void merge_into_left_internal(Node *parent, size_t i)
 	{
 		assert(i > 0);
-		Node *left  = parent->children[i - 1].get();
+		Node *left = parent->children[i - 1].get();
 		Node *child = parent->children[i].get();
 		assert(left != nullptr && child != nullptr && !left->is_leaf && !child->is_leaf);
 
+		/* Guard: if merge would overflow, fall back to borrow-from-left */
 		if ((left->count + 1 + child->count) > (B - 1)) {
-			/* Fall back to borrow-from-left */
 			this->borrow_from_left_internal(parent, i);
 			if ((i - 1) < parent->count) {
 				this->refresh_boundary_upward(parent, i - 1);
@@ -1342,27 +1333,35 @@ private:
 			return;
 		}
 
+		/* Append separator i - 1 */
 		left->keys[left->count] = std::move(parent->keys[i - 1]);
-		for (size_t k = 0; k < child->count; ++k) {
-			left->keys[left->count + 1 + k] = std::move(child->keys[k]);
-		}
+
+		/* Move child’s keys into left */
+		std::move(child->keys.begin(), child->keys.begin() + child->count, left->keys.begin() + left->count + 1);
+
+		/* Move child’s children into left */
+		std::move(child->children.begin(), child->children.begin() + child->count + 1, left->children.begin() + left->count + 1);
+
+		/* Fix parent/index_in_parent pointers for moved children */
 		for (size_t c = 0; c <= child->count; ++c) {
-			left->children[left->count + 1 + c] = std::move(child->children[c]);
 			if (left->children[left->count + 1 + c] != nullptr) {
 				left->children[left->count + 1 + c]->parent = left;
 				left->children[left->count + 1 + c]->index_in_parent = left->count + 1 + c;
 			}
 		}
+
 		left->count += 1 + child->count;
 
+		/* Remove separator i - 1 and child i from parent */
 		this->remove_separator_and_right_child(parent, i - 1);
 
+		/* Rewire and boundary refresh */
 		this->rewire_children_parent(left);
 		this->rewire_children_parent(parent);
 		if ((i - 1) < parent->count) {
-			refresh_boundary_upward(parent, i - 1);
+			this->refresh_boundary_upward(parent, i - 1);
 		} else if (parent->count > 0) {
-			refresh_boundary_upward(parent, parent->count - 1);
+			this->refresh_boundary_upward(parent, parent->count - 1);
 		}
 	}
 
@@ -1380,9 +1379,7 @@ private:
 			Node *right = parent->children[i + 1].get();
 			if (right != nullptr && right->count > MIN_INTERNAL) {
 				this->borrow_from_right_internal(parent, i);
-				if (i < parent->count) {
-					this->refresh_boundary_upward(parent, i);
-				}
+				this->refresh_boundary_upward(parent, i);
 				return;
 			}
 		}
@@ -1392,37 +1389,29 @@ private:
 			Node *left = parent->children[i - 1].get();
 			if (left != nullptr && left->count > MIN_INTERNAL) {
 				this->borrow_from_left_internal(parent, i);
-				if ((i - 1) < parent->count) {
-					this->refresh_boundary_upward(parent, i - 1);
-				}
+				this->refresh_boundary_upward(parent, i - 1);
 				return;
 			}
 		}
 
-		/* Merge direction by sibling existence */
+		/* Merge logic */
 		if (i < parent->count) {
 			Node *right = parent->children[i + 1].get();
-
 			if (right != nullptr && this->can_merge_internal(child, right)) {
 				this->merge_keep_left_internal(parent, i);
-				if (i < parent->count) {
-					this->refresh_boundary_upward(parent, i);
-				}
+				this->refresh_boundary_upward(parent, i);
 			} else {
 				/* Fall back: borrow-left if available */
-				if (i > 0 && parent->children[i - 1] != nullptr && parent->children[i - 1]->count > MIN_INTERNAL) {
+				Node *left = (i > 0) ? parent->children[i - 1].get() : nullptr;
+				if (left != nullptr && left->count > MIN_INTERNAL) {
 					this->borrow_from_left_internal(parent, i);
-					if ((i - 1) < parent->count) {
-						this->refresh_boundary_upward(parent, i - 1);
-					}
+					this->refresh_boundary_upward(parent, i - 1);
 					return;
 				}
-				/* If right merge would overflow and left cannot borrow, try the mirror merge */
+				/* Last resort: mirror merge into left */
 				if (i > 0) {
 					this->merge_into_left_internal(parent, i);
-					if ((i - 1) < parent->count) {
-						this->refresh_boundary_upward(parent, i - 1);
-					}
+					this->refresh_boundary_upward(parent, i - 1);
 				} else {
 					assert(false && "Internal underflow at i=0 with no feasible borrow/merge");
 				}
@@ -1431,19 +1420,14 @@ private:
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
 			Node *left = parent->children[i - 1].get();
-
 			if (left != nullptr && this->can_merge_internal(left, child)) {
 				this->merge_into_left_internal(parent, i);
-				if ((i - 1) < parent->count) {
-					this->refresh_boundary_upward(parent, i - 1);
-				}
+				this->refresh_boundary_upward(parent, i - 1);
 			} else {
 				/* Fall back: borrow-left */
 				if (left != nullptr && left->count > MIN_INTERNAL) {
 					this->borrow_from_left_internal(parent, i);
-					if ((i - 1) < parent->count) {
-						this->refresh_boundary_upward(parent, i - 1);
-					}
+					this->refresh_boundary_upward(parent, i - 1);
 					return;
 				}
 				assert(false && "Rightmost internal underflow: cannot merge or borrow");
@@ -1493,7 +1477,8 @@ private:
 			this->fix_underflow_internal_child(parent, i);
 		}
 
-		/* Optional defensive: if parent becomes empty and isn’t root, its own parent will handle it when reached. */
+		/* Defensive note: if parent becomes empty and isn’t root,
+		 * its own parent will handle it when reached. */
 	}
 
 	/**
