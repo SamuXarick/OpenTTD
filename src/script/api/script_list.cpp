@@ -520,9 +520,21 @@ void ScriptList::RemoveItem(SQInteger item)
 void ScriptList::InitValues()
 {
 	this->values.clear();
-	for (const auto &[item, value] : this->items) {
-		this->values.emplace(value, item);
+
+	/* Build buffer of (value,item) pairs directly */
+	std::vector<ScriptListValueSet::value_type> insertion_buffer;
+	insertion_buffer.reserve(this->items.size());
+
+	for (auto &[item, value] : this->items) {
+		insertion_buffer.emplace_back(value, item);
 	}
+
+	/* Sort by (value,item) */
+	std::ranges::sort(insertion_buffer, [](auto &a, auto &b) { return a < b; });
+
+	/* Bulk insert */
+	this->values.insert(insertion_buffer.begin(), insertion_buffer.end());
+
 	this->values_inited = true;
 }
 
