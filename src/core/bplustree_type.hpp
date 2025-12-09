@@ -516,54 +516,22 @@ public:
 	template <typename U = Tvalue>
 	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key, const U &value)
 	{
-		auto it = this->lower_bound(key);
-		Node *leaf = it.leaf_;
-		size_t idx = it.index_;
+		auto succ_it = this->lower_bound(key);
+		Node *leaf = succ_it.leaf_;
+		size_t idx = succ_it.index_;
 
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, false }; // already exists
+			return { succ_it, false }; // already exists
 		}
 
 		/* Perform insert (may split) */
-		this->insert(leaf, idx, key, value);
+		this->insert(leaf, idx, key, value, succ_it);
+
 		VALIDATE_NODES();
 
-		/* Iterator mapping:
-		 * - If no split: new element sits at idx in leaf.
-		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
-		 *   Use key compare against split pivot to choose side deterministically. */
-		Node *ret_leaf = leaf;
-		size_t ret_idx = idx;
+		assert(this->verify_return_iterator(succ_it, key));
 
-		/* Fast path: still in same leaf */
-		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
-			return { iterator(ret_leaf, ret_idx, this), true };
-		}
-
-		/* Split-aware fallback: check right neighbor first (most common) */
-		Node *r = ret_leaf->next_leaf;
-		if (r != nullptr) {
-			/* If key is in the right leaf range, locate locally without full find
-			 * lower_bound over the single leaf is O(B). */
-			size_t j = this->lower_bound(r->keys, r->count, key);
-			if (j < r->count && r->keys[j] == key) {
-				return { iterator(r, j, this), true };
-			}
-		}
-
-		/* Rare: insert could have gone to a left neighbor (e.g., idx==0 and pivot adjustments). */
-		Node *l = ret_leaf->prev_leaf;
-		if (l != nullptr) {
-			size_t j = this->lower_bound(l->keys, l->count, key);
-			if (j < l->count && l->keys[j] == key) {
-				return { iterator(l, j, this), true };
-			}
-		}
-
-		/* As a final guard (should be effectively unreachable), use full find.
-		 * Keeps robustness without changing overall perf profile. */
-		auto it2 = this->find(key);
-		return { it2, true };
+		return { succ_it, true };
 	}
 
 	/**
@@ -572,45 +540,24 @@ public:
 	template <typename U = Tvalue>
 	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key)
 	{
-		auto it = this->lower_bound(key);
-		Node *leaf = it.leaf_;
-		size_t idx = it.index_;
+		auto succ_it = this->lower_bound(key);
+		Node *leaf = succ_it.leaf_;
+		size_t idx = succ_it.index_;
 
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, false }; // already exists
+			return { succ_it, false }; // already exists
 		}
 
-		this->insert(leaf, idx, key);
+		this->insert(leaf, idx, key, succ_it);
+
 		VALIDATE_NODES();
 
-		Node *ret_leaf = leaf;
-		size_t ret_idx = idx;
+		assert(this->verify_return_iterator(succ_it, key));
 
-		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
-			return { iterator(ret_leaf, ret_idx, this), true };
-		}
-
-		Node *r = ret_leaf->next_leaf;
-		if (r != nullptr) {
-			size_t j = this->lower_bound(r->keys, r->count, key);
-			if (j < r->count && r->keys[j] == key) {
-				return { iterator(r, j, this), true };
-			}
-		}
-
-		Node *l = ret_leaf->prev_leaf;
-		if (l != nullptr) {
-			size_t j = this->lower_bound(l->keys, l->count, key);
-			if (j < l->count && l->keys[j] == key) {
-				return { iterator(l, j, this), true };
-			}
-		}
-
-		auto it2 = this->find(key);
-		return { it2, true };
+		return { succ_it, true };
 	}
 
-	bool verify_erase_iterator(const iterator &a, const Tkey &succ_key)
+	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
 	{
 		Node *succ_leaf = this->find_leaf(succ_key);
 		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
@@ -678,7 +625,7 @@ public:
 			return this->end();
 		}
 
-		assert(this->verify_erase_iterator(succ_it, succ_key));
+		assert(this->verify_return_iterator(succ_it, succ_key));
 		return succ_it;
 	}
 
@@ -722,7 +669,7 @@ private:
 	 * Map mode insert: enabled only if Tvalue is not void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, const U &value)
+	std::enable_if_t<!std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, const U &value, iterator &succ_it)
 	{
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
@@ -741,7 +688,7 @@ private:
 		}
 
 		if (leaf->count == B) {
-			this->split_leaf(leaf);
+			this->split_leaf(leaf, succ_it);
 		}
 	}
 
@@ -749,7 +696,7 @@ private:
 	 * Set mode insert: enabled only if Tvalue is void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key)
+	std::enable_if_t<std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, iterator &succ_it)
 	{
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
@@ -766,7 +713,7 @@ private:
 		}
 
 		if (leaf->count == B) {
-			this->split_leaf(leaf);
+			this->split_leaf(leaf, succ_it);
 		}
 	}
 
@@ -797,7 +744,7 @@ private:
 		}
 	}
 
-	void split_leaf(Node *leaf)
+	void split_leaf(Node *leaf, iterator &succ_it)
 	{
 		size_t mid = leaf->count / 2;
 		auto new_leaf = std::make_unique<Node>(true);
@@ -806,6 +753,12 @@ private:
 		std::move(leaf->keys.begin() + mid, leaf->keys.begin() + leaf->count, new_leaf->keys.begin());
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(leaf->values.begin() + mid, leaf->values.begin() + leaf->count, new_leaf->values.begin());
+		}
+
+		/* Retarget iterator */
+		if (succ_it.leaf_ == leaf && succ_it.index_ >= mid) {
+			succ_it.leaf_ = new_leaf.get();
+			succ_it.index_ -= mid;
 		}
 
 		new_leaf->count = leaf->count - mid;
