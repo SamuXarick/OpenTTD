@@ -13,7 +13,7 @@
 #include <iostream>
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 1
+#define BPLUSTREE_CHECK 0
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -1598,17 +1598,6 @@ private:
 	}
 
 #if BPLUSTREE_CHECK
-	template <typename Node>
-	const Tkey &subtree_min(const Node *node) const
-	{
-		const Node *cur = node;
-		while (cur != nullptr && !cur->is_leaf) {
-			cur = cur->children[0].get();
-		}
-		assert(cur != nullptr && cur->count > 0);
-		return cur->keys[0];
-	}
-
 	void validate() const
 	{
 		if (this->root == nullptr) {
@@ -1773,12 +1762,25 @@ private:
 			assert(leaves[i - 1] < leaves[i]); // strictly increasing across leaf chain
 		}
 	}
+#endif /* BPLUSTREE_CHECK */
+
+	template <typename Node>
+	const Tkey &subtree_min(const Node *node) const
+	{
+		const Node *cur = node;
+		while (cur != nullptr && !cur->is_leaf) {
+			cur = cur->children[0].get();
+		}
+		assert(cur != nullptr && cur->count > 0);
+		return cur->keys[0];
+	}
 
 	/**
 	 * Generic key-to-string helper
 	 */
 	template <typename K>
-	std::string key_to_string(const K &k) const {
+	std::string key_to_string(const K &k) const
+	{
 		std::ostringstream oss;
 		oss << k; // works if K has operator<<
 		return oss.str();
@@ -1788,7 +1790,8 @@ private:
 	 * Specialization for std::pair
 	 */
 	template <typename A, typename B>
-	std::string key_to_string(const std::pair<A, B> &p) const {
+	std::string key_to_string(const std::pair<A, B> &p) const
+	{
 		std::ostringstream oss;
 		oss << "(" << p.first << "," << p.second << ")";
 		return oss.str();
@@ -1872,7 +1875,6 @@ public:
 			}
 		}
 	}
-#endif /* BPLUSTREE_CHECK */
 };
 
 #endif /* BPLUSTREE_TYPE_HPP */
