@@ -557,6 +557,14 @@ public:
 		return { succ_it, true };
 	}
 
+	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
+	{
+		Node *succ_leaf = this->find_leaf(succ_key);
+		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
+
+		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
+	}
+
 	iterator erase(iterator pos)
 	{
 		if (pos == this->end()) {
@@ -622,14 +630,6 @@ public:
 	}
 
 private:
-	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
-	{
-		Node *succ_leaf = this->find_leaf(succ_key);
-		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
-
-		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
-	}
-
 	Node *leftmost_leaf() const
 	{
 		assert(this->root != nullptr);
