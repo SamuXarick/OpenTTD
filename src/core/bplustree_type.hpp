@@ -1532,69 +1532,31 @@ private:
 	}
 
 	/**
-	 * Hybrid search over keys[0..count), returning first index i where keys[i] >= key.
-	 * Uses linear scan for small counts, binary search otherwise.
+	 * Linear search over keys[0..count), returning first index i where keys[i] >= key.
 	 */
 	static size_t lower_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
-		constexpr size_t linear_cutoff = 8;
-
-		if (count <= linear_cutoff) {
-			/* Linear scan */
-			for (size_t i = 0; i < count; ++i) {
-				if (keys[i] >= key) {
-					return i;
-				}
-			}
-			return count;
-		}
-
-		/* Binary search */
-		size_t lo = 0;
-		size_t hi = count;
-		/* Invariant: [lo, hi) is the search range. */
-		while (lo < hi) {
-			size_t mid = lo + ((hi - lo) >> 1);
-			if (keys[mid] < key) {
-				lo = mid + 1;
-			} else {
-				hi = mid;
+		/* Linear scan */
+		for (size_t i = 0; i < count; ++i) {
+			if (keys[i] >= key) {
+				return i;
 			}
 		}
-		return lo;
+		return count;
 	}
 
 	/**
-	 * Hybrid search over keys[0..count), returning first index i where keys[i] > key.
-	 * Uses linear scan for small counts, binary search otherwise.
+	 * Linear search over keys[0..count), returning first index i where keys[i] > key.
 	 */
 	static size_t upper_bound(const std::array<Tkey, B> &keys, size_t count, const Tkey &key)
 	{
-		constexpr size_t linear_cutoff = 8;
-
-		if (count <= linear_cutoff) {
-			/* Linear scan */
-			for (size_t i = 0; i < count; ++i) {
-				if (keys[i] > key) {
-					return i;
-				}
-			}
-			return count;
-		}
-
-		/* Binary search */
-		size_t lo = 0;
-		size_t hi = count;
-		/* Invariant: [lo, hi) is the search range. */
-		while (lo < hi) {
-			size_t mid = lo + ((hi - lo) >> 1);
-			if (keys[mid] <= key) {
-				lo = mid + 1;
-			} else {
-				hi = mid;
+		/* Linear scan */
+		for (size_t i = 0; i < count; ++i) {
+			if (keys[i] > key) {
+				return i;
 			}
 		}
-		return lo;
+		return count;
 	}
 
 #if BPLUSTREE_CHECK
