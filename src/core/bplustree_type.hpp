@@ -525,7 +525,7 @@ public:
 		}
 
 		/* Perform insert (may split) */
-		succ_it = this->insert_at(succ_it, key, value);
+		this->insert(leaf, idx, key, value, succ_it);
 
 		VALIDATE_NODES();
 
@@ -548,7 +548,7 @@ public:
 			return { succ_it, false }; // already exists
 		}
 
-		succ_it = this->insert_at(succ_it, key);
+		this->insert(leaf, idx, key, succ_it);
 
 		VALIDATE_NODES();
 
@@ -669,11 +669,8 @@ private:
 	 * Map mode insert: enabled only if Tvalue is not void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, iterator> insert_at(iterator succ_it, const Tkey &key, const U &value)
+	std::enable_if_t<!std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, const U &value, iterator &succ_it)
 	{
-		Node *leaf = succ_it.leaf_;
-		size_t i = succ_it.index_;
-
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
 		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
@@ -691,21 +688,16 @@ private:
 		}
 
 		if (leaf->count == B) {
-			succ_it = this->split_leaf(succ_it);
+			this->split_leaf(leaf, succ_it);
 		}
-
-		return succ_it;
 	}
 
 	/**
 	 * Set mode insert: enabled only if Tvalue is void
 	 */
 	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, iterator> insert_at(iterator succ_it, const Tkey &key)
+	std::enable_if_t<std::is_void_v<U>, void> insert(Node *leaf, size_t i, const Tkey &key, iterator &succ_it)
 	{
-		Node *leaf = succ_it.leaf_;
-		size_t i = succ_it.index_;
-
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
 
@@ -721,10 +713,8 @@ private:
 		}
 
 		if (leaf->count == B) {
-			succ_it = this->split_leaf(succ_it);
+			this->split_leaf(leaf, succ_it);
 		}
-
-		return succ_it;
 	}
 
 	Node *find_leaf(const Tkey &key) const
@@ -754,10 +744,8 @@ private:
 		}
 	}
 
-	iterator split_leaf(iterator succ_it)
+	void split_leaf(Node *leaf, iterator &succ_it)
 	{
-		Node *leaf = succ_it.leaf_;
-
 		size_t mid = leaf->count / 2;
 		auto new_leaf = std::make_unique<Node>(true);
 
@@ -768,7 +756,7 @@ private:
 		}
 
 		/* Retarget iterator */
-		if (succ_it.index_ >= mid) {
+		if (succ_it.leaf_ == leaf && succ_it.index_ >= mid) {
 			succ_it.leaf_ = new_leaf.get();
 			succ_it.index_ -= mid;
 		}
@@ -790,8 +778,6 @@ private:
 
 		/* Insert separator into parent */
 		this->insert_into_parent(leaf, separator, new_leaf.release());
-
-		return succ_it;
 	}
 
 	void insert_into_parent(Node *left, const Tkey &separator, Node *right)
