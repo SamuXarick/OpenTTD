@@ -526,44 +526,27 @@ public:
 
 		/* Perform insert (may split) */
 		this->insert(leaf, idx, key, value);
+
 		VALIDATE_NODES();
 
 		/* Iterator mapping:
 		 * - If no split: new element sits at idx in leaf.
 		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
 		 *   Use key compare against split pivot to choose side deterministically. */
-		Node *ret_leaf = leaf;
-		size_t ret_idx = idx;
 
 		/* Fast path: still in same leaf */
-		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
-			return { iterator(ret_leaf, ret_idx, this), true };
+		if (idx < leaf->count && leaf->keys[idx] == key) {
+			return { it, true };
 		}
 
-		/* Split-aware fallback: check right neighbor first (most common) */
-		Node *r = ret_leaf->next_leaf;
-		if (r != nullptr) {
-			/* If key is in the right leaf range, locate locally without full find
-			 * lower_bound over the single leaf is O(B). */
-			size_t j = this->lower_bound(r->keys, r->count, key);
-			if (j < r->count && r->keys[j] == key) {
-				return { iterator(r, j, this), true };
-			}
-		}
+		/* Split-aware fallback: check right neighbour */
+		Node *r = leaf->next_leaf;
+		size_t j = idx - leaf->count;
 
-		/* Rare: insert could have gone to a left neighbor (e.g., idx==0 and pivot adjustments). */
-		Node *l = ret_leaf->prev_leaf;
-		if (l != nullptr) {
-			size_t j = this->lower_bound(l->keys, l->count, key);
-			if (j < l->count && l->keys[j] == key) {
-				return { iterator(l, j, this), true };
-			}
-		}
+		it = iterator(r, j, this);
+		assert(this->verify_return_iterator(it, key));
 
-		/* As a final guard (should be effectively unreachable), use full find.
-		 * Keeps robustness without changing overall perf profile. */
-		auto it2 = this->find(key);
-		return { it2, true };
+		return { it, true };
 	}
 
 	/**
@@ -580,42 +563,29 @@ public:
 			return { it, false }; // already exists
 		}
 
+		/* Perform insert (may split) */
 		this->insert(leaf, idx, key);
+
 		VALIDATE_NODES();
 
-		Node *ret_leaf = leaf;
-		size_t ret_idx = idx;
+		/* Iterator mapping:
+		 * - If no split: new element sits at idx in leaf.
+		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
+		 *   Use key compare against split pivot to choose side deterministically. */
 
-		if (ret_idx < ret_leaf->count && ret_leaf->keys[ret_idx] == key) {
-			return { iterator(ret_leaf, ret_idx, this), true };
+		/* Fast path: still in same leaf */
+		if (idx < leaf->count && leaf->keys[idx] == key) {
+			return { it, true };
 		}
 
-		Node *r = ret_leaf->next_leaf;
-		if (r != nullptr) {
-			size_t j = this->lower_bound(r->keys, r->count, key);
-			if (j < r->count && r->keys[j] == key) {
-				return { iterator(r, j, this), true };
-			}
-		}
+		/* Split-aware fallback: check right neighbour */
+		Node *r = leaf->next_leaf;
+		size_t j = idx - leaf->count;
 
-		Node *l = ret_leaf->prev_leaf;
-		if (l != nullptr) {
-			size_t j = this->lower_bound(l->keys, l->count, key);
-			if (j < l->count && l->keys[j] == key) {
-				return { iterator(l, j, this), true };
-			}
-		}
+		it = iterator(r, j, this);
+		assert(this->verify_return_iterator(it, key));
 
-		auto it2 = this->find(key);
-		return { it2, true };
-	}
-
-	bool verify_erase_iterator(const iterator &a, const Tkey &succ_key)
-	{
-		Node *succ_leaf = this->find_leaf(succ_key);
-		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
-
-		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
+		return { it, true };
 	}
 
 	iterator erase(iterator pos)
@@ -678,11 +648,19 @@ public:
 			return this->end();
 		}
 
-		assert(this->verify_erase_iterator(succ_it, succ_key));
+		assert(this->verify_return_iterator(succ_it, succ_key));
 		return succ_it;
 	}
 
 private:
+	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
+	{
+		Node *succ_leaf = this->find_leaf(succ_key);
+		size_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
+
+		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
+	}
+
 	Node *leftmost_leaf() const
 	{
 		assert(this->root != nullptr);
