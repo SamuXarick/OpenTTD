@@ -13,7 +13,7 @@
 #include <iostream>
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 0
+#define BPLUSTREE_CHECK 1
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -1812,13 +1812,18 @@ private:
 		}
 	}
 
-	void dump_node(const Node *node, int indent = 0) const
+public:
+	void dump_node(const Node *node = nullptr, int indent = 0) const
 	{
 		std::string pad(indent, ' ');
 
 		if (node == nullptr) {
-			std::cerr << pad << "null\n";
-			return;
+			if (indent == 0) {
+				node = this->root.get();
+			} else {
+				std::cerr << pad << "null\n";
+				return;
+			}
 		}
 
 		if (node->is_leaf) {

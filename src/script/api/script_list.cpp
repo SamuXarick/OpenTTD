@@ -503,6 +503,18 @@ void ScriptList::CopyList(const ScriptList *list)
 
 ScriptList::ScriptList()
 {
+	BPlusTree<int,int,4> tree; // small B to force splits quickly
+
+	// Insert ascending keys
+	for (int k = 1; k <= 10; ++k) {
+		auto it = tree.emplace(k, k * 100).first;
+		std::cout << (*it).first << " => " << (*it).second << "\n";
+		tree.dump_node();
+	}
+
+	auto it = tree.erase(tree.find(4));
+	tree.dump_node();
+
 	/* Default sorter */
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
