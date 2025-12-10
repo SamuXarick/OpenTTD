@@ -1708,7 +1708,7 @@ private:
 			/* right must exist and have a min */
 			assert(right != nullptr);
 			assert(right->count > 0 || !right->is_leaf); // tolerate transient empty internal if you allow it
-			const Tkey &right_min = this->subtree_min(right);
+			[[maybe_unused]] const Tkey &right_min = this->subtree_min(right);
 			assert(node->keys[i] == right_min);
 			this->assert_sep(node, i);
 		}
@@ -1872,7 +1872,7 @@ public:
 			}
 		}
 	}
-#endif
+#endif /* BPLUSTREE_CHECK */
 };
 
 #endif /* BPLUSTREE_TYPE_HPP */
