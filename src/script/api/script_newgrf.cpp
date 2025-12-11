@@ -19,7 +19,7 @@ ScriptNewGRFList::ScriptNewGRFList()
 {
 	for (const auto &c : _grfconfig) {
 		if (!c->flags.Test(GRFConfigFlag::Static)) {
-			this->AddItem(std::byteswap(c->ident.grfid));
+			this->AddItemUnchecked(std::byteswap(c->ident.grfid));
 		}
 	}
 }

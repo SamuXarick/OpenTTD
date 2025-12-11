@@ -141,7 +141,7 @@ void CargoCollector::SetValue()
 			this->list->SetValue(this->last_key.base(),
 					this->list->GetValue(this->last_key.base()) + this->amount);
 		} else {
-			this->list->AddItem(this->last_key.base(), this->amount);
+			this->list->AddItemUnchecked(this->last_key.base(), this->amount);
 		}
 	}
 }
