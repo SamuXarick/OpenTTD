@@ -252,8 +252,7 @@ private:
 		}
 
 		if (node->role == BPlusNodeRole::Leaf) {
-			const Leaf *leaf = static_cast<const Leaf *>(node);
-			return leaf->count;
+			return node->count;
 		} else {
 			const Internal *internal = static_cast<const Internal *>(node);
 			size_t total = 0;
@@ -615,7 +614,7 @@ public:
 		/* Split-aware fallback: check right neighbour */
 		Leaf *right = leaf->next_leaf;
 		assert(idx >= leaf->count); // security: ensure index is in right sibling
-		uint8_t j = static_cast<uint8_t>(idx - leaf->count);
+		uint8_t j = idx - leaf->count;
 
 		it = iterator(right, j, this);
 		assert(this->verify_return_iterator(it, key));
@@ -650,7 +649,7 @@ public:
 		/* Split-aware fallback: check right neighbour */
 		Leaf *right = leaf->next_leaf;
 		assert(idx >= leaf->count); // security: ensure index is in right sibling
-		uint8_t j = static_cast<uint8_t>(idx - leaf->count);
+		uint8_t j = idx - leaf->count;
 
 		it = iterator(right, j, this);
 		assert(this->verify_return_iterator(it, key));
@@ -695,7 +694,7 @@ public:
 
 		/* Boundary refresh if min changed */
 		if (i == 0 && leaf->parent != nullptr) {
-			Internal *parent = static_cast<Internal *>(leaf->parent);
+			Internal *parent = leaf->parent;
 			uint8_t child_idx = this->find_child_index(parent, leaf);
 
 			if (parent->count > 0) {
@@ -711,7 +710,7 @@ public:
 
 		/* Fix underflow, passing iterator by reference */
 		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
-			Internal *parent = static_cast<Internal *>(leaf->parent);
+			Internal *parent = leaf->parent;
 			uint8_t child_idx = this->find_child_index(parent, leaf);
 
 			if (child_idx <= parent->count) {
@@ -819,7 +818,7 @@ private:
 
 		/* Centralized separator refresh */
 		if (i == 0 && leaf->parent != nullptr) {
-			Internal *parent = static_cast<Internal *>(leaf->parent);
+			Internal *parent = leaf->parent;
 			uint8_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
 				this->maintain_parent_boundary(parent, child_idx - 1);
@@ -847,7 +846,7 @@ private:
 
 		/* Centralized separator refresh */
 		if (i == 0 && leaf->parent != nullptr) {
-			Internal *parent = static_cast<Internal *>(leaf->parent);
+			Internal *parent = leaf->parent;
 			uint8_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
 				this->maintain_parent_boundary(parent, child_idx - 1);
@@ -897,10 +896,10 @@ private:
 		Internal *internal = static_cast<Internal *>(node);
 
 		for (uint8_t i = 0; i <= internal->count; ++i) {
-			std::unique_ptr<Node> &child = internal->children[i];
+			[[maybe_unused]] std::unique_ptr<Node> &child = internal->children[i];
 			assert(child != nullptr);
-			child->parent = internal;
-			child->index_in_parent = i;
+			assert(child->parent == internal);
+			assert(child->index_in_parent == i);
 		}
 	}
 
@@ -910,7 +909,7 @@ private:
 	void split_leaf(Leaf *leaf)
 	{
 		assert(leaf != nullptr);
-		uint8_t mid = static_cast<uint8_t>(leaf->count / 2);
+		uint8_t mid = leaf->count / 2;
 
 		/* Create a new Leaf node */
 		std::unique_ptr<Leaf> new_leaf_node = std::make_unique<Leaf>();
@@ -923,7 +922,7 @@ private:
 			std::move(leaf->values.begin() + mid, leaf->values.begin() + leaf->count, new_leaf->values.begin());
 		}
 
-		new_leaf->count = static_cast<uint8_t>(leaf->count - mid);
+		new_leaf->count = leaf->count - mid;
 		leaf->count = mid;
 		assert(new_leaf->count > 0);
 
@@ -948,12 +947,9 @@ private:
 	 */
 	void insert_into_parent(Node *left, const Tkey &separator, std::unique_ptr<Node> right_node)
 	{
-		Internal *parent = nullptr;
-		if (left->parent != nullptr) {
-			/* Parent must be an internal node */
-			assert(left->parent->role == BPlusNodeRole::Internal);
-			parent = static_cast<Internal *>(left->parent);
-		}
+		/* Parent must be an internal node if it exists */
+		Internal *parent = left->parent;
+		assert(left->parent == nullptr || left->parent->role == BPlusNodeRole::Internal);
 
 		/* Root case: parent == nullptr → create fresh internal root */
 		if (parent == nullptr) {
@@ -984,10 +980,10 @@ private:
 		}
 
 		/* Parent exists: ensure space */
-		while (parent->count == (B - 1)) {
+		while (parent->count == B - 1) {
 			this->split_internal(parent);
 			assert(left->parent != nullptr && left->parent->role == BPlusNodeRole::Internal);
-			parent = static_cast<Internal *>(left->parent); // left may have moved
+			parent = left->parent; // left may have moved
 		}
 
 		uint8_t i = this->find_child_index(parent, left);
@@ -1026,9 +1022,8 @@ private:
 	{
 		assert(node != nullptr);
 
-		uint8_t old_count = node->count;
-		uint8_t mid = static_cast<uint8_t>(old_count / 2);
-		assert(mid < old_count);
+		uint8_t mid = node->count / 2;
+		assert(mid < node->count);
 
 		/* Separator promoted to parent */
 		Tkey separator = node->keys[mid];
@@ -1037,13 +1032,13 @@ private:
 		std::unique_ptr<Internal> right_node = std::make_unique<Internal>();
 		Internal *right = right_node.get();
 
-		/* Move keys: left keeps [0..mid - 1], right gets [mid + 1..old_count - 1] */
-		std::move(node->keys.begin() + mid + 1, node->keys.begin() + old_count, right->keys.begin());
+		/* Move keys: left keeps [0..mid - 1], right gets [mid + 1..node->count - 1] */
+		std::move(node->keys.begin() + mid + 1, node->keys.begin() + node->count, right->keys.begin());
 
-		right->count = static_cast<uint8_t>(old_count - mid - 1);
+		right->count = node->count - mid - 1;
 
-		/* Move children: left keeps [0..mid], right gets [mid + 1..old_count] */
-		std::move(node->children.begin() + mid + 1, node->children.begin() + old_count + 1, right->children.begin());
+		/* Move children: left keeps [0..mid], right gets [mid + 1..node->count] */
+		std::move(node->children.begin() + mid + 1, node->children.begin() + node->count + 1, right->children.begin());
 
 		/* Fix parent/index_in_parent for moved children in right */
 		for (uint8_t j = 0; j <= right->count; ++j) {
@@ -1053,7 +1048,7 @@ private:
 			child->index_in_parent = j;
 		}
 
-		/* Left node keeps first mid keys and mid+1 children */
+		/* Left node keeps first mid keys and mid + 1 children */
 		node->count = mid;
 
 		/* Clear dangling child slots beyond mid in left */
@@ -1147,15 +1142,34 @@ private:
 	}
 
 	/**
+	 * Helper to fetch a child leaf from an internal node.
+	 */
+	Leaf *get_child_leaf(Internal *parent, uint8_t index)
+	{
+		assert(parent != nullptr);
+		assert(index <= parent->count);
+
+		Node *node = parent->children[index].get();
+		assert(node != nullptr);
+		assert(node->role == BPlusNodeRole::Leaf);
+
+		Leaf *leaf = static_cast<Leaf *>(node);
+		assert(leaf != nullptr);
+
+		return leaf;
+	}
+
+	/**
 	 * Borrow the first key of right into the end of leaf.
 	 */
 	void borrow_from_right_leaf(Internal *parent, uint8_t child_idx, iterator &succ_it)
 	{
-		/* Get left and right children as Leaf * */
-		Leaf *leaf = static_cast<Leaf *>(parent->children[child_idx].get());
-		Leaf *right = static_cast<Leaf *>(parent->children[child_idx + 1].get());
+		assert(parent != nullptr);
 
-		assert(leaf != nullptr && right != nullptr);
+		/* Get left and right children as Leaf * */
+		Leaf *leaf = this->get_child_leaf(parent, child_idx);
+		Leaf *right = this->get_child_leaf(parent, child_idx + 1);
+
 		assert(leaf->count < B && right->count > MIN_LEAF);
 
 		/* Append right’s min key to leaf */
@@ -1194,10 +1208,9 @@ private:
 		assert(child_idx > 0);
 
 		/* Get left and right children as Leaf * */
-		Leaf *leaf = static_cast<Leaf *>(parent->children[child_idx].get());
-		Leaf *left = static_cast<Leaf *>(parent->children[child_idx - 1].get());
+		Leaf *leaf = this->get_child_leaf(parent, child_idx);
+		Leaf *left = this->get_child_leaf(parent, child_idx - 1);
 
-		assert(leaf != nullptr && left != nullptr);
 		assert(leaf->count < B && left->count > MIN_LEAF);
 
 		/* Shift leaf right to make space at index 0 */
@@ -1235,11 +1248,8 @@ private:
 		assert(i < parent->count);
 
 		/* Get left and right children as Leaf * */
-		Leaf *left = static_cast<Leaf *>(parent->children[i].get());
-		Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
-
-		/* Defensive: both must be leaves */
-		assert(left != nullptr && right != nullptr);
+		Leaf *left = this->get_child_leaf(parent, i);
+		Leaf *right = this->get_child_leaf(parent, i + 1);
 
 		/* Move only existing keys post-erase */
 		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
@@ -1323,13 +1333,12 @@ private:
 		assert(i <= parent->count);
 
 		/* Current leaf child */
-		Leaf *child = static_cast<Leaf *>(parent->children[i].get());
-		assert(child != nullptr);
+		Leaf *child = this->get_child_leaf(parent, i);
 
 		/* Try borrow from right sibling */
 		if (i < parent->count) {
-			Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
-			assert(right != nullptr);
+			Leaf *right = this->get_child_leaf(parent, i + 1);
+
 			if (right->count > MIN_LEAF) {
 				this->borrow_from_right_leaf(parent, i, succ_it);
 				this->refresh_boundary_upward(parent, i); // right-min changed
@@ -1340,8 +1349,8 @@ private:
 
 		/* Try borrow from left sibling */
 		if (i > 0) {
-			Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
-			assert(left != nullptr);
+			Leaf *left = this->get_child_leaf(parent, i - 1);
+
 			if (left->count > MIN_LEAF) {
 				this->borrow_from_left_leaf(parent, i, succ_it);
 				this->refresh_boundary_upward(parent, i - 1); // leaf-min changed
@@ -1352,8 +1361,7 @@ private:
 
 		/* Merge path */
 		if (i < parent->count) {
-			Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
-			assert(right != nullptr);
+			Leaf *right = this->get_child_leaf(parent, i + 1);
 
 			if (this->can_merge_leaf(child, right)) {
 				this->merge_leaf_keep_left(parent, i, succ_it);
@@ -1366,8 +1374,8 @@ private:
 
 			/* Fallback: borrow from left if possible (second chance) */
 			if (i > 0) {
-				Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
-				assert(left != nullptr);
+				Leaf *left = this->get_child_leaf(parent, i - 1);
+
 				if (left->count > MIN_LEAF) {
 					this->borrow_from_left_leaf(parent, i, succ_it);
 					this->refresh_boundary_upward(parent, i - 1);
@@ -1378,9 +1386,9 @@ private:
 
 			/* Last resort: force merge into left */
 			assert(i > 0 && "Right merge overflow and no left sibling to merge into");
-			this->merge_leaf_keep_left(parent, static_cast<uint8_t>(i - 1), succ_it);
-			if ((i - 1) < parent->count) {
-				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
+			this->merge_leaf_keep_left(parent, i - 1, succ_it);
+			if (i - 1 < parent->count) {
+				this->refresh_boundary_upward(parent, i - 1);
 			}
 			this->fix_internal_underflow_cascade(parent);
 			return;
@@ -1388,13 +1396,12 @@ private:
 		} else {
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
-			Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
-			assert(left != nullptr);
+			Leaf *left = this->get_child_leaf(parent, i - 1);
 
 			if (this->can_merge_leaf(left, child)) {
-				this->merge_leaf_keep_left(parent, static_cast<uint8_t>(i - 1), succ_it);
-				if ((i - 1) < parent->count) {
-					this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
+				this->merge_leaf_keep_left(parent, i - 1, succ_it);
+				if (i - 1 < parent->count) {
+					this->refresh_boundary_upward(parent, i - 1);
 				}
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1403,7 +1410,7 @@ private:
 			/* Fallback: borrow from left */
 			if (left->count > MIN_LEAF) {
 				this->borrow_from_left_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
+				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1428,6 +1435,24 @@ private:
 	}
 
 	/**
+	 * Helper to fetch a child internal node from an internal node.
+	 */
+	Internal *get_child_internal(Internal *parent, uint8_t index)
+	{
+		assert(parent != nullptr);
+		assert(index <= parent->count);
+
+		Node *node = parent->children[index].get();
+		assert(node != nullptr);
+		assert(node->role == BPlusNodeRole::Internal);
+
+		Internal *internal = static_cast<Internal *>(node);
+		assert(internal != nullptr);
+
+		return internal;
+	}
+
+	/**
 	 * Rotate from the right sibling:
 	 * - Move parent.keys[i] down into child at end
 	 * - Move right.keys[0] up into parent
@@ -1438,10 +1463,8 @@ private:
 		assert(parent != nullptr);
 		assert(i < parent->count);
 
-		Internal *child = static_cast<Internal *>(parent->children[i].get());
-		Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
-
-		assert(child != nullptr && right != nullptr);
+		Internal *child = this->get_child_internal(parent, i);
+		Internal *right = this->get_child_internal(parent, i + 1);
 
 		/* Move parent key down into child */
 		child->keys[child->count] = std::move(parent->keys[i]);
@@ -1494,10 +1517,8 @@ private:
 		assert(parent != nullptr);
 		assert(i > 0 && i <= parent->count);
 
-		Internal *child = static_cast<Internal *>(parent->children[i].get());
-		Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
-
-		assert(child != nullptr && left != nullptr);
+		Internal *child = this->get_child_internal(parent, i);
+		Internal *left = this->get_child_internal(parent, i - 1);
 
 		/* Shift child’s keys right to open slot at 0 */
 		std::move_backward(child->keys.begin(), child->keys.begin() + child->count, child->keys.begin() + child->count + 1);
@@ -1557,9 +1578,8 @@ private:
 		assert(parent != nullptr);
 		assert(i < parent->count);
 
-		Internal *left = static_cast<Internal *>(parent->children[i].get());
-		Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
-		assert(left != nullptr && right != nullptr);
+		Internal *left = this->get_child_internal(parent, i);
+		Internal *right = this->get_child_internal(parent, i + 1);
 
 		/* Guard: if merge would overflow, fall back to borrow-from-right */
 		if (!this->can_merge_internal(left, right)) {
@@ -1583,10 +1603,10 @@ private:
 			Node *moved = left->children[left->count + 1 + c].get();
 			assert(moved != nullptr);
 			moved->parent = left;
-			moved->index_in_parent = static_cast<uint8_t>(left->count + 1 + c);
+			moved->index_in_parent = left->count + 1 + c;
 		}
 
-		left->count = static_cast<uint8_t>(left->count + 1 + right->count);
+		left->count += 1 + right->count;
 
 		/* Remove separator i and child i + 1 from parent */
 		this->remove_separator_and_right_child(parent, i);
@@ -1600,7 +1620,7 @@ private:
 		if (i < parent->count) {
 			this->refresh_boundary_upward(parent, i);
 		} else if (parent->count > 0) {
-			this->refresh_boundary_upward(parent, static_cast<uint8_t>(parent->count - 1));
+			this->refresh_boundary_upward(parent, parent->count - 1);
 		}
 	}
 
@@ -1613,15 +1633,14 @@ private:
 		assert(parent != nullptr);
 		assert(i > 0 && i <= parent->count);
 
-		Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
-		Internal *child = static_cast<Internal *>(parent->children[i].get());
-		assert(left != nullptr && child != nullptr);
+		Internal *left = this->get_child_internal(parent, i - 1);
+		Internal *child = this->get_child_internal(parent, i);
 
 		/* Guard: if merge would overflow, fall back to borrow-from-left */
-		if ((left->count + 1 + child->count) > (B - 1)) {
+		if (left->count + 1 + child->count > B - 1) {
 			this->borrow_from_left_internal(parent, i);
-			if ((i - 1) < parent->count) {
-				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
+			if (i - 1 < parent->count) {
+				this->refresh_boundary_upward(parent, i - 1);
 			}
 			return;
 		}
@@ -1640,13 +1659,13 @@ private:
 			Node *moved = left->children[left->count + 1 + c].get();
 			assert(moved != nullptr);
 			moved->parent = left;
-			moved->index_in_parent = static_cast<uint8_t>(left->count + 1 + c);
+			moved->index_in_parent = left->count + 1 + c;
 		}
 
-		left->count = static_cast<uint8_t>(left->count + 1 + child->count);
+		left->count += 1 + child->count;
 
 		/* Remove separator i - 1 and child i from parent */
-		this->remove_separator_and_right_child(parent, static_cast<uint8_t>(i - 1));
+		this->remove_separator_and_right_child(parent, i - 1);
 
 		/* Defensive rewiring */
 		this->rewire_children_parent(left);
@@ -1654,10 +1673,10 @@ private:
 
 		/* Boundary refresh: separator at i - 1 may now reflect a different right-min,
 		 * or if out of range, refresh the last separator. */
-		if ((i - 1) < parent->count) {
-			this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
+		if (i - 1 < parent->count) {
+			this->refresh_boundary_upward(parent, i - 1);
 		} else if (parent->count > 0) {
-			this->refresh_boundary_upward(parent, static_cast<uint8_t>(parent->count - 1));
+			this->refresh_boundary_upward(parent, parent->count - 1);
 		}
 	}
 
@@ -1671,13 +1690,12 @@ private:
 		assert(i <= parent->count);
 
 		/* Current internal child */
-		Internal *child = static_cast<Internal *>(parent->children[i].get());
-		assert(child != nullptr && "Child at i must be Internal for this path");
+		Internal *child = this->get_child_internal(parent, i);
 
 		/* Borrow from right if possible */
 		if (i < parent->count) {
-			Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
-			assert(right != nullptr);
+			Internal *right = this->get_child_internal(parent, i + 1);
+
 			if (right->count > MIN_INTERNAL) {
 				this->borrow_from_right_internal(parent, i);
 				this->refresh_boundary_upward(parent, i); // right-min changed
@@ -1688,8 +1706,8 @@ private:
 
 		/* Borrow from left if possible */
 		if (i > 0) {
-			Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
-			assert(left != nullptr);
+			Internal *left = this->get_child_internal(parent, i - 1);
+
 			if (left->count > MIN_INTERNAL) {
 				this->borrow_from_left_internal(parent, i);
 				this->refresh_boundary_upward(parent, i - 1); // left subtree min may change
@@ -1700,8 +1718,7 @@ private:
 
 		/* Merge logic */
 		if (i < parent->count) {
-			Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
-			assert(right != nullptr);
+			Internal *right = this->get_child_internal(parent, i + 1);
 
 			if (this->can_merge_internal(child, right)) {
 				this->merge_keep_left_internal(parent, i);
@@ -1712,8 +1729,8 @@ private:
 
 			/* Fallback: borrow-left if available (second chance) */
 			if (i > 0) {
-				Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
-				assert(left != nullptr);
+				Internal *left = this->get_child_internal(parent, i - 1);
+
 				if (left->count > MIN_INTERNAL) {
 					this->borrow_from_left_internal(parent, i);
 					this->refresh_boundary_upward(parent, i - 1);
@@ -1732,8 +1749,7 @@ private:
 		} else {
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
-			Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
-			assert(left != nullptr);
+			Internal *left = this->get_child_internal(parent, i - 1);
 
 			if (this->can_merge_internal(left, child)) {
 				this->merge_into_left_internal(parent, i);
@@ -1769,7 +1785,7 @@ private:
 
 		/* Case 2: root is an Internal */
 		Internal *root_internal = static_cast<Internal *>(this->root.get());
-		assert(root_internal != nullptr);
+		assert(root_internal->role == BPlusNodeRole::Internal);
 
 		/* If root has no separators, promote its single child */
 		if (root_internal->count == 0) {
@@ -1788,6 +1804,29 @@ private:
 	}
 
 	/**
+	 * Return true if the given internal node is the root
+	 */
+	bool is_root_internal(Internal *node) const
+	{
+		return node == static_cast<Internal *>(this->root.get());
+	}
+
+	/**
+	 * Fetch parent as Internal, with invariant checks
+	 */
+	Internal *get_parent_internal(Internal *node) const
+	{
+		assert(node != nullptr);
+		assert(node->parent != nullptr);
+		assert(node->parent->role == BPlusNodeRole::Internal);
+
+		Internal *parent = static_cast<Internal *>(node->parent);
+		assert(parent != nullptr);
+
+		return parent;
+	}
+
+	/**
 	 * If an internal node underflows, borrow/merge upward until root is handled.
 	 * Root special case: if root becomes empty and has one child, promote the child.
 	 */
@@ -1796,13 +1835,12 @@ private:
 		assert(node != nullptr);
 
 		/* Stop at root: shrink height if needed and exit */
-		if (node == static_cast<Internal *>(this->root.get())) {
+		if (this->is_root_internal(node)) {
 			this->maybe_shrink_height();
 			return;
 		}
 
-		Internal *parent = static_cast<Internal *>(node->parent);
-		assert(parent != nullptr);
+		Internal *parent = this->get_parent_internal(node);
 
 		/* Find node’s index in parent */
 		uint8_t i = this->find_child_index(parent, node);
@@ -1861,7 +1899,7 @@ private:
 				assert(ch != nullptr && "null child");
 
 				if (ch->parent != rint) {
-					std::cerr << "Child " << static_cast<int>(i)
+					std::cerr << "Child " << i
 						<< " has wrong parent " << ch->parent
 						<< " expected " << rint << "\n";
 					this->dump_node(ch.get(), 2);
@@ -2137,10 +2175,10 @@ private:
 
 		if (sep != right_min) {
 			std::cerr << "[SEP MISMATCH] parent=" << parent
-				<< " sep_idx=" << static_cast<int>(sep_idx)
+				<< " sep_idx=" << sep_idx
 				<< " sep=" << this->key_to_string(sep)
 				<< " right_min=" << this->key_to_string(right_min)
-				<< " parent.count=" << static_cast<int>(parent->count)
+				<< " parent.count=" << parent->count
 				<< "\n";
 
 			this->dump_node(parent, 0);
@@ -2166,7 +2204,7 @@ public:
 		if (node->role == BPlusNodeRole::Leaf) {
 			const Leaf *leaf = static_cast<const Leaf *>(node);
 
-			std::cerr << pad << "Leaf count=" << static_cast<int>(leaf->count) << " keys=[";
+			std::cerr << pad << "Leaf count=" << leaf->count << " keys=[";
 			for (uint8_t i = 0; i < leaf->count; ++i) {
 				std::cerr << this->key_to_string(leaf->keys[i]);
 				if (i + 1 < leaf->count) {
@@ -2189,7 +2227,7 @@ public:
 		} else if (node->role == BPlusNodeRole::Internal) {
 			const Internal *internal = static_cast<const Internal *>(node);
 
-			std::cerr << pad << "Internal count=" << static_cast<int>(internal->count) << " keys=[";
+			std::cerr << pad << "Internal count=" << internal->count << " keys=[";
 			for (uint8_t i = 0; i < internal->count; ++i) {
 				std::cerr << this->key_to_string(internal->keys[i]);
 				if (i + 1 < internal->count) {
@@ -2199,7 +2237,7 @@ public:
 			std::cerr << "]\n";
 
 			for (uint8_t i = 0; i <= internal->count; ++i) {
-				std::cerr << pad << "  child[" << static_cast<int>(i) << "] ->\n";
+				std::cerr << pad << "  child[" << i << "] ->\n";
 				this->dump_node(internal->children[i].get(), indent + 4);
 			}
 
@@ -2207,7 +2245,7 @@ public:
 			for (uint8_t i = 0; i < internal->count; ++i) {
 				Node *right = internal->children[i + 1].get();
 				if (right != nullptr) {
-					std::cerr << pad << "  separator[" << static_cast<int>(i) << "]="
+					std::cerr << pad << "  separator[" << i << "]="
 						<< this->key_to_string(internal->keys[i])
 						<< " (right.min=" << this->key_to_string(this->subtree_min(right)) << ")\n";
 				}
