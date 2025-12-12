@@ -28,106 +28,143 @@
  * - If Tvalue != void → behaves like std::map<Tkey,Tvalue>
  * - If Tvalue == void → behaves like std::set<Tkey>
  */
+
+/**
+ * 1) Forward declare the tree
+ */
 template <typename Tkey, typename Tvalue = void, uint8_t B = 64>
 class BPlusTree;
 
 /**
- * Leaf node for map mode
- * Forward declare Internal before Leaf
+ * 2) Role
+ */
+enum class BPlusNodeRole : uint8_t {
+	Leaf,
+	Internal
+};
+
+/**
+ * 3) Common base (shared fields, virtual dtor)
+ */
+template <typename Tkey, uint8_t B>
+struct BPlusNodeBase {
+	BPlusNodeRole role;
+	uint8_t count = 0;
+	uint8_t index_in_parent = 0;
+	std::array<Tkey, B> keys;
+
+	explicit BPlusNodeBase(BPlusNodeRole role) : role(role)
+	{
+	}
+
+	virtual ~BPlusNodeBase() = default;
+};
+
+/**
+ * 4) Forward declare internals (needed for parent pointers)
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusInternalMap;
 
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusLeafMap {
-	uint8_t count{};
-	uint8_t index_in_parent{};
-
-	std::array<Tkey, B> keys;
-	std::array<Tvalue, B> values;
-
-	BPlusLeafMap<Tkey, Tvalue, B> *next_leaf = nullptr;
-	BPlusLeafMap<Tkey, Tvalue, B> *prev_leaf = nullptr;
-	BPlusInternalMap<Tkey, Tvalue, B> *parent = nullptr;
-};
-
-/**
- * Internal node for map mode
- */
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusInternalMap {
-	uint8_t count{};
-	uint8_t index_in_parent{};
-
-	std::array<Tkey, B> keys;
-	std::array<std::unique_ptr<std::variant<BPlusLeafMap<Tkey, Tvalue, B>, BPlusInternalMap<Tkey, Tvalue, B>>>, B + 1> children;
-
-	BPlusInternalMap<Tkey, Tvalue, B> *parent = nullptr;
-};
-
-/**
- * Leaf node for set mode
- * Forward declare Internal before Leaf
- */
 template <typename Tkey, uint8_t B>
 struct BPlusInternalSet;
 
-template <typename Tkey, uint8_t B>
-struct BPlusLeafSet {
-	uint8_t count{};
-	uint8_t index_in_parent{};
+/**
+ * 5) Map mode hierarchy
+ */
+template <typename Tkey, typename Tvalue, uint8_t B>
+struct BPlusNodeMap : BPlusNodeBase<Tkey, B> {
+	BPlusInternalMap<Tkey, Tvalue, B> *parent = nullptr; // always internal or null (root)
 
-	std::array<Tkey, B> keys;
+	explicit BPlusNodeMap(BPlusNodeRole role) : BPlusNodeBase<Tkey, B>(role)
+	{
+	}
 
-	BPlusLeafSet<Tkey, B> *next_leaf = nullptr;
-	BPlusLeafSet<Tkey, B> *prev_leaf = nullptr;
-	BPlusInternalSet<Tkey, B> *parent = nullptr;
+	virtual ~BPlusNodeMap() = default; // keep polymorphic at Node level too
+};
+
+template <typename Tkey, typename Tvalue, uint8_t B>
+struct BPlusLeafMap : BPlusNodeMap<Tkey, Tvalue, B> {
+	std::array<Tvalue, B> values;
+	BPlusLeafMap *next_leaf = nullptr;
+	BPlusLeafMap *prev_leaf = nullptr;
+
+	BPlusLeafMap() : BPlusNodeMap<Tkey, Tvalue, B>(BPlusNodeRole::Leaf)
+	{
+	}
+};
+
+template <typename Tkey, typename Tvalue, uint8_t B>
+struct BPlusInternalMap : BPlusNodeMap<Tkey, Tvalue, B> {
+	std::array<std::unique_ptr<BPlusNodeMap<Tkey, Tvalue, B>>, B + 1> children;
+
+	BPlusInternalMap() : BPlusNodeMap<Tkey, Tvalue, B>(BPlusNodeRole::Internal)
+	{
+	}
 };
 
 /**
- * Internal node for set mode
+ * 6) Set mode hierarchy
  */
 template <typename Tkey, uint8_t B>
-struct BPlusInternalSet {
-	uint8_t count{};
-	uint8_t index_in_parent{};
+struct BPlusNodeSet : BPlusNodeBase<Tkey, B> {
+	BPlusInternalSet<Tkey, B> *parent = nullptr; // always internal or null (root)
 
-	std::array<Tkey, B> keys;
-	std::array<std::unique_ptr<std::variant<BPlusLeafSet<Tkey, B>, BPlusInternalSet<Tkey, B>>>, B + 1> children;
+	explicit BPlusNodeSet(BPlusNodeRole role) : BPlusNodeBase<Tkey, B>(role)
+	{
+	}
 
-	BPlusInternalSet<Tkey, B> *parent = nullptr;
+	virtual ~BPlusNodeSet() = default; // keep polymorphic at Node level too
 };
 
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusLeafSelector {
-	using type = std::conditional_t<std::is_void_v<Tvalue>,
-		BPlusLeafSet<Tkey, B>,
-		BPlusLeafMap<Tkey, Tvalue, B>
-	>;
+template <typename Tkey, uint8_t B>
+struct BPlusLeafSet : BPlusNodeSet<Tkey, B> {
+	BPlusLeafSet *next_leaf = nullptr;
+	BPlusLeafSet *prev_leaf = nullptr;
+
+	BPlusLeafSet() : BPlusNodeSet<Tkey, B>(BPlusNodeRole::Leaf)
+	{
+	}
 };
 
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusInternalSelector {
-	using type = std::conditional_t<std::is_void_v<Tvalue>,
-		BPlusInternalSet<Tkey, B>,
-		BPlusInternalMap<Tkey, Tvalue, B>
-	>;
+template <typename Tkey, uint8_t B>
+struct BPlusInternalSet : BPlusNodeSet<Tkey, B> {
+	std::array<std::unique_ptr<BPlusNodeSet<Tkey, B>>, B + 1> children;
+
+	BPlusInternalSet() : BPlusNodeSet<Tkey, B>(BPlusNodeRole::Internal)
+	{
+	}
 };
 
+/**
+ * 7) Traits — primary template and partial specialization for set mode
+ */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusNodeTraits {
-	using Leaf = typename BPlusLeafSelector<Tkey, Tvalue, B>::type;
-	using Internal = typename BPlusInternalSelector<Tkey, Tvalue, B>::type;
-	using Node = std::variant<Leaf, Internal>;
+	using Base = BPlusNodeBase<Tkey, B>;
+	using Node = BPlusNodeMap<Tkey, Tvalue, B>;
+	using Leaf = BPlusLeafMap<Tkey, Tvalue, B>;
+	using Internal = BPlusInternalMap<Tkey, Tvalue, B>;
 };
 
+template <typename Tkey, uint8_t B>
+struct BPlusNodeTraits<Tkey, void, B> {
+	using Base = BPlusNodeBase<Tkey, B>;
+	using Node = BPlusNodeSet<Tkey, B>;
+	using Leaf = BPlusLeafSet<Tkey, B>;
+	using Internal = BPlusInternalSet<Tkey, B>;
+};
+
+/**
+ * 8) Tree — use traits for types, including root
+ */
 template <typename Tkey, typename Tvalue, uint8_t B>
 class BPlusTree {
 private:
 	using Traits = BPlusNodeTraits<Tkey, Tvalue, B>;
+	using Node = typename Traits::Node;
 	using Leaf = typename Traits::Leaf;
 	using Internal = typename Traits::Internal;
-	using Node = typename Traits::Node;
 
 	static constexpr uint8_t MIN_LEAF = (B + 1) / 2; // ceil(B/2)
 	static constexpr uint8_t MIN_INTERNAL = (B - 1) / 2; // ceil(B/2) - 1
@@ -135,33 +172,48 @@ private:
 	std::unique_ptr<Node> root;
 
 public:
-	BPlusTree() : root(std::make_unique<Node>(Leaf{}))
+	BPlusTree()
 	{
+		/* Empty tree: root is an empty leaf */
+		this->root = std::make_unique<Leaf>();
+		this->root->parent = nullptr;
+		this->root->index_in_parent = 0;
 	}
 
+	~BPlusTree() = default;
+
+	/**
+	 * Check if tree contains a key
+	 */
 	bool contains(const Tkey &key) const
 	{
 		return this->find(key) != this->end();
 	}
 
+	/**
+	 * Swap roots between two trees
+	 */
 	void swap(BPlusTree &other) noexcept
 	{
 		this->root.swap(other.root);
 	}
 
+	/**
+	 * Clear tree: reset to a fresh empty leaf node
+	 */
 	void clear() noexcept
 	{
-		/* Reset to a fresh empty leaf node */
-		this->root = std::make_unique<Node>(Leaf{});
+		this->root = std::make_unique<Leaf>(); // Leaf ctor sets role = Leaf
 	}
 
+	/**
+	 * Check if tree is empty
+	 */
 	bool empty() const noexcept
 	{
 		assert(this->root != nullptr);
 
-		return std::visit([](const auto &n) {
-			return n.count == 0;
-		}, *this->root);
+		return this->root->count == 0;
 	}
 
 	size_t size() const noexcept
@@ -179,40 +231,15 @@ public:
 				std::vector<Leaf *> leaves;
 				this->root = this->clone_node(other.root.get(), nullptr, 0, leaves);
 
-				/* Root invariants: parent=nullptr, index_in_parent=0 */
-				std::visit([](auto &n) {
-					n.parent = nullptr;
-					n.index_in_parent = 0;
-				}, *this->root);
+				/* Root invariants: parent = nullptr, index_in_parent = 0 */
+				this->root->parent = nullptr;
+				this->root->index_in_parent = 0;
 
 				this->rebuild_leaf_chain(leaves);
 			}
 		}
 #if BPLUSTREE_CHECK
-		auto *p = this->root.get();
-		std::function<void(Node *)> verify = [&](Node *n) {
-			if (n == nullptr) {
-				return;
-			}
-			std::visit([&](auto &node) {
-				using T = std::decay_t<decltype(node)>;
-				if constexpr (std::is_same_v<T, Internal>) {
-					for (uint8_t j = 0; j <= node.count; ++j) {
-						if (node.children[j] != nullptr) {
-							auto *child = node.children[j].get();
-							std::visit([&]([[maybe_unused]] auto &c) {
-								assert(c.parent == &node);
-								assert(c.index_in_parent == j);
-							}, *child);
-							verify(child);
-						}
-					}
-				}
-			}, *n);
-		};
-		if (p != nullptr) {
-			verify(p);
-		}
+		this->verify_node(this->root.get());
 #endif
 		return *this;
 	}
@@ -224,77 +251,62 @@ private:
 			return 0;
 		}
 
-		return std::visit([this](auto const &n) -> size_t {
-			using T = std::decay_t<decltype(n)>;
-
-			if constexpr (std::is_same_v<T, Leaf>) {
-				/* Leaf: just return number of elements */
-				return n.count;
-			} else {
-				/* Internal: recurse into children */
-				size_t total = 0;
-				for (uint8_t i = 0; i <= n.count; ++i) {
-					total += this->count_recursive(n.children[i].get());
-				}
-				return total;
+		if (node->role == BPlusNodeRole::Leaf) {
+			const Leaf *leaf = static_cast<const Leaf *>(node);
+			return leaf->count;
+		} else {
+			const Internal *internal = static_cast<const Internal *>(node);
+			size_t total = 0;
+			for (uint8_t i = 0; i <= internal->count; ++i) {
+				total += this->count_recursive(internal->children[i].get());
 			}
-		}, *node);
+			return total;
+		}
 	}
 
 	std::unique_ptr<Node> clone_node(const Node *src, Internal *parent, uint8_t slot, std::vector<Leaf *> &leaves)
 	{
-		/* Create an empty Node variant we will fill */
-		auto dst = std::make_unique<Node>();
+		if (src->role == BPlusNodeRole::Leaf) {
+			const Leaf *src_leaf = static_cast<const Leaf *>(src);
+			std::unique_ptr<Leaf> dst_leaf = std::make_unique<Leaf>();
 
-		std::visit([&](const auto &src_alt) {
-			using T = std::decay_t<decltype(src_alt)>;
+			dst_leaf->count = src_leaf->count;
+			dst_leaf->keys = src_leaf->keys;
+			if constexpr (!std::is_void_v<Tvalue>) {
+				dst_leaf->values = src_leaf->values;
+			}
+			dst_leaf->parent = parent;
+			dst_leaf->index_in_parent = (parent != nullptr ? slot : 0);
 
-			if constexpr (std::is_same_v<T, Leaf>) {
-				/* Emplace Leaf alternative and get a reference */
-				dst->template emplace<Leaf>();
-				auto &dst_leaf = std::get<Leaf>(*dst);
+			/* Collect pointer to the destination leaf */
+			leaves.push_back(dst_leaf.get());
 
-				dst_leaf.count = src_alt.count;
-				dst_leaf.keys = src_alt.keys;
-				if constexpr (!std::is_void_v<Tvalue>) {
-					dst_leaf.values = src_alt.values;
-				}
-				dst_leaf.parent = parent;
-				dst_leaf.index_in_parent = (parent != nullptr ? slot : 0);
+			return dst_leaf;
+		} else {
+			const Internal *src_internal = static_cast<const Internal *>(src);
+			std::unique_ptr<Internal> dst_internal = std::make_unique<Internal>();
 
-				/* Collect pointer to the DESTINATION leaf (address inside variant) */
-				leaves.push_back(&dst_leaf);
+			dst_internal->count = src_internal->count;
+			dst_internal->keys = src_internal->keys;
+			dst_internal->parent = parent;
+			dst_internal->index_in_parent = (parent != nullptr ? slot : 0);
 
-			} else {
-				/* Emplace Internal alternative and get a reference */
-				dst->template emplace<Internal>();
-				auto &dst_internal = std::get<Internal>(*dst);
+			for (uint8_t i = 0; i <= src_internal->count; ++i) {
+				if (src_internal->children[i] != nullptr) {
+					std::unique_ptr<Node> child_clone = this->clone_node(src_internal->children[i].get(), dst_internal.get(), i, leaves);
+					dst_internal->children[i] = std::move(child_clone);
 
-				dst_internal.count = src_alt.count;
-				dst_internal.keys = src_alt.keys;
-				dst_internal.parent = parent;
-				dst_internal.index_in_parent = (parent != nullptr ? slot : 0);
-
-				for (uint8_t i = 0; i <= src_alt.count; ++i) {
-					if (src_alt.children[i] != nullptr) {
-						auto child_clone = this->clone_node(src_alt.children[i].get(), &dst_internal, i, leaves);
-						dst_internal.children[i] = std::move(child_clone);
-
-						/* Fix child's parent and index_in_parent */
-						if (dst_internal.children[i]) {
-							std::visit([&](auto &child_alt) {
-								child_alt.parent = &dst_internal;
-								child_alt.index_in_parent = i;
-							}, *dst_internal.children[i]);
-						}
-					} else {
-						dst_internal.children[i].reset();
+					if (dst_internal->children[i] != nullptr) {
+						dst_internal->children[i]->parent = dst_internal.get();
+						dst_internal->children[i]->index_in_parent = i;
 					}
+				} else {
+					dst_internal->children[i].reset();
 				}
 			}
-		}, *src);
 
-		return dst;
+			return dst_internal;
+		}
 	}
 
 	void rebuild_leaf_chain(std::vector<Leaf *> &leaves)
@@ -311,7 +323,7 @@ private:
 	}
 
 	/**
-	 * Iterator types: yields either pair<key,value> or const key &
+	 * Iterator types: yields either pair<key, value> or const key &
 	 */
 	template <typename K, typename V>
 	struct BPlusIteratorTraits {
@@ -350,7 +362,7 @@ public:
 			if constexpr (std::is_void_v<Tvalue>) {
 				return this->leaf_->keys[this->index_]; // set mode
 			} else {
-				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode
+				return std::pair<const Tkey &, Tvalue &>(this->leaf_->keys[this->index_], this->leaf_->values[this->index_]); // map mode
 			}
 		}
 
@@ -434,7 +446,7 @@ public:
 			if constexpr (std::is_void_v<Tvalue>) {
 				return this->leaf_->keys[this->index_]; // set mode
 			} else {
-				return { this->leaf_->keys[this->index_], this->leaf_->values[this->index_] }; // map mode (const V &)
+				return std::pair<const Tkey &, const Tvalue &>(this->leaf_->keys[this->index_], this->leaf_->values[this->index_]); // map mode (const V &)
 			}
 		}
 
@@ -456,7 +468,7 @@ public:
 		const_iterator &operator--()
 		{
 			if (this->leaf_ == nullptr) {
-				/* --end() => last element */
+				/* Special case: --end() => last element */
 				const Leaf *last = this->tree_->rightmost_leaf();
 				this->leaf_ = last;
 				if (last != nullptr) {
@@ -500,7 +512,7 @@ public:
 	 * Return iterator to first element
 	 */
 	iterator begin()
-	{ 
+	{
 		Leaf *first = this->leftmost_leaf();
 		if (first == nullptr || first->count == 0) {
 			return this->end();
@@ -558,17 +570,18 @@ public:
 	{
 		assert(this->root != nullptr);
 
-		Node *node = root.get();
+		Node *node = this->root.get();
 
 		/* Descend while we’re in an internal node */
-		while (Internal *internal = std::get_if<Internal>(node)) {
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
 			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
 			assert(internal->children[i] != nullptr);
 			node = internal->children[i].get();
 		}
 
 		/* At this point, node must be a leaf */
-		Leaf *leaf = std::get_if<Leaf>(node);
+		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
 
 		uint8_t i = this->lower_bound(leaf->keys, leaf->count, key);
@@ -586,7 +599,7 @@ public:
 		uint8_t idx = it.index_;
 
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, false }; // already exists
+			return std::pair<iterator, bool>(it, false); // already exists
 		}
 
 		/* Perform insert (may split) */
@@ -594,24 +607,20 @@ public:
 
 		VALIDATE_NODES();
 
-		/* Iterator mapping:
-		 * - If no split: new element sits at idx in leaf.
-		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
-		 *   Use key compare against split pivot to choose side deterministically. */
-
 		/* Fast path: still in same leaf */
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, true };
+			return std::pair<iterator, bool>(it, true);
 		}
 
 		/* Split-aware fallback: check right neighbour */
-		Leaf *r = leaf->next_leaf;
-		uint8_t j = idx - leaf->count;
+		Leaf *right = leaf->next_leaf;
+		assert(idx >= leaf->count); // security: ensure index is in right sibling
+		uint8_t j = static_cast<uint8_t>(idx - leaf->count);
 
-		it = iterator(r, j, this);
+		it = iterator(right, j, this);
 		assert(this->verify_return_iterator(it, key));
 
-		return { it, true };
+		return std::pair<iterator, bool>(it, true);
 	}
 
 	/**
@@ -625,7 +634,7 @@ public:
 		uint8_t idx = it.index_;
 
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, false }; // already exists
+			return std::pair<iterator, bool>(it, false); // already exists
 		}
 
 		/* Perform insert (may split) */
@@ -633,24 +642,20 @@ public:
 
 		VALIDATE_NODES();
 
-		/* Iterator mapping:
-		 * - If no split: new element sits at idx in leaf.
-		 * - If split happened: leaf may be left; new right leaf is leaf->next_leaf or via parent rewiring.
-		 *   Use key compare against split pivot to choose side deterministically. */
-
 		/* Fast path: still in same leaf */
 		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return { it, true };
+			return std::pair<iterator, bool>(it, true);
 		}
 
 		/* Split-aware fallback: check right neighbour */
-		Leaf *r = leaf->next_leaf;
-		uint8_t j = idx - leaf->count;
+		Leaf *right = leaf->next_leaf;
+		assert(idx >= leaf->count); // security: ensure index is in right sibling
+		uint8_t j = static_cast<uint8_t>(idx - leaf->count);
 
-		it = iterator(r, j, this);
+		it = iterator(right, j, this);
 		assert(this->verify_return_iterator(it, key));
 
-		return { it, true };
+		return std::pair<iterator, bool>(it, true);
 	}
 
 	iterator erase(iterator pos)
@@ -664,10 +669,12 @@ public:
 
 		/* Erase locally (shift left) */
 		std::move(leaf->keys.begin() + i + 1, leaf->keys.begin() + leaf->count, leaf->keys.begin() + i);
+
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(leaf->values.begin() + i + 1, leaf->values.begin() + leaf->count, leaf->values.begin() + i);
 		}
-		--leaf->count;
+
+		leaf->count--;
 
 		/* Prepare iterator to retarget */
 		iterator succ_it(this->end());
@@ -675,6 +682,7 @@ public:
 		/* Compute successor key before structural changes */
 		Tkey succ_key{};
 		bool has_succ = false;
+
 		if (i < leaf->count) {
 			succ_key = leaf->keys[i];
 			has_succ = true;
@@ -687,23 +695,27 @@ public:
 
 		/* Boundary refresh if min changed */
 		if (i == 0 && leaf->parent != nullptr) {
-			uint8_t child_idx = this->find_child_index(leaf->parent, leaf);
-			if (leaf->parent->count > 0) {
+			Internal *parent = static_cast<Internal *>(leaf->parent);
+			uint8_t child_idx = this->find_child_index(parent, leaf);
+
+			if (parent->count > 0) {
 				if (child_idx > 0) {
-					this->refresh_boundary_upward(leaf->parent, child_idx - 1);
+					this->refresh_boundary_upward(parent, child_idx - 1);
 				} else {
-					this->refresh_boundary_upward(leaf->parent, 0);
+					this->refresh_boundary_upward(parent, 0);
 				}
 			} else {
-				this->refresh_boundary_upward(leaf->parent, 0);
+				this->refresh_boundary_upward(parent, 0);
 			}
 		}
 
 		/* Fix underflow, passing iterator by reference */
 		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
-			uint8_t child_idx = this->find_child_index(leaf->parent, leaf);
-			if (child_idx <= leaf->parent->count) {
-				this->fix_underflow(leaf->parent, child_idx, succ_it);
+			Internal *parent = static_cast<Internal *>(leaf->parent);
+			uint8_t child_idx = this->find_child_index(parent, leaf);
+
+			if (child_idx <= parent->count) {
+				this->fix_underflow(parent, child_idx, succ_it);
 			}
 		}
 
@@ -721,25 +733,30 @@ private:
 	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
 	{
 		Leaf *succ_leaf = this->find_leaf(succ_key);
+		if (succ_leaf == nullptr) {
+			return false; // defensive: no leaf found for succ_key
+		}
+
 		uint8_t succ_idx = this->lower_bound(succ_leaf->keys, succ_leaf->count, succ_key);
 
-		return a.leaf_ == succ_leaf && a.index_ == succ_idx;
+		return (a.leaf_ == succ_leaf && a.index_ == succ_idx);
 	}
 
 	Leaf *leftmost_leaf() const
 	{
 		assert(this->root != nullptr);
 
-		Node *node = root.get();
+		Node *node = this->root.get();
 
 		/* Descend leftmost children while internal */
-		while (Internal *internal = std::get_if<Internal>(node)) {
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
 			assert(internal->children[0] != nullptr);
 			node = internal->children[0].get();
 		}
 
 		/* Must be a leaf now */
-		Leaf *leaf = std::get_if<Leaf>(node);
+		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
 		return leaf;
 	}
@@ -748,16 +765,17 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		Node *node = root.get();
+		Node *node = this->root.get();
 
 		/* Descend rightmost children while internal */
-		while (Internal *internal = std::get_if<Internal>(node)) {
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
 			assert(internal->children[internal->count] != nullptr);
 			node = internal->children[internal->count].get();
 		}
 
 		/* Must be a leaf now */
-		Leaf *leaf = std::get_if<Leaf>(node);
+		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
 		return leaf;
 	}
@@ -773,12 +791,12 @@ private:
 		assert(child != nullptr);
 		assert(child->index_in_parent <= parent->count);
 
-		Node *node = parent->children[child->index_in_parent].get();
+		/* Retrieve the node at the expected slot */
+		[[maybe_unused]] Node *node = parent->children[child->index_in_parent].get();
 		assert(node != nullptr);
 
-		/* Verify that the variant at that slot really holds the same child */
-		[[maybe_unused]] auto *in_slot = std::get_if<T>(node);
-		assert(in_slot == child);
+		/* Verify that the pointer matches the expected child */
+		assert(node == child);
 
 		return child->index_in_parent;
 	}
@@ -791,20 +809,24 @@ private:
 	{
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+
 		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
 
+		/* Insert key and value */
 		leaf->keys[i] = key;
 		leaf->values[i] = value;
-		++leaf->count;
+		leaf->count++;
 
 		/* Centralized separator refresh */
 		if (i == 0 && leaf->parent != nullptr) {
-			uint8_t child_idx = this->find_child_index(leaf->parent, leaf);
+			Internal *parent = static_cast<Internal *>(leaf->parent);
+			uint8_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
-				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
+				this->maintain_parent_boundary(parent, child_idx - 1);
 			}
 		}
 
+		/* Split if leaf is full */
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
 		}
@@ -819,22 +841,28 @@ private:
 		/* Shift right */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
 
+		/* Insert key */
 		leaf->keys[i] = key;
-		++leaf->count;
+		leaf->count++;
 
 		/* Centralized separator refresh */
 		if (i == 0 && leaf->parent != nullptr) {
-			uint8_t child_idx = this->find_child_index(leaf->parent, leaf);
+			Internal *parent = static_cast<Internal *>(leaf->parent);
+			uint8_t child_idx = this->find_child_index(parent, leaf);
 			if (child_idx > 0) {
-				this->maintain_parent_boundary(leaf->parent, child_idx - 1);
+				this->maintain_parent_boundary(parent, child_idx - 1);
 			}
 		}
 
+		/* Split if leaf is full */
 		if (leaf->count == B) {
 			this->split_leaf(leaf);
 		}
 	}
 
+	/**
+	 * Descend the tree to find the leaf containing or suitable for the given key.
+	 */
 	Leaf *find_leaf(const Tkey &key) const
 	{
 		assert(this->root != nullptr);
@@ -842,54 +870,60 @@ private:
 		Node *node = this->root.get();
 
 		/* Descend while internal */
-		while (Internal *internal = std::get_if<Internal>(node)) {
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
 			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
 			assert(internal->children[i] != nullptr);
 			node = internal->children[i].get();
 		}
 
 		/* Must be a leaf now */
-		Leaf *leaf = std::get_if<Leaf>(node);
+		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
 		return leaf;
 	}
 
-	void rewire_children_parent(Internal *parent)
+	/**
+	 * Verify and rewire children's parent/index_in_parent fields for a given internal node.
+	 */
+	void rewire_children_parent(Node *node)
 	{
-		if (parent == nullptr) {
+		if (node == nullptr) {
 			return;
 		}
 
-		for (uint8_t i = 0; i <= parent->count; ++i) {
-			if (parent->children[i] != nullptr) {
-				Node *child = parent->children[i].get();
+		/* Must be an internal node */
+		assert(node->role == BPlusNodeRole::Internal);
+		Internal *internal = static_cast<Internal *>(node);
 
-				std::visit([&]([[maybe_unused]] auto &child_alt) {
-					/* Both Leaf and Internal have parent + index_in_parent */
-					assert(child_alt.parent == parent);
-					assert(child_alt.index_in_parent == i);
-				}, *child);
-			}
+		for (uint8_t i = 0; i <= internal->count; ++i) {
+			std::unique_ptr<Node> &child = internal->children[i];
+			assert(child != nullptr);
+			child->parent = internal;
+			child->index_in_parent = i;
 		}
 	}
 
+	/**
+	 * Split a full leaf into two halves and insert separator into parent.
+	 */
 	void split_leaf(Leaf *leaf)
 	{
 		assert(leaf != nullptr);
-		uint8_t mid = leaf->count / 2;
+		uint8_t mid = static_cast<uint8_t>(leaf->count / 2);
 
 		/* Create a new Leaf node */
-		auto new_leaf_node = std::make_unique<Node>(Leaf{});
-		Leaf *new_leaf = std::get_if<Leaf>(new_leaf_node.get());
-		assert(new_leaf != nullptr);
+		std::unique_ptr<Leaf> new_leaf_node = std::make_unique<Leaf>();
+		Leaf *new_leaf = new_leaf_node.get();
 
 		/* Move half of the keys/values into the new leaf */
 		std::move(leaf->keys.begin() + mid, leaf->keys.begin() + leaf->count, new_leaf->keys.begin());
+
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(leaf->values.begin() + mid, leaf->values.begin() + leaf->count, new_leaf->values.begin());
 		}
 
-		new_leaf->count = leaf->count - mid;
+		new_leaf->count = static_cast<uint8_t>(leaf->count - mid);
 		leaf->count = mid;
 		assert(new_leaf->count > 0);
 
@@ -908,117 +942,121 @@ private:
 		this->insert_into_parent(leaf, separator, std::move(new_leaf_node));
 	}
 
-	template <typename T>
-	void insert_into_parent(T *left, const Tkey &separator, std::unique_ptr<Node> right_node)
+	/**
+	 * Insert a separator key and right child into the parent of 'left'.
+	 * If 'left' has no parent, create a new root.
+	 */
+	void insert_into_parent(Node *left, const Tkey &separator, std::unique_ptr<Node> right_node)
 	{
-		static_assert(std::is_same_v<T, Leaf> || std::is_same_v<T, Internal>);
-		Internal *parent = left->parent;
+		Internal *parent = nullptr;
+		if (left->parent != nullptr) {
+			/* Parent must be an internal node */
+			assert(left->parent->role == BPlusNodeRole::Internal);
+			parent = static_cast<Internal *>(left->parent);
+		}
 
 		/* Root case: parent == nullptr → create fresh internal root */
 		if (parent == nullptr) {
-			auto new_root_ptr = std::make_unique<Node>(Internal{});
-			Internal *new_root = std::get_if<Internal>(new_root_ptr.get());
-			assert(new_root != nullptr);
+			std::unique_ptr<Internal> new_root_ptr = std::make_unique<Internal>();
+			Internal *new_root = new_root_ptr.get();
 
 			/* Promote old root (which contains 'left') and right_node under new_root */
 			std::unique_ptr<Node> old_root = std::move(this->root);
 
-			/* Assert that old_root holds the same alternative as 'left' */
-			if constexpr (std::is_same_v<T, Leaf>) {
-				assert(std::get_if<Leaf>(old_root.get()) == left);
-			} else {
-				assert(std::get_if<Internal>(old_root.get()) == left);
-			}
+			/* Assert that old_root holds the same node as 'left' */
+			assert(old_root.get() == left);
 
 			new_root->keys[0] = separator;
 			new_root->children[0] = std::move(old_root);
 			new_root->children[1] = std::move(right_node);
 			new_root->count = 1;
 
-			std::visit([&](auto &alt) {
-				alt.parent = new_root;
-				alt.index_in_parent = 0;
-			}, *new_root->children[0]);
-			std::visit([&](auto &alt) {
-				alt.parent = new_root;
-				alt.index_in_parent = 1;
-			}, *new_root->children[1]);
+			/* Fix children's parent/index_in_parent */
+			new_root->children[0]->parent = new_root;
+			new_root->children[0]->index_in_parent = 0;
+
+			new_root->children[1]->parent = new_root;
+			new_root->children[1]->index_in_parent = 1;
 
 			this->root = std::move(new_root_ptr);
-			this->rewire_children_parent(std::get_if<Internal>(this->root.get()));
+			this->rewire_children_parent(this->root.get());
 			return;
 		}
 
 		/* Parent exists: ensure space */
 		while (parent->count == (B - 1)) {
 			this->split_internal(parent);
-			parent = left->parent; // left may have moved
-			assert(parent != nullptr);
+			assert(left->parent != nullptr && left->parent->role == BPlusNodeRole::Internal);
+			parent = static_cast<Internal *>(left->parent); // left may have moved
 		}
 
 		uint8_t i = this->find_child_index(parent, left);
 
+		/* Shift keys and children right */
 		std::move_backward(parent->keys.begin() + i, parent->keys.begin() + parent->count, parent->keys.begin() + parent->count + 1);
+
 		std::move_backward(parent->children.begin() + i + 1, parent->children.begin() + parent->count + 1, parent->children.begin() + parent->count + 2);
 
+		/* Refresh children's parent/index_in_parent after shift */
 		for (uint8_t j = i + 1; j <= parent->count + 1; ++j) {
 			if (parent->children[j] != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = parent;
-					alt.index_in_parent = j;
-				}, *parent->children[j]);
+				parent->children[j]->parent = parent;
+				parent->children[j]->index_in_parent = j;
 			}
 		}
 
+		/* Insert separator and right child */
 		parent->keys[i] = separator;
 		assert(parent->children[i + 1] == nullptr);
 		parent->children[i + 1] = std::move(right_node);
-		std::visit([&](auto &alt) {
-			alt.parent = parent;
-			alt.index_in_parent = i + 1;
-		}, *parent->children[i + 1]);
+
+		if (parent->children[i + 1] != nullptr) {
+			parent->children[i + 1]->parent = parent;
+			parent->children[i + 1]->index_in_parent = i + 1;
+		}
 
 		++parent->count;
 		this->rewire_children_parent(parent);
 	}
 
-	void split_internal(Internal *node) {
+	/**
+	 * Split a full internal node into two halves and promote a separator key.
+	 */
+	void split_internal(Internal *node)
+	{
 		assert(node != nullptr);
+
 		uint8_t old_count = node->count;
-		uint8_t mid = old_count / 2;
+		uint8_t mid = static_cast<uint8_t>(old_count / 2);
 		assert(mid < old_count);
 
 		/* Separator promoted to parent */
 		Tkey separator = node->keys[mid];
 
-		/* Create new right internal node (as variant Node holding Internal) */
-		auto right_node = std::make_unique<Node>(Internal{});
-		Internal *right = std::get_if<Internal>(right_node.get());
-		assert(right != nullptr);
+		/* Create new right internal node */
+		std::unique_ptr<Internal> right_node = std::make_unique<Internal>();
+		Internal *right = right_node.get();
 
-		/* Move keys: everything after mid goes into right
-		 * Left keeps keys [0..mid - 1], right gets keys [mid + 1..old_count - 1] */
+		/* Move keys: left keeps [0..mid - 1], right gets [mid + 1..old_count - 1] */
 		std::move(node->keys.begin() + mid + 1, node->keys.begin() + old_count, right->keys.begin());
-		right->count = old_count - mid - 1;
 
-		/* Move children: everything after mid goes into right
-		 * Left keeps children [0..mid], right gets children [mid + 1..old_count] */
+		right->count = static_cast<uint8_t>(old_count - mid - 1);
+
+		/* Move children: left keeps [0..mid], right gets [mid + 1..old_count] */
 		std::move(node->children.begin() + mid + 1, node->children.begin() + old_count + 1, right->children.begin());
 
 		/* Fix parent/index_in_parent for moved children in right */
 		for (uint8_t j = 0; j <= right->count; ++j) {
-			if (right->children[j] != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = right;
-					alt.index_in_parent = j;
-				}, *right->children[j]);
-			}
+			Node *child = right->children[j].get();
+			assert(child != nullptr);
+			child->parent = right;
+			child->index_in_parent = j;
 		}
 
-		/* Left node keeps first mid keys and mid + 1 children */
+		/* Left node keeps first mid keys and mid+1 children */
 		node->count = mid;
 
-		/* Clear any dangling child slots beyond mid in left */
+		/* Clear dangling child slots beyond mid in left */
 		std::fill(node->children.begin() + mid + 1, node->children.begin() + B + 1, nullptr);
 
 		/* Ensure remaining children in left are wired correctly */
@@ -1027,7 +1065,7 @@ private:
 		assert(node->count == mid);
 		assert(right->count > 0);
 
-		/* Insert separator and right child into parent (unique_ptr-based API) */
+		/* Insert separator and right child into parent */
 		this->insert_into_parent(node, separator, std::move(right_node));
 
 		/* After insertion, parent’s children changed; defensively rewire */
@@ -1038,33 +1076,34 @@ private:
 
 	/**
 	 * Refresh the separator at sep_idx in 'parent' to match right subtree min,
-	 * then, if that changed the ancestor view, propagate the change upward.
+	 * then propagate the change upward if needed.
 	 */
 	void refresh_boundary_upward(Internal *parent, uint8_t sep_idx)
 	{
-		if (parent == nullptr) {
-			return;
-		}
+		assert(parent != nullptr);
 
-		/* 1) Refresh at this parent only if there is a valid separator */
+		/* Refresh at this parent only if there is a valid separator */
 		if (sep_idx < parent->count) {
 			this->maintain_parent_boundary(parent, sep_idx);
 		}
 
-		/* 2) Propagate upward along the leftmost path */
-		for (Internal *p = parent; p != nullptr && p->parent != nullptr; p = p->parent) {
+		/* Propagate upward along the leftmost path */
+		for (Internal *p = parent; p->parent != nullptr; p = p->parent) {
 			Internal *gp = p->parent;
 			uint8_t idx_in_gp = this->find_child_index(gp, p);
 
 			/* If this subtree sits to the right of some separator in gp,
 			 * refresh that ancestor separator. */
-			if (idx_in_gp > 0 && gp->count > 0) {
+			if (idx_in_gp > 0) {
 				this->maintain_parent_boundary(gp, idx_in_gp - 1);
 				break; // not on leftmost path anymore
 			}
 		}
 	}
 
+	/**
+	 * Refresh the separator at sep_idx in 'parent' to match right subtree min.
+	 */
 	void maintain_parent_boundary(Internal *parent, uint8_t sep_idx)
 	{
 		assert(parent != nullptr);
@@ -1081,44 +1120,40 @@ private:
 
 		/* Right child at sep_idx + 1 */
 		Node *right = parent->children[sep_idx + 1].get();
-		if (right == nullptr) {
-			/* After a merge, the right child may have been removed explicitly */
-			return;
-		}
+		assert(right != nullptr);
 
 		/* Case 1: right child is a Leaf */
-		if (Leaf *right_leaf = std::get_if<Leaf>(right); right_leaf != nullptr) {
-			if (right_leaf->count > 0) {
-				parent->keys[sep_idx] = right_leaf->keys[0];
-			} else {
-				/* Empty right leaf should not persist */
-				assert(false && "Empty right leaf should have been removed in merge");
-			}
+		if (right->role == BPlusNodeRole::Leaf) {
+			Leaf *right_leaf = static_cast<Leaf *>(right);
+			assert(right_leaf->count > 0 && "Empty right leaf should have been removed in merge");
+			parent->keys[sep_idx] = right_leaf->keys[0];
+
 		/* Case 2: right child is an Internal */
-		} else if (Internal *right_internal = std::get_if<Internal>(right); right_internal != nullptr) {
-			Node *cur = right;
+		} else {
+			Internal *right_internal = static_cast<Internal *>(right);
+			Node *cur = right_internal;
+
 			/* Descend to leftmost leaf of right subtree */
-			while (Internal *internal = std::get_if<Internal>(cur)) {
+			while (cur->role == BPlusNodeRole::Internal) {
+				Internal *internal = static_cast<Internal *>(cur);
 				assert(internal->children[0] != nullptr);
 				cur = internal->children[0].get();
 			}
-			Leaf *leaf = std::get_if<Leaf>(cur);
+
+			Leaf *leaf = static_cast<Leaf *>(cur);
 			assert(leaf != nullptr && leaf->count > 0);
 			parent->keys[sep_idx] = leaf->keys[0];
 		}
 	}
 
 	/**
-	 * Borrow the first key of right into the end of leaf
+	 * Borrow the first key of right into the end of leaf.
 	 */
 	void borrow_from_right_leaf(Internal *parent, uint8_t child_idx, iterator &succ_it)
 	{
-		/* Get left and right children as Node * */
-		Node *leaf_node = parent->children[child_idx].get();
-		Node *right_node = parent->children[child_idx + 1].get();
-
-		Leaf *leaf = std::get_if<Leaf>(leaf_node);
-		Leaf *right = std::get_if<Leaf>(right_node);
+		/* Get left and right children as Leaf * */
+		Leaf *leaf = static_cast<Leaf *>(parent->children[child_idx].get());
+		Leaf *right = static_cast<Leaf *>(parent->children[child_idx + 1].get());
 
 		assert(leaf != nullptr && right != nullptr);
 		assert(leaf->count < B && right->count > MIN_LEAF);
@@ -1139,6 +1174,7 @@ private:
 
 		/* Shift right’s keys/values left */
 		std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
+
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(right->values.begin() + 1, right->values.begin() + right->count, right->values.begin());
 		}
@@ -1150,24 +1186,23 @@ private:
 	}
 
 	/**
-	 * Borrow the last key of left into the front of leaf
+	 * Borrow the last key of left into the front of leaf.
 	 */
 	void borrow_from_left_leaf(Internal *parent, uint8_t child_idx, iterator &succ_it)
 	{
 		assert(parent != nullptr);
 		assert(child_idx > 0);
 
-		Node *leaf_node = parent->children[child_idx].get();
-		Node *left_node = parent->children[child_idx - 1].get();
-
-		Leaf *leaf = std::get_if<Leaf>(leaf_node);
-		Leaf *left = std::get_if<Leaf>(left_node);
+		/* Get left and right children as Leaf * */
+		Leaf *leaf = static_cast<Leaf *>(parent->children[child_idx].get());
+		Leaf *left = static_cast<Leaf *>(parent->children[child_idx - 1].get());
 
 		assert(leaf != nullptr && left != nullptr);
 		assert(leaf->count < B && left->count > MIN_LEAF);
 
 		/* Shift leaf right to make space at index 0 */
 		std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
 		}
@@ -1199,17 +1234,16 @@ private:
 		assert(parent != nullptr);
 		assert(i < parent->count);
 
-		Node *left_node = parent->children[i].get();
-		Node *right_node = parent->children[i + 1].get();
-
-		Leaf *left = std::get_if<Leaf>(left_node);
-		Leaf *right = std::get_if<Leaf>(right_node);
+		/* Get left and right children as Leaf * */
+		Leaf *left = static_cast<Leaf *>(parent->children[i].get());
+		Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
 
 		/* Defensive: both must be leaves */
 		assert(left != nullptr && right != nullptr);
 
 		/* Move only existing keys post-erase */
 		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
+
 		if constexpr (!std::is_void_v<Tvalue>) {
 			std::move(right->values.begin(), right->values.begin() + right->count, left->values.begin() + left->count);
 		}
@@ -1253,12 +1287,10 @@ private:
 
 		/* Fix parent/index_in_parent pointers for shifted children */
 		for (uint8_t j = sep_idx + 1; j < parent->count; ++j) {
-			if (parent->children[j] != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = parent;
-					alt.index_in_parent = j;
-				}, *parent->children[j]);
-			}
+			Node *child = parent->children[j].get();
+			assert(child != nullptr);
+			child->parent = parent;
+			child->index_in_parent = j;
 		}
 
 		/* Clear the last child slot that is now out of range */
@@ -1282,23 +1314,25 @@ private:
 		return (left->count + right->count) <= B; // leaf capacity
 	}
 
+	/**
+	 * Fix underflow of a leaf child at index i by borrowing or merging from siblings.
+	 */
 	void fix_underflow_leaf_child(Internal *parent, uint8_t i, iterator &succ_it)
 	{
 		assert(parent != nullptr);
 		assert(i <= parent->count);
 
 		/* Current leaf child */
-		Node *child_node = parent->children[i].get();
-		Leaf *child = std::get_if<Leaf>(child_node);
+		Leaf *child = static_cast<Leaf *>(parent->children[i].get());
 		assert(child != nullptr);
 
 		/* Try borrow from right sibling */
 		if (i < parent->count) {
-			Node *right_node = parent->children[i + 1].get();
-			Leaf *right = std::get_if<Leaf>(right_node);
-			if (right != nullptr && right->count > MIN_LEAF) {
+			Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
+			assert(right != nullptr);
+			if (right->count > MIN_LEAF) {
 				this->borrow_from_right_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i);
+				this->refresh_boundary_upward(parent, i); // right-min changed
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1306,11 +1340,11 @@ private:
 
 		/* Try borrow from left sibling */
 		if (i > 0) {
-			Node *left_node = parent->children[i - 1].get();
-			Leaf *left = std::get_if<Leaf>(left_node);
-			if (left != nullptr && left->count > MIN_LEAF) {
+			Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
+			assert(left != nullptr);
+			if (left->count > MIN_LEAF) {
 				this->borrow_from_left_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i - 1);
+				this->refresh_boundary_upward(parent, i - 1); // leaf-min changed
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1318,9 +1352,10 @@ private:
 
 		/* Merge path */
 		if (i < parent->count) {
-			Node *right_node = parent->children[i + 1].get();
-			Leaf *right = std::get_if<Leaf>(right_node);
-			if (right != nullptr && this->can_merge_leaf(child, right)) {
+			Leaf *right = static_cast<Leaf *>(parent->children[i + 1].get());
+			assert(right != nullptr);
+
+			if (this->can_merge_leaf(child, right)) {
 				this->merge_leaf_keep_left(parent, i, succ_it);
 				if (i < parent->count) {
 					this->refresh_boundary_upward(parent, i);
@@ -1329,11 +1364,11 @@ private:
 				return;
 			}
 
-			/* Fallback: borrow from left if possible */
+			/* Fallback: borrow from left if possible (second chance) */
 			if (i > 0) {
-				Node *left_node = parent->children[i - 1].get();
-				Leaf *left = std::get_if<Leaf>(left_node);
-				if (left != nullptr && left->count > MIN_LEAF) {
+				Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
+				assert(left != nullptr);
+				if (left->count > MIN_LEAF) {
 					this->borrow_from_left_leaf(parent, i, succ_it);
 					this->refresh_boundary_upward(parent, i - 1);
 					this->fix_internal_underflow_cascade(parent);
@@ -1343,30 +1378,32 @@ private:
 
 			/* Last resort: force merge into left */
 			assert(i > 0 && "Right merge overflow and no left sibling to merge into");
-			this->merge_leaf_keep_left(parent, i - 1, succ_it);
+			this->merge_leaf_keep_left(parent, static_cast<uint8_t>(i - 1), succ_it);
 			if ((i - 1) < parent->count) {
-				this->refresh_boundary_upward(parent, i - 1);
+				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
 			}
 			this->fix_internal_underflow_cascade(parent);
 			return;
+
 		} else {
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
-			Node *left_node = parent->children[i - 1].get();
-			Leaf *left = std::get_if<Leaf>(left_node);
-			if (left != nullptr && this->can_merge_leaf(left, child)) {
-				this->merge_leaf_keep_left(parent, i - 1, succ_it);
+			Leaf *left = static_cast<Leaf *>(parent->children[i - 1].get());
+			assert(left != nullptr);
+
+			if (this->can_merge_leaf(left, child)) {
+				this->merge_leaf_keep_left(parent, static_cast<uint8_t>(i - 1), succ_it);
 				if ((i - 1) < parent->count) {
-					this->refresh_boundary_upward(parent, i - 1);
+					this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
 				}
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
 
 			/* Fallback: borrow from left */
-			if (left != nullptr && left->count > MIN_LEAF) {
+			if (left->count > MIN_LEAF) {
 				this->borrow_from_left_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i - 1);
+				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1379,10 +1416,11 @@ private:
 	{
 		assert(parent != nullptr);
 		assert(i <= parent->count);
+
 		Node *child = parent->children[i].get();
 		assert(child != nullptr);
 
-		if (std::get_if<Leaf>(child)) {
+		if (child->role == BPlusNodeRole::Leaf) {
 			this->fix_underflow_leaf_child(parent, i, succ_it);
 		} else {
 			this->fix_underflow_internal_child(parent, i);
@@ -1400,11 +1438,8 @@ private:
 		assert(parent != nullptr);
 		assert(i < parent->count);
 
-		Node *child_node = parent->children[i].get();
-		Node *right_node = parent->children[i + 1].get();
-
-		Internal *child = std::get_if<Internal>(child_node);
-		Internal *right = std::get_if<Internal>(right_node);
+		Internal *child = static_cast<Internal *>(parent->children[i].get());
+		Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
 
 		assert(child != nullptr && right != nullptr);
 
@@ -1414,10 +1449,9 @@ private:
 		/* Move right’s first child into child */
 		child->children[child->count + 1] = std::move(right->children[0]);
 		if (child->children[child->count + 1] != nullptr) {
-			std::visit([&](auto &alt) {
-				alt.parent = child;
-				alt.index_in_parent = child->count + 1;
-			}, *child->children[child->count + 1]);
+			Node *moved = child->children[child->count + 1].get();
+			moved->parent = child;
+			moved->index_in_parent = child->count + 1;
 		}
 		++child->count;
 
@@ -1432,12 +1466,10 @@ private:
 
 		/* Fix parent/index_in_parent pointers for shifted children */
 		for (uint8_t c = 0; c < right->count; ++c) {
-			if (right->children[c] != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = right;
-					alt.index_in_parent = c;
-				}, *right->children[c]);
-			}
+			Node *child_ptr = right->children[c].get();
+			assert(child_ptr != nullptr);
+			child_ptr->parent = right;
+			child_ptr->index_in_parent = c;
 		}
 
 		--right->count;
@@ -1462,11 +1494,8 @@ private:
 		assert(parent != nullptr);
 		assert(i > 0 && i <= parent->count);
 
-		Node *child_node = parent->children[i].get();
-		Node *left_node = parent->children[i - 1].get();
-
-		Internal *child = std::get_if<Internal>(child_node);
-		Internal *left = std::get_if<Internal>(left_node);
+		Internal *child = static_cast<Internal *>(parent->children[i].get());
+		Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
 
 		assert(child != nullptr && left != nullptr);
 
@@ -1478,11 +1507,10 @@ private:
 
 		/* Fix parent/index_in_parent pointers for shifted children */
 		for (uint8_t c = 1; c <= child->count + 1; ++c) {
-			if (child->children[c] != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = child;
-					alt.index_in_parent = c;
-				}, *child->children[c]);
+			Node *shifted = child->children[c].get();
+			if (shifted != nullptr) {
+				shifted->parent = child;
+				shifted->index_in_parent = c;
 			}
 		}
 
@@ -1492,10 +1520,9 @@ private:
 		/* Move left’s last child into child[0] */
 		child->children[0] = std::move(left->children[left->count]);
 		if (child->children[0] != nullptr) {
-			std::visit([&](auto &alt) {
-				alt.parent = child;
-				alt.index_in_parent = 0;
-			}, *child->children[0]);
+			Node *moved = child->children[0].get();
+			moved->parent = child;
+			moved->index_in_parent = 0;
 		}
 		++child->count;
 
@@ -1530,11 +1557,8 @@ private:
 		assert(parent != nullptr);
 		assert(i < parent->count);
 
-		Node *left_node = parent->children[i].get();
-		Node *right_node = parent->children[i + 1].get();
-
-		Internal *left = std::get_if<Internal>(left_node);
-		Internal *right = std::get_if<Internal>(right_node);
+		Internal *left = static_cast<Internal *>(parent->children[i].get());
+		Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
 		assert(left != nullptr && right != nullptr);
 
 		/* Guard: if merge would overflow, fall back to borrow-from-right */
@@ -1556,16 +1580,13 @@ private:
 
 		/* Fix parent/index_in_parent pointers for moved children */
 		for (uint8_t c = 0; c <= right->count; ++c) {
-			auto &slot = left->children[left->count + 1 + c];
-			if (slot != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = left;
-					alt.index_in_parent = left->count + 1 + c;
-				}, *slot);
-			}
+			Node *moved = left->children[left->count + 1 + c].get();
+			assert(moved != nullptr);
+			moved->parent = left;
+			moved->index_in_parent = static_cast<uint8_t>(left->count + 1 + c);
 		}
 
-		left->count += 1 + right->count;
+		left->count = static_cast<uint8_t>(left->count + 1 + right->count);
 
 		/* Remove separator i and child i + 1 from parent */
 		this->remove_separator_and_right_child(parent, i);
@@ -1579,7 +1600,7 @@ private:
 		if (i < parent->count) {
 			this->refresh_boundary_upward(parent, i);
 		} else if (parent->count > 0) {
-			this->refresh_boundary_upward(parent, parent->count - 1);
+			this->refresh_boundary_upward(parent, static_cast<uint8_t>(parent->count - 1));
 		}
 	}
 
@@ -1592,18 +1613,15 @@ private:
 		assert(parent != nullptr);
 		assert(i > 0 && i <= parent->count);
 
-		Node *left_node = parent->children[i - 1].get();
-		Node *child_node = parent->children[i].get();
-
-		Internal *left = std::get_if<Internal>(left_node);
-		Internal *child = std::get_if<Internal>(child_node);
+		Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
+		Internal *child = static_cast<Internal *>(parent->children[i].get());
 		assert(left != nullptr && child != nullptr);
 
 		/* Guard: if merge would overflow, fall back to borrow-from-left */
 		if ((left->count + 1 + child->count) > (B - 1)) {
 			this->borrow_from_left_internal(parent, i);
 			if ((i - 1) < parent->count) {
-				this->refresh_boundary_upward(parent, i - 1);
+				this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
 			}
 			return;
 		}
@@ -1619,19 +1637,16 @@ private:
 
 		/* Fix parent/index_in_parent pointers for moved children */
 		for (uint8_t c = 0; c <= child->count; ++c) {
-			auto &slot = left->children[left->count + 1 + c];
-			if (slot != nullptr) {
-				std::visit([&](auto &alt) {
-					alt.parent = left;
-					alt.index_in_parent = left->count + 1 + c;
-				}, *slot);
-			}
+			Node *moved = left->children[left->count + 1 + c].get();
+			assert(moved != nullptr);
+			moved->parent = left;
+			moved->index_in_parent = static_cast<uint8_t>(left->count + 1 + c);
 		}
 
-		left->count += 1 + child->count;
+		left->count = static_cast<uint8_t>(left->count + 1 + child->count);
 
 		/* Remove separator i - 1 and child i from parent */
-		this->remove_separator_and_right_child(parent, i - 1);
+		this->remove_separator_and_right_child(parent, static_cast<uint8_t>(i - 1));
 
 		/* Defensive rewiring */
 		this->rewire_children_parent(left);
@@ -1640,9 +1655,9 @@ private:
 		/* Boundary refresh: separator at i - 1 may now reflect a different right-min,
 		 * or if out of range, refresh the last separator. */
 		if ((i - 1) < parent->count) {
-			this->refresh_boundary_upward(parent, i - 1);
+			this->refresh_boundary_upward(parent, static_cast<uint8_t>(i - 1));
 		} else if (parent->count > 0) {
-			this->refresh_boundary_upward(parent, parent->count - 1);
+			this->refresh_boundary_upward(parent, static_cast<uint8_t>(parent->count - 1));
 		}
 	}
 
@@ -1655,17 +1670,17 @@ private:
 		assert(parent != nullptr);
 		assert(i <= parent->count);
 
-		Node *child_node = parent->children[i].get();
-		Internal *child = std::get_if<Internal>(child_node);
+		/* Current internal child */
+		Internal *child = static_cast<Internal *>(parent->children[i].get());
 		assert(child != nullptr && "Child at i must be Internal for this path");
 
 		/* Borrow from right if possible */
 		if (i < parent->count) {
-			Node *right_node = parent->children[i + 1].get();
-			Internal *right = std::get_if<Internal>(right_node);
-			if (right != nullptr && right->count > MIN_INTERNAL) {
+			Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
+			assert(right != nullptr);
+			if (right->count > MIN_INTERNAL) {
 				this->borrow_from_right_internal(parent, i);
-				this->refresh_boundary_upward(parent, i);
+				this->refresh_boundary_upward(parent, i); // right-min changed
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1673,11 +1688,11 @@ private:
 
 		/* Borrow from left if possible */
 		if (i > 0) {
-			Node *left_node = parent->children[i - 1].get();
-			Internal *left = std::get_if<Internal>(left_node);
-			if (left != nullptr && left->count > MIN_INTERNAL) {
+			Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
+			assert(left != nullptr);
+			if (left->count > MIN_INTERNAL) {
 				this->borrow_from_left_internal(parent, i);
-				this->refresh_boundary_upward(parent, i - 1);
+				this->refresh_boundary_upward(parent, i - 1); // left subtree min may change
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1685,20 +1700,21 @@ private:
 
 		/* Merge logic */
 		if (i < parent->count) {
-			Node *right_node = parent->children[i + 1].get();
-			Internal *right = std::get_if<Internal>(right_node);
-			if (right != nullptr && this->can_merge_internal(child, right)) {
+			Internal *right = static_cast<Internal *>(parent->children[i + 1].get());
+			assert(right != nullptr);
+
+			if (this->can_merge_internal(child, right)) {
 				this->merge_keep_left_internal(parent, i);
 				this->refresh_boundary_upward(parent, i);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
 
-			/* Fallback: borrow-left if available */
+			/* Fallback: borrow-left if available (second chance) */
 			if (i > 0) {
-				Node *left_node = parent->children[i - 1].get();
-				Internal *left = std::get_if<Internal>(left_node);
-				if (left != nullptr && left->count > MIN_INTERNAL) {
+				Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
+				assert(left != nullptr);
+				if (left->count > MIN_INTERNAL) {
 					this->borrow_from_left_internal(parent, i);
 					this->refresh_boundary_upward(parent, i - 1);
 					this->fix_internal_underflow_cascade(parent);
@@ -1716,14 +1732,16 @@ private:
 		} else {
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
-			Node *left_node = parent->children[i - 1].get();
-			Internal *left = std::get_if<Internal>(left_node);
-			if (left != nullptr && this->can_merge_internal(left, child)) {
+			Internal *left = static_cast<Internal *>(parent->children[i - 1].get());
+			assert(left != nullptr);
+
+			if (this->can_merge_internal(left, child)) {
 				this->merge_into_left_internal(parent, i);
 				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
+
 			/* Fallback: borrow-left */
 			if (left->count > MIN_INTERNAL) {
 				this->borrow_from_left_internal(parent, i);
@@ -1731,21 +1749,26 @@ private:
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
+
 			assert(false && "Rightmost internal underflow: cannot merge or borrow");
 		}
 	}
 
+	/**
+	 * Shrink tree height if root is an empty internal node.
+	 * Root special case: if root is a leaf, nothing to shrink.
+	 */
 	void maybe_shrink_height()
 	{
 		assert(this->root != nullptr);
 
 		/* Case 1: root is a Leaf → nothing to shrink */
-		if (std::get_if<Leaf>(this->root.get())) {
+		if (this->root->role == BPlusNodeRole::Leaf) {
 			return;
 		}
 
 		/* Case 2: root is an Internal */
-		Internal *root_internal = std::get_if<Internal>(this->root.get());
+		Internal *root_internal = static_cast<Internal *>(this->root.get());
 		assert(root_internal != nullptr);
 
 		/* If root has no separators, promote its single child */
@@ -1754,10 +1777,8 @@ private:
 			assert(child != nullptr);
 
 			/* Reset child's parent to null (new root) */
-			std::visit([&](auto &child_alt) {
-				child_alt.parent = nullptr;
-				child_alt.index_in_parent = 0;
-			}, *child);
+			child->parent = nullptr;
+			child->index_in_parent = 0;
 
 			this->root = std::move(child);
 		} else {
@@ -1772,13 +1793,15 @@ private:
 	 */
 	void fix_internal_underflow_cascade(Internal *node)
 	{
+		assert(node != nullptr);
+
 		/* Stop at root: shrink height if needed and exit */
-		if (node == std::get_if<Internal>(this->root.get())) {
+		if (node == static_cast<Internal *>(this->root.get())) {
 			this->maybe_shrink_height();
 			return;
 		}
 
-		Internal *parent = node->parent;
+		Internal *parent = static_cast<Internal *>(node->parent);
 		assert(parent != nullptr);
 
 		/* Find node’s index in parent */
@@ -1798,9 +1821,8 @@ private:
 	 */
 	static uint8_t lower_bound(const std::array<Tkey, B> &keys, uint8_t count, const Tkey &key)
 	{
-		/* Linear scan */
 		for (uint8_t i = 0; i < count; ++i) {
-			if (keys[i] >= key) {
+			if (!(keys[i] < key)) { // equivalent to keys[i] >= key
 				return i;
 			}
 		}
@@ -1812,9 +1834,8 @@ private:
 	 */
 	static uint8_t upper_bound(const std::array<Tkey, B> &keys, uint8_t count, const Tkey &key)
 	{
-		/* Linear scan */
 		for (uint8_t i = 0; i < count; ++i) {
-			if (keys[i] > key) {
+			if (key < keys[i]) { // equivalent to keys[i] > key
 				return i;
 			}
 		}
@@ -1824,30 +1845,28 @@ private:
 #if BPLUSTREE_CHECK
 	void validate() const
 	{
-		if (this->root == nullptr) {
-			return;
-		}
+		assert(this->root != nullptr);
 
 		/* Root invariants */
-		if (Leaf *rleaf = std::get_if<Leaf>(this->root.get()); rleaf != nullptr) {
+		if (this->root->role == BPlusNodeRole::Leaf) {
+			[[maybe_unused]] const Leaf *rleaf = static_cast<const Leaf *>(this->root.get());
 			assert(rleaf->count <= B);
-		} else if (Internal *rint = std::get_if<Internal>(this->root.get()); rint != nullptr) {
+		} else if (this->root->role == BPlusNodeRole::Internal) {
+			const Internal *rint = static_cast<const Internal *>(this->root.get());
 			assert(rint->count <= B);
 
 			/* Root must have at least one child unless the tree is empty */
 			for (uint8_t i = 0; i <= rint->count; ++i) {
-				auto &ch = rint->children[i];
-				if (ch == nullptr) {
-					assert(false && "null child");
+				const std::unique_ptr<Node> &ch = rint->children[i];
+				assert(ch != nullptr && "null child");
+
+				if (ch->parent != rint) {
+					std::cerr << "Child " << static_cast<int>(i)
+						<< " has wrong parent " << ch->parent
+						<< " expected " << rint << "\n";
+					this->dump_node(ch.get(), 2);
+					assert(false);
 				}
-				std::visit([&](auto &alt) {
-					if (alt.parent != rint) {
-						std::cerr << "Child " << i << " has wrong parent "
-							<< alt.parent << " expected " << rint << "\n";
-						this->dump_node(ch.get(), 2);
-						assert(false);
-					}
-				}, *ch);
 			}
 		} else {
 			assert(false && "Root must be Leaf or Internal");
@@ -1882,7 +1901,11 @@ private:
 	 */
 	void validate_node(Node *node, const Tkey *min, const Tkey *max) const
 	{
-		if (Leaf *leaf = std::get_if<Leaf>(node); leaf != nullptr) {
+		assert(node != nullptr);
+
+		if (node->role == BPlusNodeRole::Leaf) {
+			const Leaf *leaf = static_cast<const Leaf *>(node);
+
 			/* Capacity bounds */
 			assert(leaf->count <= B);
 
@@ -1903,8 +1926,8 @@ private:
 			return;
 		}
 
-		Internal *internal = std::get_if<Internal>(node);
-		assert(internal != nullptr && "validate_node: node must be Leaf or Internal");
+		assert(node->role == BPlusNodeRole::Internal && "validate_node: node must be Leaf or Internal");
+		const Internal *internal = static_cast<const Internal *>(node);
 
 		if (internal->count > 0) {
 			/* Internal keys non-decreasing (B+ trees allow equal internal keys via redistribution) */
@@ -1915,25 +1938,25 @@ private:
 
 		/* Children count = keys + 1, all non-null and correctly parented */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
-			auto &ch = internal->children[i];
+			[[maybe_unused]] const std::unique_ptr<Node> &ch = internal->children[i];
 			assert(ch != nullptr);
-			std::visit([&]([[maybe_unused]] auto &alt) {
-				assert(alt.parent == internal);
-			}, *ch);
+			assert(ch->parent == internal);
 		}
 
 		/* Separator consistency: parent key == min of right child */
 		for (uint8_t i = 0; i < internal->count; ++i) {
 			Node *right = internal->children[i + 1].get();
 			assert(right != nullptr);
-			/* tolerate transient empty internal if you allow it */
+
 			bool right_has_min = false;
-			if (Leaf *rleaf = std::get_if<Leaf>(right); rleaf != nullptr) {
+			if (right->role == BPlusNodeRole::Leaf) {
+				const Leaf *rleaf = static_cast<const Leaf *>(right);
 				right_has_min = (rleaf->count > 0);
-			} else if (Internal *rint = std::get_if<Internal>(right); rint != nullptr) {
+			} else if (right->role == BPlusNodeRole::Internal) {
 				right_has_min = true; // internal min is defined via subtree
 			}
 			assert(right_has_min);
+
 			[[maybe_unused]] const Tkey &right_min = this->subtree_min(right);
 			assert(internal->keys[i] == right_min);
 			this->assert_sep(internal, i);
@@ -1957,15 +1980,25 @@ private:
 	{
 		Leaf *leaf = this->leftmost_leaf();
 		bool has_prev = false;
-		Tkey prev{};
+		Tkey prev{}; // default-constructed sentinel
+
 		while (leaf != nullptr) {
+			/* Capacity bounds */
+			assert(leaf->count <= B);
+
 			for (uint8_t i = 0; i < leaf->count; ++i) {
 				if (has_prev) {
-					assert(prev < leaf->keys[i]);
+					assert(prev < leaf->keys[i] && "Leaf chain keys must be strictly ascending");
 				}
 				prev = leaf->keys[i];
 				has_prev = true;
 			}
+
+			/* Link symmetry check */
+			if (leaf->next_leaf != nullptr) {
+				assert(leaf->next_leaf->prev_leaf == leaf && "Leaf linkage must be bidirectional");
+			}
+
 			leaf = leaf->next_leaf;
 		}
 	}
@@ -1976,37 +2009,71 @@ private:
 			return;
 		}
 
-		if (Leaf *leaf = std::get_if<Leaf>(node); leaf != nullptr) {
-			(void)leaf;
-			return; // nothing to validate inside a leaf
+		if (node->role == BPlusNodeRole::Leaf) {
+			/* nothing to validate inside a leaf */
+			return;
 		}
 
-		Internal *internal = std::get_if<Internal>(node);
-		assert(internal != nullptr);
+		assert(node->role == BPlusNodeRole::Internal && "validate_separators: node must be Leaf or Internal");
+		Internal *internal = static_cast<Internal *>(node);
 
 		for (uint8_t i = 0; i < internal->count; ++i) {
 			Node *right = internal->children[i + 1].get();
 			assert(right != nullptr);
+
 			const Tkey &right_min = this->subtree_min(right);
-			assert(internal->keys[i] == right_min);
+			assert(internal->keys[i] == right_min && "Separator must equal min of right subtree");
 		}
+
 		for (uint8_t i = 0; i <= internal->count; ++i) {
 			this->validate_separators(internal->children[i].get());
 		}
 	}
 
-	/* No duplicates across leaves (global check) */
+	/**
+	 * No duplicates across leaves (global check).
+	 * Ensures keys are strictly increasing across the entire leaf chain.
+	 */
 	void assert_no_leaf_duplicates() const
 	{
-		std::vector<Tkey> leaves;
-		for (Leaf *leaf = this->leftmost_leaf(); leaf != nullptr; leaf = leaf->next_leaf) {
-			assert(leaf != nullptr && "leftmost_leaf must return a Leaf node");
+		Leaf *leaf = this->leftmost_leaf();
+		bool has_prev = false;
+		Tkey prev{}; // sentinel
+
+		while (leaf != nullptr) {
+			assert(leaf->count <= B);
+
 			for (uint8_t i = 0; i < leaf->count; ++i) {
-				leaves.push_back(leaf->keys[i]);
+				if (has_prev) {
+					assert(prev < leaf->keys[i] && "Duplicate or out-of-order key across leaves");
+				}
+				prev = leaf->keys[i];
+				has_prev = true;
 			}
+
+			leaf = leaf->next_leaf;
 		}
-		for (size_t i = 1; i < leaves.size(); ++i) {
-			assert(leaves[i - 1] < leaves[i]); // strictly increasing across leaf chain
+	}
+
+	/**
+	 * Recursive verification of parent/index_in_parent invariants
+	 */
+	void verify_node(Node *n)
+	{
+		if (n == nullptr) {
+			return;
+		}
+
+		if (n->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(n);
+			for (uint8_t j = 0; j <= internal->count; ++j) {
+				if (internal->children[j] != nullptr) {
+					Node *child = internal->children[j].get();
+					assert(child->parent == internal);
+					assert(child->index_in_parent == j);
+					this->verify_node(child);
+				}
+			}
 		}
 	}
 #endif /* BPLUSTREE_CHECK */
@@ -2016,40 +2083,48 @@ private:
 		assert(node != nullptr);
 
 		Node *cur = node;
-		/* descend until we reach a leaf */
-		while (Internal *internal = std::get_if<Internal>(cur)) {
+
+		/* Descend until we reach a leaf */
+		while (cur->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(cur);
 			assert(internal->children[0] != nullptr);
 			cur = internal->children[0].get();
 		}
 
-		Leaf *leaf = std::get_if<Leaf>(cur);
-		assert(leaf != nullptr && leaf->count > 0);
+		assert(cur->role == BPlusNodeRole::Leaf);
+		Leaf *leaf = static_cast<Leaf *>(cur);
+		assert(leaf->count > 0);
+
 		return leaf->keys[0];
 	}
 
 	/**
-	 * Generic key-to-string helper
+	 * Generic key-to-string helper.
+	 * Works for any type K that supports operator<<.
 	 */
 	template <typename K>
 	std::string key_to_string(const K &k) const
 	{
 		std::ostringstream oss;
-		oss << k; // works if K has operator<<
+		oss << k;
 		return oss.str();
 	}
 
 	/**
-	 * Specialization for std::pair
+	 * Specialization for std::pair.
+	 * Prints as "(first,second)" using key_to_string recursively.
 	 */
-	template <typename A, typename B>
-	std::string key_to_string(const std::pair<A, B> &p) const
+	template <typename V, typename K>
+	std::string key_to_string(const std::pair<V, K> &p) const
 	{
 		std::ostringstream oss;
-		oss << "(" << p.first << "," << p.second << ")";
+		oss << "(" << this->key_to_string(p.first)
+			<< "," << this->key_to_string(p.second)
+			<< ")";
 		return oss.str();
 	}
 
-	void assert_sep(Internal *parent, uint8_t sep_idx) const
+	void assert_sep(const Internal *parent, uint8_t sep_idx) const
 	{
 		assert(parent != nullptr);
 		assert(sep_idx < parent->count);
@@ -2062,12 +2137,14 @@ private:
 
 		if (sep != right_min) {
 			std::cerr << "[SEP MISMATCH] parent=" << parent
-				<< " sep_idx=" << sep_idx
+				<< " sep_idx=" << static_cast<int>(sep_idx)
 				<< " sep=" << this->key_to_string(sep)
 				<< " right_min=" << this->key_to_string(right_min)
-				<< " parent.count=" << parent->count << "\n";
-			this->dump_node(reinterpret_cast<Node *>(parent), 0);
-			this->dump_node(right_node, 2);
+				<< " parent.count=" << static_cast<int>(parent->count)
+				<< "\n";
+
+			this->dump_node(parent, 0);
+			this->dump_node(right_node, 2); // right_node is already a Node *
 			assert(false);
 		}
 	}
@@ -2086,56 +2163,58 @@ public:
 			}
 		}
 
-		std::visit([&](auto const &alt) {
-			using Alt = std::decay_t<decltype(alt)>;
+		if (node->role == BPlusNodeRole::Leaf) {
+			const Leaf *leaf = static_cast<const Leaf *>(node);
 
-			if constexpr (std::is_same_v<Alt, Leaf>) {
-				std::cerr << pad << "Leaf count=" << alt.count << " keys=[";
-				for (uint8_t i = 0; i < alt.count; ++i) {
-					std::cerr << this->key_to_string(alt.keys[i]);
-					if (i + 1 < alt.count) {
-						std::cerr << ",";
-					}
-				}
-				std::cerr << "]\n";
-
-				if constexpr (!std::is_void_v<Tvalue>) {
-					std::cerr << pad << "  values=[";
-					for (uint8_t i = 0; i < alt.count; ++i) {
-						std::cerr << alt.values[i];
-						if (i + 1 < alt.count) {
-							std::cerr << ",";
-						}
-					}
-					std::cerr << "]\n";
-				}
-
-			} else if constexpr (std::is_same_v<Alt, Internal>) {
-				std::cerr << pad << "Internal count=" << alt.count << " keys=[";
-				for (uint8_t i = 0; i < alt.count; ++i) {
-					std::cerr << this->key_to_string(alt.keys[i]);
-					if (i + 1 < alt.count) {
-						std::cerr << ",";
-					}
-				}
-				std::cerr << "]\n";
-
-				for (uint8_t i = 0; i <= alt.count; ++i) {
-					std::cerr << pad << "  child[" << i << "] ->\n";
-					this->dump_node(alt.children[i].get(), indent + 4);
-				}
-
-				/* Print separators with right.min */
-				for (uint8_t i = 0; i < alt.count; ++i) {
-					Node *right = alt.children[i + 1].get();
-					if (right != nullptr) {
-						std::cerr << pad << "  separator[" << i << "]="
-							<< this->key_to_string(alt.keys[i])
-							<< " (right.min=" << this->key_to_string(this->subtree_min(right)) << ")\n";
-					}
+			std::cerr << pad << "Leaf count=" << static_cast<int>(leaf->count) << " keys=[";
+			for (uint8_t i = 0; i < leaf->count; ++i) {
+				std::cerr << this->key_to_string(leaf->keys[i]);
+				if (i + 1 < leaf->count) {
+					std::cerr << ",";
 				}
 			}
-		}, *node);
+			std::cerr << "]\n";
+
+			if constexpr (!std::is_void_v<Tvalue>) {
+				std::cerr << pad << "  values=[";
+				for (uint8_t i = 0; i < leaf->count; ++i) {
+					std::cerr << leaf->values[i];
+					if (i + 1 < leaf->count) {
+						std::cerr << ",";
+					}
+				}
+				std::cerr << "]\n";
+			}
+
+		} else if (node->role == BPlusNodeRole::Internal) {
+			const Internal *internal = static_cast<const Internal *>(node);
+
+			std::cerr << pad << "Internal count=" << static_cast<int>(internal->count) << " keys=[";
+			for (uint8_t i = 0; i < internal->count; ++i) {
+				std::cerr << this->key_to_string(internal->keys[i]);
+				if (i + 1 < internal->count) {
+					std::cerr << ",";
+				}
+			}
+			std::cerr << "]\n";
+
+			for (uint8_t i = 0; i <= internal->count; ++i) {
+				std::cerr << pad << "  child[" << static_cast<int>(i) << "] ->\n";
+				this->dump_node(internal->children[i].get(), indent + 4);
+			}
+
+			/* Print separators with right.min */
+			for (uint8_t i = 0; i < internal->count; ++i) {
+				Node *right = internal->children[i + 1].get();
+				if (right != nullptr) {
+					std::cerr << pad << "  separator[" << static_cast<int>(i) << "]="
+						<< this->key_to_string(internal->keys[i])
+						<< " (right.min=" << this->key_to_string(this->subtree_min(right)) << ")\n";
+				}
+			}
+		} else {
+			std::cerr << pad << "Unknown node role\n";
+		}
 	}
 };
 
