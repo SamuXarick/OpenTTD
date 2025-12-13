@@ -588,73 +588,25 @@ public:
 	}
 
 	/**
-	 * Map mode emplace without re-find
+	 * Map mode emplace
 	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key, const U &value)
+	template <typename U = Tvalue> requires (!std::is_void_v<U>)
+	std::pair<iterator, bool> emplace(const Tkey &key, const U &value)
 	{
-		iterator it = this->lower_bound(key);
-		Leaf *leaf = it.leaf_;
-		uint8_t idx = it.index_;
-
-		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return std::pair<iterator, bool>(it, false); // already exists
-		}
-
-		/* Perform insert (may split) */
-		this->insert(leaf, idx, key, value);
-
-		VALIDATE_NODES();
-
-		/* Fast path: still in same leaf */
-		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return std::pair<iterator, bool>(it, true);
-		}
-
-		/* Split-aware fallback: check right neighbour */
-		Leaf *right = leaf->next_leaf;
-		assert(idx >= leaf->count); // security: ensure index is in right sibling
-		uint8_t j = idx - leaf->count;
-
-		it = iterator(right, j, this);
-		assert(this->verify_return_iterator(it, key));
-
-		return std::pair<iterator, bool>(it, true);
+		return this->emplace_common(key, [&](Leaf *leaf, uint8_t idx) {
+			this->insert(leaf, idx, key, value);
+		});
 	}
 
 	/**
-	 * Set mode emplace without re-find
+	 * Set mode emplace
 	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, std::pair<iterator, bool>> emplace(const Tkey &key)
+	template <typename U = Tvalue> requires (std::is_void_v<U>)
+	std::pair<iterator, bool> emplace(const Tkey &key)
 	{
-		iterator it = this->lower_bound(key);
-		Leaf *leaf = it.leaf_;
-		uint8_t idx = it.index_;
-
-		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return std::pair<iterator, bool>(it, false); // already exists
-		}
-
-		/* Perform insert (may split) */
-		this->insert(leaf, idx, key);
-
-		VALIDATE_NODES();
-
-		/* Fast path: still in same leaf */
-		if (idx < leaf->count && leaf->keys[idx] == key) {
-			return std::pair<iterator, bool>(it, true);
-		}
-
-		/* Split-aware fallback: check right neighbour */
-		Leaf *right = leaf->next_leaf;
-		assert(idx >= leaf->count); // security: ensure index is in right sibling
-		uint8_t j = idx - leaf->count;
-
-		it = iterator(right, j, this);
-		assert(this->verify_return_iterator(it, key));
-
-		return std::pair<iterator, bool>(it, true);
+		return this->emplace_common(key, [&](Leaf *leaf, uint8_t idx) {
+			this->insert(leaf, idx, key);
+		});
 	}
 
 	iterator erase(iterator pos)
@@ -798,6 +750,40 @@ private:
 		assert(node == child);
 
 		return child->index_in_parent;
+	}
+
+	/**
+	 * Common emplace logic: find position, check existence, call do_insert lambda
+	 */
+	template <typename Tfunc>
+	std::pair<iterator, bool> emplace_common(const Tkey &key, Tfunc &&do_insert)
+	{
+		iterator it = this->lower_bound(key);
+		Leaf *leaf = it.leaf_;
+		uint8_t idx = it.index_;
+
+		if (idx < leaf->count && leaf->keys[idx] == key) {
+			return std::pair<iterator, bool>(it, false); // already exists
+		}
+
+		/* Perform insert (may split) */
+		do_insert(leaf, idx);
+
+		VALIDATE_NODES();
+
+		/* Fast path: still in same leaf */
+		if (idx < leaf->count && leaf->keys[idx] == key) {
+			return std::pair<iterator, bool>(it, true);
+		}
+
+		/* Split-aware fallback: check right neighbour */
+		Leaf *right = leaf->next_leaf;
+		assert(idx >= leaf->count); // security: ensure index is in right sibling
+		uint8_t j = idx - leaf->count;
+
+		it = iterator(right, j, this);
+		assert(this->verify_return_iterator(it, key));
+		return std::pair<iterator, bool>(it, true);
 	}
 
 	/**
