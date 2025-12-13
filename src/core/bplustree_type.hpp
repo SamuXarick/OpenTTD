@@ -181,7 +181,7 @@ public:
 	/**
 	 * Check if tree contains a key
 	 */
-	bool contains(const Tkey &key) const
+	bool contains(const Tkey &key)
 	{
 		return this->find(key) != this->end();
 	}
@@ -545,20 +545,6 @@ public:
 			return iterator(leaf, i, this);
 		}
 		return this->end();
-	}
-
-	const_iterator find(const Tkey &key) const
-	{
-		const Leaf *leaf = this->find_leaf(key);
-		if (leaf == nullptr) {
-			return this->cend();
-		}
-
-		uint8_t i = this->lower_bound(leaf->keys, leaf->count, key);
-		if (i < leaf->count && leaf->keys[i] == key) {
-			return const_iterator(leaf, i, this);
-		}
-		return this->cend();
 	}
 
 	iterator lower_bound(const Tkey &key)
