@@ -801,19 +801,14 @@ private:
 	}
 
 	/**
-	 * Map mode insert: enabled only if Tvalue is not void
+	 * Core insert logic: always shifts keys, optionally shifts values
 	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, void> insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
+	void insert_common(Leaf *leaf, uint8_t i, const Tkey &key)
 	{
-		/* Shift right */
+		/* Shift keys */
 		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
 
-		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
-
-		/* Insert key and value */
 		leaf->keys[i] = key;
-		leaf->values[i] = value;
 		leaf->count++;
 
 		/* Centralized separator refresh */
@@ -832,31 +827,26 @@ private:
 	}
 
 	/**
-	 * Set mode insert: enabled only if Tvalue is void
+	 * Map mode insert
+	 */
+	template <typename U = Tvalue>
+	std::enable_if_t<!std::is_void_v<U>, void> insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
+	{
+		/* Shift values */
+		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
+
+		leaf->values[i] = value;
+
+		this->insert_common(leaf, i, key);
+	}
+
+	/**
+	 * Set mode insert
 	 */
 	template <typename U = Tvalue>
 	std::enable_if_t<std::is_void_v<U>, void> insert(Leaf *leaf, uint8_t i, const Tkey &key)
 	{
-		/* Shift right */
-		std::move_backward(leaf->keys.begin() + i, leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
-
-		/* Insert key */
-		leaf->keys[i] = key;
-		leaf->count++;
-
-		/* Centralized separator refresh */
-		if (i == 0 && leaf->parent != nullptr) {
-			Internal *parent = leaf->parent;
-			uint8_t child_idx = this->find_child_index(parent, leaf);
-			if (child_idx > 0) {
-				this->maintain_parent_boundary(parent, child_idx - 1);
-			}
-		}
-
-		/* Split if leaf is full */
-		if (leaf->count == B) {
-			this->split_leaf(leaf);
-		}
+		this->insert_common(leaf, i, key);
 	}
 
 	/**
