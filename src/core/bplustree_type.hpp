@@ -829,8 +829,8 @@ private:
 	/**
 	 * Map mode insert
 	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<!std::is_void_v<U>, void> insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
+	template <typename U = Tvalue> requires (!std::is_void_v<U>)
+	void insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
 	{
 		/* Shift values */
 		std::move_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
@@ -843,8 +843,8 @@ private:
 	/**
 	 * Set mode insert
 	 */
-	template <typename U = Tvalue>
-	std::enable_if_t<std::is_void_v<U>, void> insert(Leaf *leaf, uint8_t i, const Tkey &key)
+	template <typename U = Tvalue> requires (std::is_void_v<U>)
+	void insert(Leaf *leaf, uint8_t i, const Tkey &key)
 	{
 		this->insert_common(leaf, i, key);
 	}
