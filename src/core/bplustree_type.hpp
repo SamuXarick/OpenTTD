@@ -1780,29 +1780,6 @@ private:
 	}
 
 	/**
-	 * Return true if the given internal node is the root
-	 */
-	bool is_root_internal(Internal *node) const
-	{
-		return node == static_cast<Internal *>(this->root.get());
-	}
-
-	/**
-	 * Fetch parent as Internal, with invariant checks
-	 */
-	Internal *get_parent_internal(Internal *node) const
-	{
-		assert(node != nullptr);
-		assert(node->parent != nullptr);
-		assert(node->parent->role == BPlusNodeRole::Internal);
-
-		Internal *parent = static_cast<Internal *>(node->parent);
-		assert(parent != nullptr);
-
-		return parent;
-	}
-
-	/**
 	 * If an internal node underflows, borrow/merge upward until root is handled.
 	 * Root special case: if root becomes empty and has one child, promote the child.
 	 */
@@ -1810,13 +1787,17 @@ private:
 	{
 		assert(node != nullptr);
 
-		/* Stop at root: shrink height if needed and exit */
-		if (this->is_root_internal(node)) {
+		/* Is the given internal node the root? */
+		if (node == static_cast<Internal *>(this->root.get())) {
+			/* Stop at root: shrink height if needed and exit */
 			this->maybe_shrink_height();
 			return;
 		}
 
-		Internal *parent = this->get_parent_internal(node);
+		assert(node->parent != nullptr);
+
+		Internal *parent = static_cast<Internal *>(node->parent);
+		assert(parent->role == BPlusNodeRole::Internal);
 
 		/* Find node’s index in parent */
 		uint8_t i = this->find_child_index(parent, node);
