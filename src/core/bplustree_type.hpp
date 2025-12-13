@@ -421,88 +421,6 @@ public:
 		}
 	};
 
-	struct const_iterator {
-		using Traits = BPlusIteratorTraits<Tkey, std::conditional_t<std::is_void_v<Tvalue>, void, const Tvalue>>;
-		using iterator_category = std::bidirectional_iterator_tag;
-		using difference_type = std::ptrdiff_t;
-		using value_type = typename Traits::value_type;
-		using reference = typename Traits::reference;
-		using pointer = typename Traits::pointer;
-
-		const Leaf *leaf_ = nullptr;
-		uint8_t index_ = 0;
-		const BPlusTree *tree_ = nullptr;
-
-		/* Dereference */
-		reference operator*() const
-		{
-			assert(this->leaf_ != nullptr);
-			assert(this->index_ < this->leaf_->count);
-			if constexpr (std::is_void_v<Tvalue>) {
-				return this->leaf_->keys[this->index_]; // set mode
-			} else {
-				return std::pair<const Tkey &, const Tvalue &>(this->leaf_->keys[this->index_], this->leaf_->values[this->index_]); // map mode (const V &)
-			}
-		}
-
-		/* Increment */
-		const_iterator &operator++()
-		{
-			if (this->leaf_ == nullptr) {
-				return *this;
-			}
-			++this->index_;
-			if (this->index_ >= this->leaf_->count) {
-				this->leaf_ = this->leaf_->next_leaf;
-				this->index_ = 0;
-			}
-			return *this;
-		}
-
-		/* Decrement */
-		const_iterator &operator--()
-		{
-			if (this->leaf_ == nullptr) {
-				/* Special case: --end() => last element */
-				const Leaf *last = this->tree_->rightmost_leaf();
-				this->leaf_ = last;
-				if (last != nullptr) {
-					if (last->count > 0) {
-						this->index_ = last->count - 1;
-					} else {
-						this->index_ = 0;
-					}
-				} else {
-					this->index_ = 0;
-				}
-				return *this;
-			}
-			if (this->index_ == 0) {
-				this->leaf_ = this->leaf_->prev_leaf;
-				if (this->leaf_ != nullptr) {
-					if (this->leaf_->count > 0) {
-						this->index_ = this->leaf_->count - 1;
-					} else {
-						this->index_ = 0;
-					}
-				}
-			} else {
-				--this->index_;
-			}
-			return *this;
-		}
-
-		friend bool operator==(const const_iterator &a, const const_iterator &b)
-		{
-			return a.leaf_ == b.leaf_ && a.index_ == b.index_;
-		}
-
-		friend bool operator!=(const const_iterator &a, const const_iterator &b)
-		{
-			return !(a == b);
-		}
-	};
-
 	/**
 	 * Return iterator to first element
 	 */
@@ -521,16 +439,6 @@ public:
 	iterator end()
 	{
 		return iterator(nullptr, 0, this); // sentinel
-	}
-
-	const_iterator end() const
-	{
-		return const_iterator(nullptr, 0, this); // sentinel
-	}
-
-	const_iterator cend() const
-	{
-		return this->end();
 	}
 
 	iterator find(const Tkey &key)
