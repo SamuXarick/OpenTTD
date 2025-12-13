@@ -172,12 +172,8 @@ private:
 	std::unique_ptr<Node> root;
 
 public:
-	BPlusTree()
+	BPlusTree() : root(std::make_unique<Leaf>())
 	{
-		/* Empty tree: root is an empty leaf */
-		this->root = std::make_unique<Leaf>();
-		this->root->parent = nullptr;
-		this->root->index_in_parent = 0;
 	}
 
 	~BPlusTree() = default;
