@@ -562,30 +562,24 @@ public:
 
 private:
 	/**
-	 * Descend from the given starting node (defaulting to root) until reaching a leaf,
-	 * using the provided child-selection strategy to choose the path at each internal node.
-	 *
-	 * @param select_child Functor/lambda that selects the child index at each internal node.
-	 * @param node Optional starting node; if nullptr, traversal begins at the root.
-	 * @return Pointer to the leaf reached by following the strategy.
+	 * Descend from root until reaching a leaf, using a child-selection strategy.
 	 */
 	template <typename Tfunc>
-	Leaf *descend_to_leaf(Tfunc select_child, Node *node = nullptr) const
-
+	Leaf *descend_to_leaf(Tfunc select_child) const
 	{
 		assert(this->root != nullptr);
 
-		Node *cur = node == nullptr ? this->root.get() : node;
+		Node *node = this->root.get();
 
-		while (cur->role == BPlusNodeRole::Internal) {
-			Internal *internal = static_cast<Internal *>(cur);
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
 			uint8_t idx = select_child(internal);
 			assert(internal->children[idx] != nullptr);
-			cur = internal->children[idx].get();
+			node = internal->children[idx].get();
 		}
 
-		assert(cur->role == BPlusNodeRole::Leaf);
-		Leaf *leaf = static_cast<Leaf *>(cur);
+		assert(node->role == BPlusNodeRole::Leaf);
+		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
 		return leaf;
 	}
@@ -1827,11 +1821,19 @@ private:
 	{
 		assert(node != nullptr);
 
-		Leaf *leaf = this->descend_to_leaf([](Internal *) {
-			return 0;
-		}, node);
+		Node *cur = node;
 
+		/* Descend until we reach a leaf */
+		while (cur->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(cur);
+			assert(internal->children[0] != nullptr);
+			cur = internal->children[0].get();
+		}
+
+		assert(cur->role == BPlusNodeRole::Leaf);
+		Leaf *leaf = static_cast<Leaf *>(cur);
 		assert(leaf->count > 0);
+
 		return leaf->keys[0];
 	}
 
