@@ -1120,7 +1120,7 @@ private:
 		Internal *parent = left->parent;
 		assert(parent != nullptr);
 		uint8_t idx = this->find_child_index(parent, left);
-		this->remove_separator_and_right_child(parent, idx);
+		this->remove_separator_and_child(parent, idx);
 
 		/* After removal, the separator at idx may now reflect a different right-min */
 		if (idx < parent->count) {
@@ -1131,7 +1131,7 @@ private:
 	/**
 	 * Remove separator at sep_idx and its right child from an internal node.
 	 */
-	void remove_separator_and_right_child(Internal *parent, uint8_t sep_idx)
+	void remove_separator_and_child(Internal *parent, uint8_t sep_idx)
 	{
 		assert(parent != nullptr);
 		assert(sep_idx < parent->count);
@@ -1173,7 +1173,6 @@ private:
 
 	/**
 	 * Fix underflow of a leaf child by borrowing or merging from siblings.
-	 * Semantics identical to the original index-based version.
 	 */
 	void fix_underflow_leaf_child(Leaf *child, iterator &succ_it)
 	{
@@ -1214,7 +1213,6 @@ private:
 
 			if (right != nullptr && this->can_merge_leaf(child, right)) {
 				this->merge_keep_left_leaf(child, succ_it); // merge right into child (left)
-				this->refresh_boundary_upward(parent, i);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1234,7 +1232,6 @@ private:
 			Leaf *left = child->prev_leaf;
 			assert(left != nullptr);
 			this->merge_keep_left_leaf(left, succ_it); // merge child into left
-			this->refresh_boundary_upward(parent, i - 1);
 			this->fix_internal_underflow_cascade(parent);
 			return;
 
@@ -1246,7 +1243,6 @@ private:
 
 			if (this->can_merge_leaf(left, child)) {
 				this->merge_keep_left_leaf(left, succ_it); // merge child into left
-				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1449,7 +1445,7 @@ private:
 		left->count += 1 + right->count;
 
 		/* Remove separator i and child i + 1 from parent */
-		this->remove_separator_and_right_child(parent, i);
+		this->remove_separator_and_child(parent, i);
 
 		/* Defensive rewiring */
 		this->rewire_children_parent(left);
