@@ -457,21 +457,9 @@ public:
 
 	iterator lower_bound(const Tkey &key)
 	{
-		assert(this->root != nullptr);
-
-		Node *node = this->root.get();
-
-		/* Descend while we’re in an internal node */
-		while (node->role == BPlusNodeRole::Internal) {
-			Internal *internal = static_cast<Internal *>(node);
-			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
-			assert(internal->children[i] != nullptr);
-			node = internal->children[i].get();
-		}
-
-		/* At this point, node must be a leaf */
-		Leaf *leaf = static_cast<Leaf *>(node);
-		assert(leaf != nullptr);
+		Leaf *leaf = this->descend_to_leaf([&](Internal *internal) {
+			return this->upper_bound(internal->keys, internal->count, key);
+		});
 
 		uint8_t i = this->lower_bound(leaf->keys, leaf->count, key);
 		return iterator(leaf, i, this);
@@ -573,6 +561,29 @@ public:
 	}
 
 private:
+	/**
+	 * Descend from root until reaching a leaf, using a child-selection strategy.
+	 */
+	template <typename Tfunc>
+	Leaf *descend_to_leaf(Tfunc select_child) const
+	{
+		assert(this->root != nullptr);
+
+		Node *node = this->root.get();
+
+		while (node->role == BPlusNodeRole::Internal) {
+			Internal *internal = static_cast<Internal *>(node);
+			uint8_t idx = select_child(internal);
+			assert(internal->children[idx] != nullptr);
+			node = internal->children[idx].get();
+		}
+
+		assert(node->role == BPlusNodeRole::Leaf);
+		Leaf *leaf = static_cast<Leaf *>(node);
+		assert(leaf != nullptr);
+		return leaf;
+	}
+
 	bool verify_return_iterator(const iterator &a, const Tkey &succ_key)
 	{
 		Leaf *succ_leaf = this->find_leaf(succ_key);
@@ -587,40 +598,16 @@ private:
 
 	Leaf *leftmost_leaf() const
 	{
-		assert(this->root != nullptr);
-
-		Node *node = this->root.get();
-
-		/* Descend leftmost children while internal */
-		while (node->role == BPlusNodeRole::Internal) {
-			Internal *internal = static_cast<Internal *>(node);
-			assert(internal->children[0] != nullptr);
-			node = internal->children[0].get();
-		}
-
-		/* Must be a leaf now */
-		Leaf *leaf = static_cast<Leaf *>(node);
-		assert(leaf != nullptr);
-		return leaf;
+		return this->descend_to_leaf([](Internal *) {
+			return 0; // always take leftmost child
+		});
 	}
 
 	Leaf *rightmost_leaf() const
 	{
-		assert(this->root != nullptr);
-
-		Node *node = this->root.get();
-
-		/* Descend rightmost children while internal */
-		while (node->role == BPlusNodeRole::Internal) {
-			Internal *internal = static_cast<Internal *>(node);
-			assert(internal->children[internal->count] != nullptr);
-			node = internal->children[internal->count].get();
-		}
-
-		/* Must be a leaf now */
-		Leaf *leaf = static_cast<Leaf *>(node);
-		assert(leaf != nullptr);
-		return leaf;
+		return this->descend_to_leaf([](Internal *internal) {
+			return internal->count; // always take rightmost child
+		});
 	}
 
 	/**
@@ -733,22 +720,9 @@ private:
 	 */
 	Leaf *find_leaf(const Tkey &key) const
 	{
-		assert(this->root != nullptr);
-
-		Node *node = this->root.get();
-
-		/* Descend while internal */
-		while (node->role == BPlusNodeRole::Internal) {
-			Internal *internal = static_cast<Internal *>(node);
-			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
-			assert(internal->children[i] != nullptr);
-			node = internal->children[i].get();
-		}
-
-		/* Must be a leaf now */
-		Leaf *leaf = static_cast<Leaf *>(node);
-		assert(leaf != nullptr);
-		return leaf;
+		return this->descend_to_leaf([&](Internal *internal) {
+			return this->upper_bound(internal->keys, internal->count, key);
+		});
 	}
 
 	/**
