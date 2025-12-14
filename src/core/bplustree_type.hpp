@@ -1008,114 +1008,92 @@ private:
 	}
 
 	/**
-	 * Helper to fetch a child leaf from an internal node.
+	 * Borrow one key/value across leaf neighbors, symmetrically.
+	 *
+	 * @param leaf The recipient leaf.
+	 * @param succ_it Iterator potentially impacted by the move.
+	 * @param recipient_is_left If true, borrow from right into leaf; if false, borrow from left into leaf.
 	 */
-	Leaf *get_child_leaf(Internal *parent, uint8_t index)
+	void borrow_leaf(Leaf *leaf, iterator &succ_it, bool recipient_is_left)
 	{
-		assert(parent != nullptr);
-		assert(index <= parent->count);
-
-		Node *node = parent->children[index].get();
-		assert(node != nullptr);
-		assert(node->role == BPlusNodeRole::Leaf);
-
-		Leaf *leaf = static_cast<Leaf *>(node);
 		assert(leaf != nullptr);
+		Internal *parent = leaf->parent;
+		assert(parent != nullptr);
 
-		return leaf;
+		uint8_t idx = this->find_child_index(parent, leaf);
+
+		if (recipient_is_left) {
+			/* Borrow from right into leaf */
+			Leaf *right = leaf->next_leaf;
+			assert(right != nullptr);
+			assert(leaf->count < B && right->count > MIN_LEAF);
+
+			/* 1) Prepare slot at end (no shift needed) */
+
+			/* 2) Insert donor extremum: right.min → leaf[end] */
+			leaf->keys[leaf->count] = right->keys[0];
+			if constexpr (!std::is_void_v<Tvalue>)
+				leaf->values[leaf->count] = std::move(right->values[0]);
+
+			/* 3) Retarget iterator if it was pointing into right */
+			if (succ_it.leaf_ == right) {
+				succ_it.leaf_ = leaf;
+				succ_it.index_ = leaf->count;
+			}
+
+			/* 4) Update counts */
+			++leaf->count;
+			--right->count;
+
+			/* 5) Shift donor left */
+			std::move(right->keys.begin() + 1, right->keys.begin() + right->count + 1, right->keys.begin());
+			if constexpr (!std::is_void_v<Tvalue>)
+				std::move(right->values.begin() + 1, right->values.begin() + right->count + 1, right->values.begin());
+
+			/* 6) Refresh boundary (separator pointing to right changed) */
+			this->refresh_boundary_upward(parent, idx);
+
+		} else {
+			/* Borrow from left into leaf */
+			Leaf *left = leaf->prev_leaf;
+			assert(left != nullptr);
+			assert(leaf->count < B && left->count > MIN_LEAF);
+
+			/* 1) Prepare slot at front (shift leaf right) */
+			std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
+			if constexpr (!std::is_void_v<Tvalue>)
+				std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
+
+			/* 2) Insert donor extremum: left.max → leaf[0] */
+			leaf->keys[0] = left->keys[left->count - 1];
+			if constexpr (!std::is_void_v<Tvalue>)
+				leaf->values[0] = std::move(left->values[left->count - 1]);
+
+			/* 3) Retarget iterator if it was pointing into leaf (indices shifted + 1) */
+			if (succ_it.leaf_ == leaf) {
+				++succ_it.index_;
+			}
+
+			/* 4) Update counts */
+			++leaf->count;
+			--left->count;
+
+			/* 5) Donor shift not needed (removed last element) */
+
+			/* 6) Refresh boundary (separator pointing to leaf changed) */
+			this->refresh_boundary_upward(parent, idx - 1);
+		}
 	}
 
 	/**
-	 * Borrow the first key of right into the end of leaf.
+	 * Merge right (next_leaf) into left, keeping the left leaf.
+	 * Structural removal is done on the parent.
 	 */
-	void borrow_from_right_leaf(Internal *parent, uint8_t child_idx, iterator &succ_it)
+	void merge_keep_left_leaf(Leaf *left, iterator &succ_it)
 	{
-		assert(parent != nullptr);
-
-		/* Get left and right children as Leaf * */
-		Leaf *leaf = this->get_child_leaf(parent, child_idx);
-		Leaf *right = this->get_child_leaf(parent, child_idx + 1);
-
-		assert(leaf->count < B && right->count > MIN_LEAF);
-
-		/* Append right’s min key to leaf */
-		leaf->keys[leaf->count] = right->keys[0];
-		if constexpr (!std::is_void_v<Tvalue>) {
-			leaf->values[leaf->count] = right->values[0];
-		}
-
-		/* Retarget iterator if it was pointing into right */
-		if (succ_it.leaf_ == right) {
-			succ_it.leaf_ = leaf;
-			succ_it.index_ = leaf->count;
-		}
-
-		++leaf->count;
-
-		/* Shift right’s keys/values left */
-		std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
-
-		if constexpr (!std::is_void_v<Tvalue>) {
-			std::move(right->values.begin() + 1, right->values.begin() + right->count, right->values.begin());
-		}
-
-		--right->count;
-
-		/* Refresh separator that points to right */
-		this->refresh_boundary_upward(parent, child_idx);
-	}
-
-	/**
-	 * Borrow the last key of left into the front of leaf.
-	 */
-	void borrow_from_left_leaf(Internal *parent, uint8_t child_idx, iterator &succ_it)
-	{
-		assert(parent != nullptr);
-		assert(child_idx > 0);
-
-		/* Get left and right children as Leaf * */
-		Leaf *leaf = this->get_child_leaf(parent, child_idx);
-		Leaf *left = this->get_child_leaf(parent, child_idx - 1);
-
-		assert(leaf->count < B && left->count > MIN_LEAF);
-
-		/* Shift leaf right to make space at index 0 */
-		std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
-
-		if constexpr (!std::is_void_v<Tvalue>) {
-			std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
-		}
-
-		/* Move left’s max key into leaf[0] */
-		leaf->keys[0] = left->keys[left->count - 1];
-		if constexpr (!std::is_void_v<Tvalue>) {
-			leaf->values[0] = std::move(left->values[left->count - 1]);
-		}
-
-		/* Retarget iterator if it was pointing into leaf */
-		if (succ_it.leaf_ == leaf) {
-			++succ_it.index_;
-		}
-
-		++leaf->count;
-		--left->count;
-
-		/* Refresh separator that points to leaf (since its min changed) */
-		this->refresh_boundary_upward(parent, child_idx - 1);
-	}
-
-	/**
-	 * Merge leaf at i + 1 into leaf at i, keep the left leaf.
-	 * Preconditions: parent->children[i] and parent->children[i + 1] exist.
-	 */
-	void merge_leaf_keep_left(Internal *parent, uint8_t i, iterator &succ_it)
-	{
-		assert(parent != nullptr);
-		assert(i < parent->count);
-
-		/* Get left and right children as Leaf * */
-		Leaf *left = this->get_child_leaf(parent, i);
-		Leaf *right = this->get_child_leaf(parent, i + 1);
+		assert(left != nullptr);
+		Leaf *right = left->next_leaf;
+		assert(right != nullptr);
 
 		/* Move only existing keys post-erase */
 		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
@@ -1138,12 +1116,15 @@ private:
 			left->next_leaf->prev_leaf = left;
 		}
 
-		/* Explicitly remove the separator and right child */
-		this->remove_separator_and_right_child(parent, i);
+		/* Remove the separator and right child from the parent */
+		Internal *parent = left->parent;
+		assert(parent != nullptr);
+		uint8_t idx = this->find_child_index(parent, left);
+		this->remove_separator_and_right_child(parent, idx);
 
-		/* After removal, the next separator at i may now reflect a different right-min */
-		if (i < parent->count) {
-			this->refresh_boundary_upward(parent, i);
+		/* After removal, the separator at idx may now reflect a different right-min */
+		if (idx < parent->count) {
+			this->refresh_boundary_upward(parent, idx);
 		}
 	}
 
@@ -1187,27 +1168,28 @@ private:
 	inline bool can_merge_leaf(const Leaf *left, const Leaf *right)
 	{
 		assert(left != nullptr && right != nullptr);
-		return (left->count + right->count) <= B; // leaf capacity
+		return left->count + right->count <= B; // leaf capacity
 	}
 
 	/**
-	 * Fix underflow of a leaf child at index i by borrowing or merging from siblings.
+	 * Fix underflow of a leaf child by borrowing or merging from siblings.
+	 * Semantics identical to the original index-based version.
 	 */
-	void fix_underflow_leaf_child(Internal *parent, uint8_t i, iterator &succ_it)
+	void fix_underflow_leaf_child(Leaf *child, iterator &succ_it)
 	{
+		assert(child != nullptr);
+		Internal *parent = child->parent;
 		assert(parent != nullptr);
-		assert(i <= parent->count);
 
-		/* Current leaf child */
-		Leaf *child = this->get_child_leaf(parent, i);
+		const uint8_t i = this->find_child_index(parent, child);
 
 		/* Try borrow from right sibling */
 		if (i < parent->count) {
-			Leaf *right = this->get_child_leaf(parent, i + 1);
+			Leaf *right = child->next_leaf;
+			assert((right == nullptr) == (i >= parent->count) && "Link/index mismatch");
 
-			if (right->count > MIN_LEAF) {
-				this->borrow_from_right_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i); // right-min changed
+			if (right != nullptr && right->count > MIN_LEAF) {
+				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/true);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1215,36 +1197,33 @@ private:
 
 		/* Try borrow from left sibling */
 		if (i > 0) {
-			Leaf *left = this->get_child_leaf(parent, i - 1);
+			Leaf *left = child->prev_leaf;
+			assert((left == nullptr) == (i == 0) && "Link/index mismatch");
 
-			if (left->count > MIN_LEAF) {
-				this->borrow_from_left_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i - 1); // leaf-min changed
+			if (left != nullptr && left->count > MIN_LEAF) {
+				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
 		}
 
-		/* Merge path */
+		/* Merge path (i < parent->count => try merging child with right) */
 		if (i < parent->count) {
-			Leaf *right = this->get_child_leaf(parent, i + 1);
+			Leaf *right = child->next_leaf;
+			assert((right == nullptr) == (i >= parent->count) && "Link/index mismatch");
 
-			if (this->can_merge_leaf(child, right)) {
-				this->merge_leaf_keep_left(parent, i, succ_it);
-				if (i < parent->count) {
-					this->refresh_boundary_upward(parent, i);
-				}
+			if (right != nullptr && this->can_merge_leaf(child, right)) {
+				this->merge_keep_left_leaf(child, succ_it); // merge right into child (left)
+				this->refresh_boundary_upward(parent, i);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
 
 			/* Fallback: borrow from left if possible (second chance) */
 			if (i > 0) {
-				Leaf *left = this->get_child_leaf(parent, i - 1);
-
-				if (left->count > MIN_LEAF) {
-					this->borrow_from_left_leaf(parent, i, succ_it);
-					this->refresh_boundary_upward(parent, i - 1);
+				Leaf *left = child->prev_leaf;
+				if (left != nullptr && left->count > MIN_LEAF) {
+					this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 					this->fix_internal_underflow_cascade(parent);
 					return;
 				}
@@ -1252,31 +1231,29 @@ private:
 
 			/* Last resort: force merge into left */
 			assert(i > 0 && "Right merge overflow and no left sibling to merge into");
-			this->merge_leaf_keep_left(parent, i - 1, succ_it);
-			if (i - 1 < parent->count) {
-				this->refresh_boundary_upward(parent, i - 1);
-			}
+			Leaf *left = child->prev_leaf;
+			assert(left != nullptr);
+			this->merge_keep_left_leaf(left, succ_it); // merge child into left
+			this->refresh_boundary_upward(parent, i - 1);
 			this->fix_internal_underflow_cascade(parent);
 			return;
 
 		} else {
 			/* Rightmost child: must merge into left */
 			assert(i > 0);
-			Leaf *left = this->get_child_leaf(parent, i - 1);
+			Leaf *left = child->prev_leaf;
+			assert(left != nullptr);
 
 			if (this->can_merge_leaf(left, child)) {
-				this->merge_leaf_keep_left(parent, i - 1, succ_it);
-				if (i - 1 < parent->count) {
-					this->refresh_boundary_upward(parent, i - 1);
-				}
+				this->merge_keep_left_leaf(left, succ_it); // merge child into left
+				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
 
 			/* Fallback: borrow from left */
 			if (left->count > MIN_LEAF) {
-				this->borrow_from_left_leaf(parent, i, succ_it);
-				this->refresh_boundary_upward(parent, i - 1);
+				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1294,7 +1271,8 @@ private:
 		assert(child != nullptr);
 
 		if (child->role == BPlusNodeRole::Leaf) {
-			this->fix_underflow_leaf_child(parent, i, succ_it);
+			Leaf *leaf = static_cast<Leaf *>(child);
+			this->fix_underflow_leaf_child(leaf, succ_it);
 		} else {
 			this->fix_underflow_internal_child(parent, i);
 		}
@@ -1319,111 +1297,107 @@ private:
 	}
 
 	/**
-	 * Rotate from the right sibling:
-	 * - Move parent.keys[i] down into child at end
-	 * - Move right.keys[0] up into parent
-	 * - Move right.children[0] into child as new rightmost child
+	 * Borrow across a boundary between two consecutive internal siblings.
+	 *
+	 * @param parent The parent internal node.
+	 * @param left_idx Index of the left sibling in parent->children.
+	 * @param recipient_is_left If true, left receives from right; else right receives from left.
+	 *
+	 * Preconditions:
+	 * - left_idx < parent->count
+	 * - right sibling is at left_idx + 1
 	 */
-	void borrow_from_right_internal(Internal *parent, uint8_t i)
+	void borrow_internal(Internal *parent, uint8_t left_idx, bool recipient_is_left)
 	{
 		assert(parent != nullptr);
-		assert(i < parent->count);
+		assert(left_idx < parent->count);
 
-		Internal *child = this->get_child_internal(parent, i);
-		Internal *right = this->get_child_internal(parent, i + 1);
+		Internal *left = this->get_child_internal(parent, left_idx);
+		Internal *right = this->get_child_internal(parent, left_idx + 1);
+		assert(left != nullptr && right != nullptr);
 
-		/* Move parent key down into child */
-		child->keys[child->count] = std::move(parent->keys[i]);
+		if (recipient_is_left) {
+			/* Left receives from right */
 
-		/* Move right’s first child into child */
-		child->children[child->count + 1] = std::move(right->children[0]);
-		if (child->children[child->count + 1] != nullptr) {
-			Node *moved = child->children[child->count + 1].get();
-			moved->parent = child;
-			moved->index_in_parent = child->count + 1;
+			/* 1) Prepare recipient slot (end, no shift needed) */
+
+			/* 2) Insert parent key into left[end] */
+			left->keys[left->count] = std::move(parent->keys[left_idx]);
+
+			/* 3) Move donor’s first child into left[end + 1] */
+			left->children[left->count + 1] = std::move(right->children[0]);
+			if (left->children[left->count + 1] != nullptr) {
+				Node *moved = left->children[left->count + 1].get();
+				moved->parent = left;
+				moved->index_in_parent = left->count + 1;
+			}
+
+			/* 4) Update recipient count */
+			++left->count;
+
+			/* 5) Move donor’s first key up into parent */
+			parent->keys[left_idx] = std::move(right->keys[0]);
+
+			/* 6) Shift donor left to close gap */
+			std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
+			std::move(right->children.begin() + 1, right->children.begin() + right->count + 1, right->children.begin());
+
+			/* 7) Fix parent/index_in_parent pointers for shifted donor children */
+			for (uint8_t c = 0; c < right->count; ++c) {
+				Node *p = right->children[c].get();
+				if (p != nullptr) {
+					p->parent = right;
+					p->index_in_parent = c;
+				}
+			}
+
+			/* 8) Update donor count */
+			--right->count;
+
+		} else {
+			/* Right receives from left */
+
+			/* 1) Prepare recipient slot (shift right’s keys/children right) */
+			std::move_backward(right->keys.begin(), right->keys.begin() + right->count, right->keys.begin() + right->count + 1);
+			std::move_backward(right->children.begin(), right->children.begin() + right->count + 1, right->children.begin() + right->count + 2);
+
+			/* 2) Fix parent/index_in_parent pointers for shifted recipient children */
+			for (uint8_t c = 1; c <= right->count + 1; ++c) {
+				Node *p = right->children[c].get();
+				if (p != nullptr) {
+					p->parent = right;
+					p->index_in_parent = c;
+				}
+			}
+
+			/* 3) Insert parent key into right[0] */
+			right->keys[0] = std::move(parent->keys[left_idx]);
+
+			/* 4) Move donor’s last child into right[0] */
+			right->children[0] = std::move(left->children[left->count]);
+			if (right->children[0] != nullptr) {
+				Node *moved = right->children[0].get();
+				moved->parent = right;
+				moved->index_in_parent = 0;
+			}
+
+			/* 5) Update recipient count */
+			++right->count;
+
+			/* 6) Move donor’s last key up into parent */
+			parent->keys[left_idx] = std::move(left->keys[left->count - 1]);
+
+			/* 7) Update donor count */
+			--left->count;
 		}
-		++child->count;
 
-		/* Move right’s first key up into parent */
-		parent->keys[i] = std::move(right->keys[0]);
-
-		/* Shift right’s keys left */
-		std::move(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
-
-		/* Shift right’s children left */
-		std::move(right->children.begin() + 1, right->children.begin() + right->count + 1, right->children.begin());
-
-		/* Fix parent/index_in_parent pointers for shifted children */
-		for (uint8_t c = 0; c < right->count; ++c) {
-			Node *child_ptr = right->children[c].get();
-			assert(child_ptr != nullptr);
-			child_ptr->parent = right;
-			child_ptr->index_in_parent = c;
-		}
-
-		--right->count;
-
-		/* Rewire parents defensively */
-		this->rewire_children_parent(child);
+		/* Defensive rewiring (shared) */
+		this->rewire_children_parent(left);
 		this->rewire_children_parent(right);
 		this->rewire_children_parent(parent);
 
-		/* Refresh boundary */
-		this->refresh_boundary_upward(parent, i);
-	}
-
-	/**
-	 * Rotate from the left sibling:
-	 * - Move parent.keys[i-1] down into child at front
-	 * - Move left’s last key up into parent
-	 * - Move left’s last child into child as new leftmost child
-	 */
-	void borrow_from_left_internal(Internal *parent, uint8_t i)
-	{
-		assert(parent != nullptr);
-		assert(i > 0 && i <= parent->count);
-
-		Internal *child = this->get_child_internal(parent, i);
-		Internal *left = this->get_child_internal(parent, i - 1);
-
-		/* Shift child’s keys right to open slot at 0 */
-		std::move_backward(child->keys.begin(), child->keys.begin() + child->count, child->keys.begin() + child->count + 1);
-
-		/* Shift child’s children right to open slot at 0 */
-		std::move_backward(child->children.begin(), child->children.begin() + child->count + 1, child->children.begin() + child->count + 2);
-
-		/* Fix parent/index_in_parent pointers for shifted children */
-		for (uint8_t c = 1; c <= child->count + 1; ++c) {
-			Node *shifted = child->children[c].get();
-			if (shifted != nullptr) {
-				shifted->parent = child;
-				shifted->index_in_parent = c;
-			}
-		}
-
-		/* Move parent key down into child[0] */
-		child->keys[0] = std::move(parent->keys[i - 1]);
-
-		/* Move left’s last child into child[0] */
-		child->children[0] = std::move(left->children[left->count]);
-		if (child->children[0] != nullptr) {
-			Node *moved = child->children[0].get();
-			moved->parent = child;
-			moved->index_in_parent = 0;
-		}
-		++child->count;
-
-		/* Move left’s last key up into parent */
-		parent->keys[i - 1] = std::move(left->keys[left->count - 1]);
-		--left->count;
-
-		/* Rewire parents defensively */
-		this->rewire_children_parent(child);
-		this->rewire_children_parent(left);
-		this->rewire_children_parent(parent);
-
-		/* Refresh boundary */
-		this->refresh_boundary_upward(parent, i - 1);
+		/* Refresh boundary separator at left_idx */
+		this->refresh_boundary_upward(parent, left_idx);
 	}
 
 	/**
@@ -1432,7 +1406,7 @@ private:
 	inline bool can_merge_internal(const Internal *left, const Internal *right)
 	{
 		assert(left != nullptr && right != nullptr);
-		return (left->count + 1 + right->count) <= (B - 1);
+		return left->count + 1 + right->count <= B - 1;
 	}
 
 	/**
@@ -1449,7 +1423,7 @@ private:
 
 		/* Guard: if merge would overflow, fall back to borrow-from-right */
 		if (!this->can_merge_internal(left, right)) {
-			this->borrow_from_right_internal(parent, i);
+			this->borrow_internal(parent, i, /*recipient_is_left=*/true);
 			/* Refresh boundary for separator i (points to right subtree) */
 			this->refresh_boundary_upward(parent, i);
 			return;
@@ -1491,62 +1465,6 @@ private:
 	}
 
 	/**
-	 * Merge internal at i into internal at i - 1, keep the left internal.
-	 * Preconditions: parent->children[i - 1] and parent->children[i] exist and are Internal.
-	 */
-	void merge_into_left_internal(Internal *parent, uint8_t i)
-	{
-		assert(parent != nullptr);
-		assert(i > 0 && i <= parent->count);
-
-		Internal *left = this->get_child_internal(parent, i - 1);
-		Internal *child = this->get_child_internal(parent, i);
-
-		/* Guard: if merge would overflow, fall back to borrow-from-left */
-		if (left->count + 1 + child->count > B - 1) {
-			this->borrow_from_left_internal(parent, i);
-			if (i - 1 < parent->count) {
-				this->refresh_boundary_upward(parent, i - 1);
-			}
-			return;
-		}
-
-		/* Append separator i - 1 */
-		left->keys[left->count] = std::move(parent->keys[i - 1]);
-
-		/* Move child's keys into left */
-		std::move(child->keys.begin(), child->keys.begin() + child->count, left->keys.begin() + left->count + 1);
-
-		/* Move child's children into left */
-		std::move(child->children.begin(), child->children.begin() + child->count + 1, left->children.begin() + left->count + 1);
-
-		/* Fix parent/index_in_parent pointers for moved children */
-		for (uint8_t c = 0; c <= child->count; ++c) {
-			Node *moved = left->children[left->count + 1 + c].get();
-			assert(moved != nullptr);
-			moved->parent = left;
-			moved->index_in_parent = left->count + 1 + c;
-		}
-
-		left->count += 1 + child->count;
-
-		/* Remove separator i - 1 and child i from parent */
-		this->remove_separator_and_right_child(parent, i - 1);
-
-		/* Defensive rewiring */
-		this->rewire_children_parent(left);
-		this->rewire_children_parent(parent);
-
-		/* Boundary refresh: separator at i - 1 may now reflect a different right-min,
-		 * or if out of range, refresh the last separator. */
-		if (i - 1 < parent->count) {
-			this->refresh_boundary_upward(parent, i - 1);
-		} else if (parent->count > 0) {
-			this->refresh_boundary_upward(parent, parent->count - 1);
-		}
-	}
-
-	/**
 	 * Fix underflow when parent’s child at i is an internal node.
 	 * Chooses borrow if possible; otherwise merges.
 	 */
@@ -1563,7 +1481,7 @@ private:
 			Internal *right = this->get_child_internal(parent, i + 1);
 
 			if (right->count > MIN_INTERNAL) {
-				this->borrow_from_right_internal(parent, i);
+				this->borrow_internal(parent, i, /*recipient_is_left=*/true);
 				this->refresh_boundary_upward(parent, i); // right-min changed
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1575,7 +1493,7 @@ private:
 			Internal *left = this->get_child_internal(parent, i - 1);
 
 			if (left->count > MIN_INTERNAL) {
-				this->borrow_from_left_internal(parent, i);
+				this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 				this->refresh_boundary_upward(parent, i - 1); // left subtree min may change
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1598,7 +1516,7 @@ private:
 				Internal *left = this->get_child_internal(parent, i - 1);
 
 				if (left->count > MIN_INTERNAL) {
-					this->borrow_from_left_internal(parent, i);
+					this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 					this->refresh_boundary_upward(parent, i - 1);
 					this->fix_internal_underflow_cascade(parent);
 					return;
@@ -1607,7 +1525,7 @@ private:
 
 			/* Last resort: mirror merge into left */
 			assert(i > 0 && "Internal underflow at i=0 with no feasible borrow/merge");
-			this->merge_into_left_internal(parent, i);
+			this->merge_keep_left_internal(parent, i - 1);
 			this->refresh_boundary_upward(parent, i - 1);
 			this->fix_internal_underflow_cascade(parent);
 			return;
@@ -1618,7 +1536,7 @@ private:
 			Internal *left = this->get_child_internal(parent, i - 1);
 
 			if (this->can_merge_internal(left, child)) {
-				this->merge_into_left_internal(parent, i);
+				this->merge_keep_left_internal(parent, i - 1);
 				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1626,7 +1544,7 @@ private:
 
 			/* Fallback: borrow-left */
 			if (left->count > MIN_INTERNAL) {
-				this->borrow_from_left_internal(parent, i);
+				this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
 				return;
