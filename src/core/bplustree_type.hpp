@@ -13,7 +13,7 @@
 #include <iostream>
 
 /** Enable it if you suspect b+ tree doesn't work well */
-#define BPLUSTREE_CHECK 0
+#define BPLUSTREE_CHECK 1
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
@@ -1085,44 +1085,80 @@ private:
 		}
 	}
 
-	/**
-	 * Merge right (next_leaf) into left, keeping the left leaf.
-	 * Structural removal is done on the parent.
-	 */
-	void merge_keep_left_leaf(Leaf *left, iterator &succ_it)
+	void merge_leaf(Leaf *leaf, iterator &succ_it, bool recipient_is_left)
 	{
-		assert(left != nullptr);
-		Leaf *right = left->next_leaf;
-		assert(right != nullptr);
-
-		/* Move only existing keys post-erase */
-		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count);
-
-		if constexpr (!std::is_void_v<Tvalue>) {
-			std::move(right->values.begin(), right->values.begin() + right->count, left->values.begin() + left->count);
-		}
-
-		/* Retarget iterator if it was pointing into right */
-		if (succ_it.leaf_ == right) {
-			succ_it.leaf_ = left;
-			succ_it.index_ += left->count;
-		}
-
-		left->count += right->count;
-
-		/* Stitch leaves */
-		left->next_leaf = right->next_leaf;
-		if (left->next_leaf != nullptr) {
-			left->next_leaf->prev_leaf = left;
-		}
-
-		/* Remove the separator and right child from the parent */
-		Internal *parent = left->parent;
+		assert(leaf != nullptr);
+		Internal *parent = leaf->parent;
 		assert(parent != nullptr);
-		uint8_t idx = this->find_child_index(parent, left);
-		this->remove_separator_and_child(parent, idx);
 
-		/* After removal, the separator at idx may now reflect a different right-min */
+		uint8_t idx; // separator index to remove
+
+		if (recipient_is_left) {
+			/* Left receives from right */
+			Leaf *right = leaf->next_leaf;
+			assert(right != nullptr);
+
+			/* Move donor’s keys/values into recipient */
+			std::move(right->keys.begin(), right->keys.begin() + right->count, leaf->keys.begin() + leaf->count);
+			if constexpr (!std::is_void_v<Tvalue>) {
+				std::move(right->values.begin(), right->values.begin() + right->count, leaf->values.begin() + leaf->count);
+			}
+
+			/* Retarget iterator if it was pointing into right */
+			if (succ_it.leaf_ == right) {
+				succ_it.leaf_ = leaf;
+				succ_it.index_ += leaf->count;
+			}
+
+			/* Update recipient count */
+			leaf->count += right->count;
+
+			/* Stitch leaves */
+			leaf->next_leaf = right->next_leaf;
+			if (leaf->next_leaf != nullptr) {
+				leaf->next_leaf->prev_leaf = leaf;
+			}
+
+			/* Separator index is at recipient (left) */
+			idx = this->find_child_index(parent, leaf);
+
+		} else {
+			/* Right receives from left */
+			Leaf *left = leaf->prev_leaf;
+			assert(left != nullptr);
+
+			/* Shift recipient right to open space */
+			std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + left->count);
+			if constexpr (!std::is_void_v<Tvalue>) {
+				std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + left->count);
+			}
+
+			/* Move donor’s keys/values into recipient front */
+			std::move(left->keys.begin(), left->keys.begin() + left->count, leaf->keys.begin());
+			if constexpr (!std::is_void_v<Tvalue>) {
+				std::move(left->values.begin(), left->values.begin() + left->count, leaf->values.begin());
+			}
+
+			/* Retarget iterator if it was pointing into recipient */
+			if (succ_it.leaf_ == leaf) {
+				succ_it.index_ += left->count;
+			}
+
+			/* Update recipient count */
+			leaf->count += left->count;
+
+			/* Stitch leaves */
+			leaf->prev_leaf = left->prev_leaf;
+			if (leaf->prev_leaf != nullptr) {
+				leaf->prev_leaf->next_leaf = leaf;
+			}
+
+			/* Separator index is at donor (left) */
+			idx = this->find_child_index(parent, left);
+		}
+
+		/* Shared parent removal and boundary refresh */
+		this->remove_separator_and_child(parent, idx);
 		if (idx < parent->count) {
 			this->refresh_boundary_upward(parent, idx);
 		}
@@ -1173,6 +1209,7 @@ private:
 
 	/**
 	 * Fix underflow of a leaf child by borrowing or merging from siblings.
+	 * Uses unified borrow/merge helpers.
 	 */
 	void fix_underflow_leaf_child(Leaf *child, iterator &succ_it)
 	{
@@ -1212,7 +1249,7 @@ private:
 			assert((right == nullptr) == (i >= parent->count) && "Link/index mismatch");
 
 			if (right != nullptr && this->can_merge_leaf(child, right)) {
-				this->merge_keep_left_leaf(child, succ_it); // merge right into child (left)
+				this->merge_leaf(child, succ_it, /*recipient_is_left=*/true);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
@@ -1231,7 +1268,7 @@ private:
 			assert(i > 0 && "Right merge overflow and no left sibling to merge into");
 			Leaf *left = child->prev_leaf;
 			assert(left != nullptr);
-			this->merge_keep_left_leaf(left, succ_it); // merge child into left
+			this->merge_leaf(left, succ_it, /*recipient_is_left=*/true);
 			this->fix_internal_underflow_cascade(parent);
 			return;
 
@@ -1242,7 +1279,7 @@ private:
 			assert(left != nullptr);
 
 			if (this->can_merge_leaf(left, child)) {
-				this->merge_keep_left_leaf(left, succ_it); // merge child into left
+				this->merge_leaf(left, succ_it, /*recipient_is_left=*/true);
 				this->fix_internal_underflow_cascade(parent);
 				return;
 			}
