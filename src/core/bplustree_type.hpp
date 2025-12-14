@@ -537,7 +537,8 @@ public:
 		/* Boundary refresh if min changed */
 		if (i == 0 && leaf->parent != nullptr) {
 			Internal *parent = leaf->parent;
-			uint8_t child_idx = this->find_child_index(parent, leaf);
+			assert(leaf->index_in_parent == this->find_child_index(parent, leaf));
+			uint8_t child_idx = leaf->index_in_parent;
 
 			if (parent->count > 0) {
 				if (child_idx > 0) {
@@ -553,7 +554,8 @@ public:
 		/* Fix underflow, passing iterator by reference */
 		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
 			Internal *parent = leaf->parent;
-			uint8_t child_idx = this->find_child_index(parent, leaf);
+			assert(leaf->index_in_parent == this->find_child_index(parent, leaf));
+			uint8_t child_idx = leaf->index_in_parent;
 
 			if (child_idx <= parent->count) {
 				this->fix_underflow(parent, child_idx, succ_it);
@@ -690,7 +692,8 @@ private:
 		/* Centralized separator refresh */
 		if (i == 0 && leaf->parent != nullptr) {
 			Internal *parent = leaf->parent;
-			uint8_t child_idx = this->find_child_index(parent, leaf);
+			assert(leaf->index_in_parent == this->find_child_index(parent, leaf));
+			uint8_t child_idx = leaf->index_in_parent;
 			if (child_idx > 0) {
 				this->maintain_parent_boundary(parent, child_idx - 1);
 			}
@@ -751,10 +754,10 @@ private:
 	/**
 	 * Verify and rewire children's parent/index_in_parent fields for a given internal node.
 	 */
-	void rewire_children_parent(Node *node)
+	bool verify_children_parent(Node *node)
 	{
 		if (node == nullptr) {
-			return;
+			return true;
 		}
 
 		/* Must be an internal node */
@@ -767,6 +770,8 @@ private:
 			assert(child->parent == internal);
 			assert(child->index_in_parent == i);
 		}
+
+		return true;
 	}
 
 	/**
@@ -841,7 +846,7 @@ private:
 			new_root->children[1]->index_in_parent = 1;
 
 			this->root = std::move(new_root_ptr);
-			this->rewire_children_parent(this->root.get());
+			assert(this->verify_children_parent(this->root.get()));
 			return;
 		}
 
@@ -852,7 +857,8 @@ private:
 			parent = left->parent; // left may have moved
 		}
 
-		uint8_t i = this->find_child_index(parent, left);
+		assert(left->index_in_parent == this->find_child_index(parent, left));
+		uint8_t i = left->index_in_parent;
 
 		/* Shift keys and children right */
 		std::move_backward(parent->keys.begin() + i, parent->keys.begin() + parent->count, parent->keys.begin() + parent->count + 1);
@@ -878,7 +884,7 @@ private:
 		}
 
 		++parent->count;
-		this->rewire_children_parent(parent);
+		assert(this->verify_children_parent(parent));
 	}
 
 	/**
@@ -921,7 +927,7 @@ private:
 		std::fill(node->children.begin() + mid + 1, node->children.begin() + B + 1, nullptr);
 
 		/* Ensure remaining children in left are wired correctly */
-		this->rewire_children_parent(node);
+		assert(this->verify_children_parent(node));
 
 		assert(node->count == mid);
 		assert(right->count > 0);
@@ -930,9 +936,7 @@ private:
 		this->insert_into_parent(node, separator, std::move(right_node));
 
 		/* After insertion, parent’s children changed; defensively rewire */
-		if (node->parent != nullptr) {
-			this->rewire_children_parent(node->parent);
-		}
+		assert(this->verify_children_parent(node->parent));
 	}
 
 	/**
@@ -951,7 +955,8 @@ private:
 		/* Propagate upward along the leftmost path */
 		for (Internal *p = parent; p->parent != nullptr; p = p->parent) {
 			Internal *gp = p->parent;
-			uint8_t idx_in_gp = this->find_child_index(gp, p);
+			assert(p->index_in_parent == this->find_child_index(gp, p));
+			uint8_t idx_in_gp = p->index_in_parent;
 
 			/* If this subtree sits to the right of some separator in gp,
 			 * refresh that ancestor separator. */
@@ -1020,7 +1025,8 @@ private:
 		Internal *parent = leaf->parent;
 		assert(parent != nullptr);
 
-		uint8_t idx = this->find_child_index(parent, leaf);
+		assert(leaf->index_in_parent == this->find_child_index(parent, leaf));
+		uint8_t idx = leaf->index_in_parent;
 
 		if (recipient_is_left) {
 			/* Borrow from right into leaf */
@@ -1119,7 +1125,8 @@ private:
 		/* Remove the separator and right child from the parent */
 		Internal *parent = left->parent;
 		assert(parent != nullptr);
-		uint8_t idx = this->find_child_index(parent, left);
+		assert(left->index_in_parent == this->find_child_index(parent, left));
+		uint8_t idx = left->index_in_parent;
 		this->remove_separator_and_child(parent, idx);
 
 		/* After removal, the separator at idx may now reflect a different right-min */
@@ -1157,7 +1164,7 @@ private:
 		--parent->count;
 
 		/* Safety: ensure all children are valid and wired */
-		this->rewire_children_parent(parent);
+		assert(this->verify_children_parent(parent));
 
 		/* Optional: if parent becomes empty and is root, shrink height elsewhere */
 	}
@@ -1180,7 +1187,8 @@ private:
 		Internal *parent = child->parent;
 		assert(parent != nullptr);
 
-		const uint8_t i = this->find_child_index(parent, child);
+		assert(child->index_in_parent == this->find_child_index(parent, child));
+		const uint8_t i = child->index_in_parent;
 
 		/* Try borrow from right sibling */
 		if (i < parent->count) {
@@ -1388,9 +1396,9 @@ private:
 		}
 
 		/* Defensive rewiring (shared) */
-		this->rewire_children_parent(left);
-		this->rewire_children_parent(right);
-		this->rewire_children_parent(parent);
+		assert(this->verify_children_parent(left));
+		assert(this->verify_children_parent(right));
+		assert(this->verify_children_parent(parent));
 
 		/* Refresh boundary separator at left_idx */
 		this->refresh_boundary_upward(parent, left_idx);
@@ -1448,8 +1456,8 @@ private:
 		this->remove_separator_and_child(parent, i);
 
 		/* Defensive rewiring */
-		this->rewire_children_parent(left);
-		this->rewire_children_parent(parent);
+		assert(this->verify_children_parent(left));
+		assert(this->verify_children_parent(parent));
 
 		/* Boundary refresh: separator at i now points to the merged right-min,
 		 * or if i is out of range, refresh the last separator. */
@@ -1577,10 +1585,11 @@ private:
 			child->index_in_parent = 0;
 
 			this->root = std::move(child);
-		} else {
-			/* Ensure all children of root are wired correctly */
-			this->rewire_children_parent(root_internal);
+			return;
 		}
+
+		/* Ensure all children of root are wired correctly */
+		assert(this->verify_children_parent(root_internal));
 	}
 
 	/**
@@ -1604,7 +1613,8 @@ private:
 		assert(parent->role == BPlusNodeRole::Internal);
 
 		/* Find node’s index in parent */
-		uint8_t i = this->find_child_index(parent, node);
+		assert(node->index_in_parent == this->find_child_index(parent, node));
+		uint8_t i = node->index_in_parent;
 
 		/* If node is below minimum, fix it (internal child path) */
 		if (node->count < MIN_INTERNAL) {
