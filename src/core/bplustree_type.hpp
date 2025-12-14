@@ -17,7 +17,7 @@
 
 #if BPLUSTREE_CHECK
 	/** Validate nodes after insert / erase. */
-#	define VALIDATE_NODES() this->validate()
+#	define VALIDATE_NODES() this->validate_all()
 #else
 	/** Don't check for consistency. */
 #	define VALIDATE_NODES() ;
@@ -234,9 +234,9 @@ public:
 				this->rebuild_leaf_chain(leaves);
 			}
 		}
-#if BPLUSTREE_CHECK
-		this->verify_node(this->root.get());
-#endif
+
+		VALIDATE_NODES();
+
 		return *this;
 	}
 
@@ -1626,7 +1626,12 @@ private:
 	}
 
 #if BPLUSTREE_CHECK
-	void validate() const
+	/**
+	 * Run all validation checks on the tree.
+	 * Combines root invariants, recursive node validation,
+	 * separator consistency, leaf chain linkage, and parent/child invariants.
+	 */
+	void validate_all() const
 	{
 		assert(this->root != nullptr);
 
@@ -1637,52 +1642,31 @@ private:
 		} else if (this->root->role == BPlusNodeRole::Internal) {
 			const Internal *rint = static_cast<const Internal *>(this->root.get());
 			assert(rint->count <= B);
-
-			/* Root must have at least one child unless the tree is empty */
 			for (uint8_t i = 0; i <= rint->count; ++i) {
-				const std::unique_ptr<Node> &ch = rint->children[i];
-				assert(ch != nullptr && "null child");
-
-				if (ch->parent != rint) {
-					std::cerr << "Child " << i
-						<< " has wrong parent " << ch->parent
-						<< " expected " << rint << "\n";
-					this->dump_node(ch.get(), 2);
-					assert(false);
-				}
+				[[maybe_unused]] const Node *ch = rint->children[i].get();
+				assert(ch != nullptr);
+				assert(ch->parent == rint);
 			}
 		} else {
 			assert(false && "Root must be Leaf or Internal");
 		}
 
-		/* Check invariants recursively */
-		this->validate_node(this->root.get(), nullptr, nullptr);
+		/* Recursive node validation (capacity, ordering, ranges, separator consistency) */
+		this->validate_node(this->root.get());
 
-		/* Check leaf linkage */
-		Leaf *leaf = this->leftmost_leaf();
-		Leaf *prev = nullptr;
-		while (leaf != nullptr) {
-			/* Keys strictly ascending within leaf */
-			for (uint8_t i = 1; i < leaf->count; ++i) {
-				assert(leaf->keys[i - 1] < leaf->keys[i]);
-			}
-			/* Link symmetry (both directions) */
-			assert(leaf->prev_leaf == prev);
-			if (prev != nullptr) {
-				assert(prev->next_leaf == leaf);
-			}
-			prev = leaf;
-			leaf = leaf->next_leaf;
-		}
-
-		this->assert_no_leaf_duplicates();
+		/* Leaf chain validation (ordering, linkage, duplicates) */
 		this->validate_leaf_chain();
+
+		/* Parent/index_in_parent invariants */
+		this->verify_node(this->root.get());
 	}
 
 	/**
-	 * Recursive node validation
+	 * Recursive node validation.
+	 * Checks capacity, ordering, range constraints, separator consistency,
+	 * and recurses into children.
 	 */
-	void validate_node(Node *node, const Tkey *min, const Tkey *max) const
+	void validate_node(Node *node, const Tkey *min = nullptr, const Tkey *max = nullptr) const
 	{
 		assert(node != nullptr);
 
@@ -1694,9 +1678,8 @@ private:
 
 			if (leaf->count > 0) {
 				/* Keys strictly ascending */
-				for (uint8_t i = 1; i < leaf->count; ++i) {
-					assert(leaf->keys[i - 1] < leaf->keys[i]);
-				}
+				this->assert_strictly_ascending(leaf->keys, leaf->count);
+
 				/* Range check */
 				if (min != nullptr) {
 					assert(leaf->keys[0] >= *min);
@@ -1705,135 +1688,105 @@ private:
 					assert(leaf->keys[leaf->count - 1] <= *max);
 				}
 			}
-			/* Leaf has no children */
-			return;
+			return; // leaf has no children
 		}
 
 		assert(node->role == BPlusNodeRole::Internal && "validate_node: node must be Leaf or Internal");
 		const Internal *internal = static_cast<const Internal *>(node);
 
+		/* Capacity bounds */
+		assert(internal->count <= B);
+
 		if (internal->count > 0) {
-			/* Internal keys non-decreasing (B+ trees allow equal internal keys via redistribution) */
-			for (uint8_t i = 1; i < internal->count; ++i) {
-				assert(internal->keys[i - 1] <= internal->keys[i]);
-			}
+			/* Internal keys non-decreasing */
+			this->assert_non_decreasing(internal->keys, internal->count);
 		}
 
 		/* Children count = keys + 1, all non-null and correctly parented */
-		for (uint8_t i = 0; i <= internal->count; ++i) {
-			[[maybe_unused]] const std::unique_ptr<Node> &ch = internal->children[i];
-			assert(ch != nullptr);
-			assert(ch->parent == internal);
-		}
+		this->assert_child_invariants(internal);
 
 		/* Separator consistency: parent key == min of right child */
 		for (uint8_t i = 0; i < internal->count; ++i) {
-			Node *right = internal->children[i + 1].get();
-			assert(right != nullptr);
-
-			bool right_has_min = false;
-			if (right->role == BPlusNodeRole::Leaf) {
-				const Leaf *rleaf = static_cast<const Leaf *>(right);
-				right_has_min = (rleaf->count > 0);
-			} else if (right->role == BPlusNodeRole::Internal) {
-				right_has_min = true; // internal min is defined via subtree
-			}
-			assert(right_has_min);
-
-			[[maybe_unused]] const Tkey &right_min = this->subtree_min(right);
-			assert(internal->keys[i] == right_min);
-			this->assert_sep(internal, i);
+			this->assert_separator_consistency(internal, i);
 		}
 
 		/* Recurse into children with updated ranges */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
 			const Tkey *child_min = min;
-			if (i > 0) {
-				child_min = &internal->keys[i - 1];
-			}
+			if (i > 0) child_min = &internal->keys[i - 1];
+
 			const Tkey *child_max = max;
-			if (i < internal->count) {
-				child_max = &internal->keys[i];
-			}
+			if (i < internal->count) child_max = &internal->keys[i];
+
 			this->validate_node(internal->children[i].get(), child_min, child_max);
 		}
 	}
 
-	void validate_leaf_chain() const
+	template <typename T>
+	void assert_strictly_ascending([[maybe_unused]] const T &keys, uint8_t count) const
 	{
-		Leaf *leaf = this->leftmost_leaf();
-		bool has_prev = false;
-		Tkey prev{}; // default-constructed sentinel
-
-		while (leaf != nullptr) {
-			/* Capacity bounds */
-			assert(leaf->count <= B);
-
-			for (uint8_t i = 0; i < leaf->count; ++i) {
-				if (has_prev) {
-					assert(prev < leaf->keys[i] && "Leaf chain keys must be strictly ascending");
-				}
-				prev = leaf->keys[i];
-				has_prev = true;
-			}
-
-			/* Link symmetry check */
-			if (leaf->next_leaf != nullptr) {
-				assert(leaf->next_leaf->prev_leaf == leaf && "Leaf linkage must be bidirectional");
-			}
-
-			leaf = leaf->next_leaf;
+		for (uint8_t i = 1; i < count; ++i) {
+			assert(keys[i - 1] < keys[i]);
 		}
 	}
 
-	void validate_separators(Node *node) const
+	template <typename T>
+	void assert_non_decreasing([[maybe_unused]] const T &keys, uint8_t count) const
 	{
-		if (node == nullptr) {
-			return;
+		for (uint8_t i = 1; i < count; ++i) {
+			assert(keys[i - 1] <= keys[i]);
 		}
+	}
 
-		if (node->role == BPlusNodeRole::Leaf) {
-			/* nothing to validate inside a leaf */
-			return;
-		}
-
-		assert(node->role == BPlusNodeRole::Internal && "validate_separators: node must be Leaf or Internal");
-		Internal *internal = static_cast<Internal *>(node);
-
-		for (uint8_t i = 0; i < internal->count; ++i) {
-			Node *right = internal->children[i + 1].get();
-			assert(right != nullptr);
-
-			const Tkey &right_min = this->subtree_min(right);
-			assert(internal->keys[i] == right_min && "Separator must equal min of right subtree");
-		}
-
+	void assert_child_invariants(const Internal *internal) const
+	{
 		for (uint8_t i = 0; i <= internal->count; ++i) {
-			this->validate_separators(internal->children[i].get());
+			[[maybe_unused]] Node *child = internal->children[i].get();
+			assert(child != nullptr);
+			assert(child->parent == internal);
+			assert(child->index_in_parent == i);
 		}
+	}
+
+	void assert_separator_consistency(const Internal *internal, uint8_t i) const
+	{
+		Node *right = internal->children[i + 1].get();
+		assert(right != nullptr);
+		[[maybe_unused]] const Tkey &right_min = this->subtree_min(right);
+		assert(internal->keys[i] == right_min && "Separator must equal min of right subtree");
 	}
 
 	/**
 	 * No duplicates across leaves (global check).
 	 * Ensures keys are strictly increasing across the entire leaf chain.
 	 */
-	void assert_no_leaf_duplicates() const
+	void validate_leaf_chain() const
 	{
 		Leaf *leaf = this->leftmost_leaf();
+		Leaf *prev = nullptr;
+		Tkey prev_key{}; // default-constructed sentinel
 		bool has_prev = false;
-		Tkey prev{}; // sentinel
 
 		while (leaf != nullptr) {
+			/* Capacity bounds */
 			assert(leaf->count <= B);
+
+			/* Keys strictly ascending within leaf */
+			this->assert_strictly_ascending(leaf->keys, leaf->count);
 
 			for (uint8_t i = 0; i < leaf->count; ++i) {
 				if (has_prev) {
-					assert(prev < leaf->keys[i] && "Duplicate or out-of-order key across leaves");
+					assert(prev_key < leaf->keys[i] && "Leaf chain keys must be strictly ascending");
 				}
-				prev = leaf->keys[i];
+				prev_key = leaf->keys[i];
 				has_prev = true;
 			}
 
+			/* Link symmetry check */
+			assert(leaf->prev_leaf == prev);
+			assert(prev == nullptr || prev->next_leaf == leaf);
+
+			prev = leaf;
 			leaf = leaf->next_leaf;
 		}
 	}
@@ -1841,7 +1794,7 @@ private:
 	/**
 	 * Recursive verification of parent/index_in_parent invariants
 	 */
-	void verify_node(Node *n)
+	void verify_node(Node *n) const
 	{
 		if (n == nullptr) {
 			return;
@@ -1861,6 +1814,9 @@ private:
 	}
 #endif /* BPLUSTREE_CHECK */
 
+	/**
+	 * Return the minimum key in the subtree rooted at node.
+	 */
 	const Tkey &subtree_min(Node *node) const
 	{
 		assert(node != nullptr);
@@ -1884,29 +1840,24 @@ private:
 	/**
 	 * Generic key-to-string helper.
 	 * Works for any type K that supports operator<<.
+	 * Special handling for pair-like types.
 	 */
-	template <typename K>
-	std::string key_to_string(const K &k) const
+	template <typename T>
+	std::string sequence_to_string(const T &key) const
 	{
 		std::ostringstream oss;
-		oss << k;
+		if constexpr (requires { key.first; key.second; }) {
+			oss << "(" << this->sequence_to_string(key.first)
+				<< "," << this->sequence_to_string(key.second) << ")";
+		} else {
+			oss << key;
+		}
 		return oss.str();
 	}
 
 	/**
-	 * Specialization for std::pair.
-	 * Prints as "(first,second)" using key_to_string recursively.
+	 * Separator assertion with detailed error reporting.
 	 */
-	template <typename V, typename K>
-	std::string key_to_string(const std::pair<V, K> &p) const
-	{
-		std::ostringstream oss;
-		oss << "(" << this->key_to_string(p.first)
-			<< "," << this->key_to_string(p.second)
-			<< ")";
-		return oss.str();
-	}
-
 	void assert_sep(const Internal *parent, uint8_t sep_idx) const
 	{
 		assert(parent != nullptr);
@@ -1921,18 +1872,33 @@ private:
 		if (sep != right_min) {
 			std::cerr << "[SEP MISMATCH] parent=" << parent
 				<< " sep_idx=" << sep_idx
-				<< " sep=" << this->key_to_string(sep)
-				<< " right_min=" << this->key_to_string(right_min)
-				<< " parent.count=" << parent->count
-				<< "\n";
-
+				<< " sep=" << this->sequence_to_string(sep)
+				<< " right_min=" << this->sequence_to_string(right_min)
+				<< " parent.count=" << parent->count << "\n";
 			this->dump_node(parent, 0);
-			this->dump_node(right_node, 2); // right_node is already a Node *
+			this->dump_node(right_node, 2);
 			assert(false);
 		}
 	}
 
+	/**
+	 * Utility to print keys and values in a uniform way.
+	 */
+	template <typename T>
+	void dump_sequence(const T &sequence, uint8_t count) const
+	{
+		for (uint8_t i = 0; i < count; ++i) {
+			std::cerr << this->sequence_to_string(sequence[i]);
+			if (i + 1 < count) {
+				std::cerr << ",";
+			}
+		}
+	}
+
 public:
+	/**
+	 * Dump a node and its subtree for debugging.
+	 */
 	void dump_node(const Node *node = nullptr, int indent = 0) const
 	{
 		std::string pad(indent, ' ');
@@ -1941,44 +1907,26 @@ public:
 			if (indent == 0) {
 				node = this->root.get();
 			} else {
-				std::cerr << pad << "null\n";
-				return;
+				std::cerr << pad << "null\n"; return;
 			}
 		}
 
 		if (node->role == BPlusNodeRole::Leaf) {
 			const Leaf *leaf = static_cast<const Leaf *>(node);
-
 			std::cerr << pad << "Leaf count=" << leaf->count << " keys=[";
-			for (uint8_t i = 0; i < leaf->count; ++i) {
-				std::cerr << this->key_to_string(leaf->keys[i]);
-				if (i + 1 < leaf->count) {
-					std::cerr << ",";
-				}
-			}
+			this->dump_sequence(leaf->keys, leaf->count);
 			std::cerr << "]\n";
 
 			if constexpr (!std::is_void_v<Tvalue>) {
 				std::cerr << pad << "  values=[";
-				for (uint8_t i = 0; i < leaf->count; ++i) {
-					std::cerr << leaf->values[i];
-					if (i + 1 < leaf->count) {
-						std::cerr << ",";
-					}
-				}
+				this->dump_sequence(leaf->values, leaf->count);
 				std::cerr << "]\n";
 			}
 
 		} else if (node->role == BPlusNodeRole::Internal) {
 			const Internal *internal = static_cast<const Internal *>(node);
-
 			std::cerr << pad << "Internal count=" << internal->count << " keys=[";
-			for (uint8_t i = 0; i < internal->count; ++i) {
-				std::cerr << this->key_to_string(internal->keys[i]);
-				if (i + 1 < internal->count) {
-					std::cerr << ",";
-				}
-			}
+			this->dump_sequence(internal->keys, internal->count);
 			std::cerr << "]\n";
 
 			for (uint8_t i = 0; i <= internal->count; ++i) {
@@ -1986,13 +1934,12 @@ public:
 				this->dump_node(internal->children[i].get(), indent + 4);
 			}
 
-			/* Print separators with right.min */
 			for (uint8_t i = 0; i < internal->count; ++i) {
 				Node *right = internal->children[i + 1].get();
 				if (right != nullptr) {
 					std::cerr << pad << "  separator[" << i << "]="
-						<< this->key_to_string(internal->keys[i])
-						<< " (right.min=" << this->key_to_string(this->subtree_min(right)) << ")\n";
+						<< this->sequence_to_string(internal->keys[i])
+						<< " (right.min=" << this->sequence_to_string(this->subtree_min(right)) << ")\n";
 				}
 			}
 		} else {
