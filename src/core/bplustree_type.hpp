@@ -851,7 +851,7 @@ private:
 		}
 
 		/* Parent exists: ensure space */
-		while (parent->count == B - 1) {
+		if (parent->count == B) {
 			this->split_internal(parent);
 			assert(left->parent != nullptr && left->parent->role == BPlusNodeRole::Internal);
 			parent = left->parent; // left may have moved
@@ -893,6 +893,7 @@ private:
 	void split_internal(Internal *node)
 	{
 		assert(node != nullptr);
+		assert(node->count == B && "split_internal called on non-full internal");
 
 		uint8_t mid = node->count / 2;
 		assert(mid < node->count);
@@ -926,7 +927,7 @@ private:
 		/* Clear dangling child slots beyond mid in left */
 		std::fill(node->children.begin() + mid + 1, node->children.begin() + B + 1, nullptr);
 
-		/* Ensure remaining children in left are wired correctly */
+		/* Verify left children wiring */
 		assert(this->verify_children_parent(node));
 
 		assert(node->count == mid);
@@ -1050,6 +1051,7 @@ private:
 			/* 4) Update counts */
 			++leaf->count;
 			--right->count;
+			assert(right->count >= MIN_LEAF);
 
 			/* 5) Shift donor left */
 			std::move(right->keys.begin() + 1, right->keys.begin() + right->count + 1, right->keys.begin());
@@ -1083,6 +1085,7 @@ private:
 			/* 4) Update counts */
 			++leaf->count;
 			--left->count;
+			assert(left->count >= MIN_LEAF);
 
 			/* 5) Donor shift not needed (removed last element) */
 
