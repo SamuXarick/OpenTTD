@@ -25,8 +25,8 @@
 
 /**
  * Unified B+ tree template.
- * - If Tvalue != void → behaves like std::map<Tkey,Tvalue>
- * - If Tvalue == void → behaves like std::set<Tkey>
+ * - If Tvalue != void -> behaves like std::map<Tkey,Tvalue>
+ * - If Tvalue == void -> behaves like std::set<Tkey>
  */
 
 /**
@@ -137,7 +137,7 @@ struct BPlusInternalSet : BPlusNodeSet<Tkey, B> {
 };
 
 /**
- * 7) Traits — primary template and partial specialization for set mode
+ * 7) Traits - primary template and partial specialization for set mode
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusNodeTraits {
@@ -156,7 +156,7 @@ struct BPlusNodeTraits<Tkey, void, B> {
 };
 
 /**
- * 8) Tree — use traits for types, including root
+ * 8) Tree - use traits for types, including root
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 class BPlusTree {
@@ -461,7 +461,7 @@ public:
 
 		Node *node = this->root.get();
 
-		/* Descend while we’re in an internal node */
+		/* Descend while we're in an internal node */
 		while (node->role == BPlusNodeRole::Internal) {
 			Internal *internal = static_cast<Internal *>(node);
 			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
@@ -822,7 +822,7 @@ private:
 		Internal *parent = left->parent;
 		assert(left->parent == nullptr || left->parent->role == BPlusNodeRole::Internal);
 
-		/* Root case: parent == nullptr → create fresh internal root */
+		/* Root case: parent == nullptr -> create fresh internal root */
 		if (parent == nullptr) {
 			std::unique_ptr<Internal> new_root_ptr = std::make_unique<Internal>();
 			Internal *new_root = new_root_ptr.get();
@@ -935,7 +935,7 @@ private:
 		/* Insert separator and right child into parent */
 		this->insert_into_parent(node, separator, std::move(right_node));
 
-		/* After insertion, parent’s children changed; defensively rewire */
+		/* After insertion, parent's children changed; defensively rewire */
 		assert(this->verify_children_parent(node->parent));
 	}
 
@@ -1036,7 +1036,7 @@ private:
 
 			/* 1) Prepare slot at end (no shift needed) */
 
-			/* 2) Insert donor extremum: right.min → leaf[end] */
+			/* 2) Insert donor extremum: right.min -> leaf[end] */
 			leaf->keys[leaf->count] = right->keys[0];
 			if constexpr (!std::is_void_v<Tvalue>)
 				leaf->values[leaf->count] = std::move(right->values[0]);
@@ -1070,7 +1070,7 @@ private:
 			if constexpr (!std::is_void_v<Tvalue>)
 				std::move_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
 
-			/* 2) Insert donor extremum: left.max → leaf[0] */
+			/* 2) Insert donor extremum: left.max -> leaf[0] */
 			leaf->keys[0] = left->keys[left->count - 1];
 			if constexpr (!std::is_void_v<Tvalue>)
 				leaf->values[0] = std::move(left->values[left->count - 1]);
@@ -1328,7 +1328,7 @@ private:
 			/* 2) Insert parent key into left[end] */
 			left->keys[left->count] = std::move(parent->keys[left_idx]);
 
-			/* 3) Move donor’s first child into left[end + 1] */
+			/* 3) Move donor's first child into left[end + 1] */
 			left->children[left->count + 1] = std::move(right->children[0]);
 			if (left->children[left->count + 1] != nullptr) {
 				Node *moved = left->children[left->count + 1].get();
@@ -1339,7 +1339,7 @@ private:
 			/* 4) Update recipient count */
 			++left->count;
 
-			/* 5) Move donor’s first key up into parent */
+			/* 5) Move donor's first key up into parent */
 			parent->keys[left_idx] = std::move(right->keys[0]);
 
 			/* 6) Shift donor left to close gap */
@@ -1361,7 +1361,7 @@ private:
 		} else {
 			/* Right receives from left */
 
-			/* 1) Prepare recipient slot (shift right’s keys/children right) */
+			/* 1) Prepare recipient slot (shift right's keys/children right) */
 			std::move_backward(right->keys.begin(), right->keys.begin() + right->count, right->keys.begin() + right->count + 1);
 			std::move_backward(right->children.begin(), right->children.begin() + right->count + 1, right->children.begin() + right->count + 2);
 
@@ -1377,7 +1377,7 @@ private:
 			/* 3) Insert parent key into right[0] */
 			right->keys[0] = std::move(parent->keys[left_idx]);
 
-			/* 4) Move donor’s last child into right[0] */
+			/* 4) Move donor's last child into right[0] */
 			right->children[0] = std::move(left->children[left->count]);
 			if (right->children[0] != nullptr) {
 				Node *moved = right->children[0].get();
@@ -1388,7 +1388,7 @@ private:
 			/* 5) Update recipient count */
 			++right->count;
 
-			/* 6) Move donor’s last key up into parent */
+			/* 6) Move donor's last key up into parent */
 			parent->keys[left_idx] = std::move(left->keys[left->count - 1]);
 
 			/* 7) Update donor count */
@@ -1436,10 +1436,10 @@ private:
 		/* Append separator i */
 		left->keys[left->count] = std::move(parent->keys[i]);
 
-		/* Move right’s keys into left */
+		/* Move right's keys into left */
 		std::move(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count + 1);
 
-		/* Move right’s children into left */
+		/* Move right's children into left */
 		std::move(right->children.begin(), right->children.begin() + right->count + 1, left->children.begin() + left->count + 1);
 
 		/* Fix parent/index_in_parent pointers for moved children */
@@ -1469,7 +1469,7 @@ private:
 	}
 
 	/**
-	 * Fix underflow when parent’s child at i is an internal node.
+	 * Fix underflow when parent's child at i is an internal node.
 	 * Chooses borrow if possible; otherwise merges.
 	 */
 	void fix_underflow_internal_child(Internal *parent, uint8_t i)
@@ -1566,7 +1566,7 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		/* Case 1: root is a Leaf → nothing to shrink */
+		/* Case 1: root is a Leaf -> nothing to shrink */
 		if (this->root->role == BPlusNodeRole::Leaf) {
 			return;
 		}
@@ -1612,7 +1612,7 @@ private:
 		Internal *parent = static_cast<Internal *>(node->parent);
 		assert(parent->role == BPlusNodeRole::Internal);
 
-		/* Find node’s index in parent */
+		/* Find node's index in parent */
 		assert(node->index_in_parent == this->find_child_index(parent, node));
 		uint8_t i = node->index_in_parent;
 
@@ -1621,7 +1621,7 @@ private:
 			this->fix_underflow_internal_child(parent, i);
 		}
 
-		/* Defensive note: if parent becomes empty and isn’t root,
+		/* Defensive note: if parent becomes empty and isn't root,
 		 * its own parent will handle it when reached. */
 	}
 
@@ -1739,10 +1739,14 @@ private:
 		/* Recurse into children with updated ranges */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
 			const Tkey *child_min = min;
-			if (i > 0) child_min = &internal->keys[i - 1];
+			if (i > 0) {
+				child_min = &internal->keys[i - 1];
+			}
 
 			const Tkey *child_max = max;
-			if (i < internal->count) child_max = &internal->keys[i];
+			if (i < internal->count) {
+				child_max = &internal->keys[i];
+			}
 
 			this->validate_node(internal->children[i].get(), child_min, child_max);
 		}
@@ -1933,7 +1937,8 @@ public:
 			if (indent == 0) {
 				node = this->root.get();
 			} else {
-				std::cerr << pad << "null\n"; return;
+				std::cerr << pad << "null\n";
+				return;
 			}
 		}
 
