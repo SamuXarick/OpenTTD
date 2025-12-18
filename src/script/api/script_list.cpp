@@ -103,189 +103,129 @@ public:
 };
 
 /**
- * Sort by value, ascending.
+ * Base class for any ScriptList sorter.
  */
-class ScriptListSorterValueAscending : public ScriptListSorter {
-private:
-	ScriptList::ScriptListSet::const_iterator value_iter; ///< The iterator over the value/item pairs in the set.
+template <bool ASCENDING, typename Range, auto CollectionProjection, auto ItemProjection>
+class ScriptListSorterT : public ScriptListSorter {
+protected:
+	/* Note: We cannot use reverse_iterator.
+	 *       The iterators must only be invalidated when the element they are pointing to is removed.
+	 *       This only holds for forward iterators. */
+	typename Range::const_iterator iter; ///< The iterator over the value/item pairs in the set.
+	static_assert(std::ranges::range<Range>);
 
-public:
 	/**
 	 * Create a new sorter.
 	 * @param list The list to sort.
 	 */
-	ScriptListSorterValueAscending(const ScriptList *list) : ScriptListSorter(list) {}
+	ScriptListSorterT(const ScriptList *list) : ScriptListSorter(list) {}
 
-	std::optional<SQInteger> Begin() override
+public:
+	/**
+	 * Get the first item of the sorter.
+	 */
+	std::optional<SQInteger> Begin() final
 	{
-		if (this->list->values.empty()) {
+		const Range *range = CollectionProjection(this->list);
+		if (range->empty()) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
-		this->value_iter = this->list->values.begin();
-		this->item_next = this->value_iter->second;
+		if constexpr (ASCENDING) {
+			this->iter = range->begin();
+		} else {
+			this->iter = range->end();
+			--this->iter;
+		}
+
+		this->item_next = ItemProjection(this->iter);
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
 		return item_current;
 	}
 
-	void FindNext() override
+	/**
+	 * Actually try to find the next item.
+	 */
+	void FindNext() final
 	{
+		const Range *range = CollectionProjection(this->list);
 		this->item_next = std::nullopt;
-		if (this->value_iter == this->list->values.end()) {
+		if (this->iter == range->end()) {
 			this->has_no_more_items = true;
 			return;
 		}
-		++this->value_iter;
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
+
+		if constexpr (ASCENDING) {
+			++this->iter;
+		} else {
+			if (this->iter == range->begin()) {
+				/* Use 'end' as marker for 'beyond begin' */
+				this->iter = range->end();
+			} else {
+				--this->iter;
+			}
+		}
+
+		if (this->iter != range->end()) this->item_next = ItemProjection(this->iter);
 	}
+};
+
+auto ValueCollectionProjection = [](const ScriptList *list) constexpr { return &list->values; };
+auto ValueItemProjection = [](const auto &p) constexpr { return p->second; };
+
+/**
+ * Sort by value, ascending.
+ */
+class ScriptListSorterValueAscending : public ScriptListSorterT<true, ScriptList::ScriptListSet, ValueCollectionProjection, ValueItemProjection> {
+public:
+	/**
+	 * Create a new sorter.
+	 * @param list The list to sort.
+	 */
+	ScriptListSorterValueAscending(const ScriptList *list) : ScriptListSorterT(list) {}
 };
 
 /**
  * Sort by value, descending.
  */
-class ScriptListSorterValueDescending : public ScriptListSorter {
-private:
-	/* Note: We cannot use reverse_iterator.
-	 *       The iterators must only be invalidated when the element they are pointing to is removed.
-	 *       This only holds for forward iterators. */
-	ScriptList::ScriptListSet::const_iterator value_iter; ///< The iterator over the value/item pairs in the set.
-
+class ScriptListSorterValueDescending : public ScriptListSorterT<false, ScriptList::ScriptListSet, ValueCollectionProjection, ValueItemProjection>  {
 public:
 	/**
 	 * Create a new sorter.
 	 * @param list The list to sort.
 	 */
-	ScriptListSorterValueDescending(const ScriptList *list) : ScriptListSorter(list) {}
-
-	std::optional<SQInteger> Begin() override
-	{
-		if (this->list->values.empty()) {
-			this->item_next = std::nullopt;
-			return std::nullopt;
-		}
-		this->has_no_more_items = false;
-
-		this->value_iter = this->list->values.end();
-		--this->value_iter;
-		this->item_next = this->value_iter->second;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void FindNext() override
-	{
-		this->item_next = std::nullopt;
-		if (this->value_iter == this->list->values.end()) {
-			this->has_no_more_items = true;
-			return;
-		}
-		if (this->value_iter == this->list->values.begin()) {
-			/* Use 'end' as marker for 'beyond begin' */
-			this->value_iter = this->list->values.end();
-		} else {
-			--this->value_iter;
-		}
-		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
-	}
+	ScriptListSorterValueDescending(const ScriptList *list) : ScriptListSorterT(list) {}
 };
+
+auto MapCollectionProjection = [](const ScriptList *list) constexpr { return &list->items; };
+auto MapItemProjection = [](const auto &p) constexpr { return p->first; };
 
 /**
  * Sort by item, ascending.
  */
-class ScriptListSorterItemAscending : public ScriptListSorter {
-private:
-	ScriptList::ScriptListMap::const_iterator item_iter; ///< The iterator over the items in the map.
-
+class ScriptListSorterItemAscending : public ScriptListSorterT<true, ScriptList::ScriptListMap, MapCollectionProjection, MapItemProjection>  {
 public:
 	/**
 	 * Create a new sorter.
 	 * @param list The list to sort.
 	 */
-	ScriptListSorterItemAscending(const ScriptList *list) : ScriptListSorter(list) {}
-
-	std::optional<SQInteger> Begin() override
-	{
-		if (this->list->items.empty()) {
-			this->item_next = std::nullopt;
-			return std::nullopt;
-		}
-		this->has_no_more_items = false;
-
-		this->item_iter = this->list->items.begin();
-		this->item_next = this->item_iter->first;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void FindNext() override
-	{
-		this->item_next = std::nullopt;
-		if (this->item_iter == this->list->items.end()) {
-			this->has_no_more_items = true;
-			return;
-		}
-		++this->item_iter;
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
-	}
+	ScriptListSorterItemAscending(const ScriptList *list) : ScriptListSorterT(list) {}
 };
 
 /**
  * Sort by item, descending.
  */
-class ScriptListSorterItemDescending : public ScriptListSorter {
-private:
-	/* Note: We cannot use reverse_iterator.
-	 *       The iterators must only be invalidated when the element they are pointing to is removed.
-	 *       This only holds for forward iterators. */
-	ScriptList::ScriptListMap::const_iterator item_iter; ///< The iterator over the items in the map.
-
+class ScriptListSorterItemDescending : public ScriptListSorterT<false, ScriptList::ScriptListMap, MapCollectionProjection, MapItemProjection> {
 public:
 	/**
 	 * Create a new sorter.
 	 * @param list The list to sort.
 	 */
-	ScriptListSorterItemDescending(const ScriptList *list) : ScriptListSorter(list) {}
-
-	std::optional<SQInteger> Begin() override
-	{
-		if (this->list->items.empty()) {
-			this->item_next = std::nullopt;
-			return std::nullopt;
-		}
-		this->has_no_more_items = false;
-
-		this->item_iter = this->list->items.end();
-		--this->item_iter;
-		this->item_next = this->item_iter->first;
-
-		std::optional<SQInteger> item_current = this->item_next;
-		this->FindNext();
-		return item_current;
-	}
-
-	void FindNext() override
-	{
-		this->item_next = std::nullopt;
-		if (this->item_iter == this->list->items.end()) {
-			this->has_no_more_items = true;
-			return;
-		}
-		if (this->item_iter == this->list->items.begin()) {
-			/* Use 'end' as marker for 'beyond begin' */
-			this->item_iter = this->list->items.end();
-		} else {
-			--this->item_iter;
-		}
-		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
-	}
+	ScriptListSorterItemDescending(const ScriptList *list) : ScriptListSorterT(list) {}
 };
 
 
