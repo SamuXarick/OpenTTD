@@ -25,7 +25,7 @@ class ScriptListSorter;
 class ScriptList : public ScriptObject {
 public:
 	/** Type of sorter */
-	enum SorterType {
+	enum SorterType : int8_t {
 		SORT_BY_VALUE, ///< Sort the list based on the value of the item.
 		SORT_BY_ITEM,  ///< Sort the list based on the item itself.
 	};
@@ -35,13 +35,31 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
+	using ScriptListValueSet = std::set<std::pair<SQInteger, SQInteger>>; // [value, item]
+
+	struct ItemRecord {
+		SQInteger value;
+		ScriptListValueSet::iterator viter;  ///< iterator into `values`
+
+		explicit ItemRecord(SQInteger value) : value(value), viter() {}
+	};
+
+	using ScriptListMap = std::map<SQInteger, ItemRecord>; // key = item
+
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
 	SorterType sorter_type;       ///< Sorting type
 	bool sort_ascending;          ///< Whether to sort ascending or descending
 	bool initialized;             ///< Whether an iteration has been started
+	bool values_inited;           ///< Whether the 'values' field has been initialised
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
-	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
+	std::optional<ScriptListMap::iterator> resume_iter; ///< Iteration to use on valuation start.
+
+	void InitValues();
+	void InitSorter();
+	void SetIterValue(ScriptListMap::iterator item_iter, SQInteger value);
+	ScriptListMap::iterator RemoveIter(ScriptListMap::iterator item_iter);
+	void RemoveValueIter(ScriptListValueSet::iterator value_iter);
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -159,19 +177,18 @@ protected:
 	{
 		this->modifications++;
 
-		for (ScriptListMap::iterator next_iter, iter = this->items.begin(); iter != this->items.end(); iter = next_iter) {
-			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second)) this->RemoveItem(iter->first);
+		for (auto iter = this->items.begin(); iter != this->items.end();) {
+			if (value_filter(iter->first, iter->second.value)) {
+				iter = this->RemoveIter(iter);
+			} else {
+				++iter;
+			}
 		}
 	}
 
 public:
-	typedef std::set<SQInteger> ScriptItemList;                   ///< The list of items inside the bucket
-	typedef std::map<SQInteger, ScriptItemList> ScriptListBucket; ///< The bucket list per value
-	typedef std::map<SQInteger, SQInteger> ScriptListMap;         ///< List per item
-
-	ScriptListMap items;           ///< The items in the list
-	ScriptListBucket buckets;      ///< The items in the list, sorted by value
+	ScriptListMap items;       ///< The items in the list
+	ScriptListValueSet values; ///< The items in the list, sorted by value
 
 	ScriptList();
 	~ScriptList();
@@ -186,6 +203,16 @@ public:
 #else
 	void AddItem(SQInteger item, SQInteger value = 0);
 #endif /* DOXYGEN_API */
+
+	/**
+	 * @api -all
+	 */
+	void AddOrSetItem(SQInteger item, SQInteger value);
+
+	/**
+	 * @api -all
+	 */
+	ScriptListMap::iterator AddOrSetItem(ScriptListMap::iterator hint, SQInteger item, SQInteger value = 0);
 
 	/**
 	 * Remove a single item from the list.
