@@ -36,24 +36,16 @@ template <typename Tkey, typename Tvalue = void, uint8_t B = 64>
 class BPlusTree;
 
 /**
- * 2) Role
- */
-enum class BPlusNodeRole : uint8_t {
-	Leaf,
-	Internal
-};
-
-/**
- * 3) Common base (shared fields, virtual dtor)
+ * 2) Common base (shared fields, virtual dtor)
  */
 template <typename Tkey, uint8_t B>
 struct BPlusNodeBase {
-	BPlusNodeRole role;
+	bool is_leaf; // Leaf or Internal
 	uint8_t count = 0;
 	uint8_t index_in_parent = 0;
 	std::array<Tkey, B> keys;
 
-	explicit BPlusNodeBase(BPlusNodeRole role) : role(role)
+	explicit BPlusNodeBase(bool is_leaf) : is_leaf(is_leaf)
 	{
 	}
 
@@ -61,7 +53,7 @@ struct BPlusNodeBase {
 };
 
 /**
- * 4) Forward declare internals (needed for parent pointers)
+ * 3) Forward declare internals (needed for parent pointers)
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusInternalMap;
@@ -70,13 +62,13 @@ template <typename Tkey, uint8_t B>
 struct BPlusInternalSet;
 
 /**
- * 5) Map mode hierarchy
+ * 4) Map mode hierarchy
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusNodeMap : BPlusNodeBase<Tkey, B> {
 	BPlusInternalMap<Tkey, Tvalue, B> *parent = nullptr; // always internal or null (root)
 
-	explicit BPlusNodeMap(BPlusNodeRole role) : BPlusNodeBase<Tkey, B>(role)
+	explicit BPlusNodeMap(bool is_leaf) : BPlusNodeBase<Tkey, B>(is_leaf)
 	{
 	}
 
@@ -89,7 +81,7 @@ struct BPlusLeafMap : BPlusNodeMap<Tkey, Tvalue, B> {
 	BPlusLeafMap *next_leaf = nullptr;
 	BPlusLeafMap *prev_leaf = nullptr;
 
-	BPlusLeafMap() : BPlusNodeMap<Tkey, Tvalue, B>(BPlusNodeRole::Leaf)
+	BPlusLeafMap() : BPlusNodeMap<Tkey, Tvalue, B>(true)
 	{
 	}
 };
@@ -98,19 +90,19 @@ template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusInternalMap : BPlusNodeMap<Tkey, Tvalue, B> {
 	std::array<std::unique_ptr<BPlusNodeMap<Tkey, Tvalue, B>>, B + 1> children;
 
-	BPlusInternalMap() : BPlusNodeMap<Tkey, Tvalue, B>(BPlusNodeRole::Internal)
+	BPlusInternalMap() : BPlusNodeMap<Tkey, Tvalue, B>(false)
 	{
 	}
 };
 
 /**
- * 6) Set mode hierarchy
+ * 5) Set mode hierarchy
  */
 template <typename Tkey, uint8_t B>
 struct BPlusNodeSet : BPlusNodeBase<Tkey, B> {
 	BPlusInternalSet<Tkey, B> *parent = nullptr; // always internal or null (root)
 
-	explicit BPlusNodeSet(BPlusNodeRole role) : BPlusNodeBase<Tkey, B>(role)
+	explicit BPlusNodeSet(bool is_leaf) : BPlusNodeBase<Tkey, B>(is_leaf)
 	{
 	}
 
@@ -122,7 +114,7 @@ struct BPlusLeafSet : BPlusNodeSet<Tkey, B> {
 	BPlusLeafSet *next_leaf = nullptr;
 	BPlusLeafSet *prev_leaf = nullptr;
 
-	BPlusLeafSet() : BPlusNodeSet<Tkey, B>(BPlusNodeRole::Leaf)
+	BPlusLeafSet() : BPlusNodeSet<Tkey, B>(true)
 	{
 	}
 };
@@ -131,13 +123,13 @@ template <typename Tkey, uint8_t B>
 struct BPlusInternalSet : BPlusNodeSet<Tkey, B> {
 	std::array<std::unique_ptr<BPlusNodeSet<Tkey, B>>, B + 1> children;
 
-	BPlusInternalSet() : BPlusNodeSet<Tkey, B>(BPlusNodeRole::Internal)
+	BPlusInternalSet() : BPlusNodeSet<Tkey, B>(false)
 	{
 	}
 };
 
 /**
- * 7) Traits - primary template and partial specialization for set mode
+ * 6) Traits - primary template and partial specialization for set mode
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 struct BPlusNodeTraits {
@@ -156,7 +148,7 @@ struct BPlusNodeTraits<Tkey, void, B> {
 };
 
 /**
- * 8) Tree - use traits for types, including root
+ * 7) Tree - use traits for types, including root
  */
 template <typename Tkey, typename Tvalue, uint8_t B>
 class BPlusTree {
@@ -199,7 +191,7 @@ public:
 	 */
 	void clear() noexcept
 	{
-		this->root = std::make_unique<Leaf>(); // Leaf ctor sets role = Leaf
+		this->root = std::make_unique<Leaf>(); // Leaf ctor sets is_leaf = Leaf
 	}
 
 	/**
@@ -247,7 +239,7 @@ private:
 			return 0;
 		}
 
-		if (node->role == BPlusNodeRole::Leaf) {
+		if (node->is_leaf) {
 			return node->count;
 		} else {
 			const Internal *internal = static_cast<const Internal *>(node);
@@ -261,7 +253,7 @@ private:
 
 	std::unique_ptr<Node> clone_node(const Node *src, Internal *parent, uint8_t slot, std::vector<Leaf *> &leaves)
 	{
-		if (src->role == BPlusNodeRole::Leaf) {
+		if (src->is_leaf) {
 			const Leaf *src_leaf = static_cast<const Leaf *>(src);
 			std::unique_ptr<Leaf> dst_leaf = std::make_unique<Leaf>();
 
@@ -462,7 +454,7 @@ public:
 		Node *node = this->root.get();
 
 		/* Descend while we're in an internal node */
-		while (node->role == BPlusNodeRole::Internal) {
+		while (!node->is_leaf) {
 			Internal *internal = static_cast<Internal *>(node);
 			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
 			assert(internal->children[i] != nullptr);
@@ -592,7 +584,7 @@ private:
 		Node *node = this->root.get();
 
 		/* Descend leftmost children while internal */
-		while (node->role == BPlusNodeRole::Internal) {
+		while (!node->is_leaf) {
 			Internal *internal = static_cast<Internal *>(node);
 			assert(internal->children[0] != nullptr);
 			node = internal->children[0].get();
@@ -611,7 +603,7 @@ private:
 		Node *node = this->root.get();
 
 		/* Descend rightmost children while internal */
-		while (node->role == BPlusNodeRole::Internal) {
+		while (!node->is_leaf) {
 			Internal *internal = static_cast<Internal *>(node);
 			assert(internal->children[internal->count] != nullptr);
 			node = internal->children[internal->count].get();
@@ -738,7 +730,7 @@ private:
 		Node *node = this->root.get();
 
 		/* Descend while internal */
-		while (node->role == BPlusNodeRole::Internal) {
+		while (!node->is_leaf) {
 			Internal *internal = static_cast<Internal *>(node);
 			uint8_t i = this->upper_bound(internal->keys, internal->count, key);
 			assert(internal->children[i] != nullptr);
@@ -761,7 +753,7 @@ private:
 		}
 
 		/* Must be an internal node */
-		assert(node->role == BPlusNodeRole::Internal);
+		assert(!node->is_leaf);
 		Internal *internal = static_cast<Internal *>(node);
 
 		for (uint8_t i = 0; i <= internal->count; ++i) {
@@ -820,7 +812,7 @@ private:
 	{
 		/* Parent must be an internal node if it exists */
 		Internal *parent = left->parent;
-		assert(left->parent == nullptr || left->parent->role == BPlusNodeRole::Internal);
+		assert(left->parent == nullptr || !left->parent->is_leaf);
 
 		/* Root case: parent == nullptr -> create fresh internal root */
 		if (parent == nullptr) {
@@ -853,7 +845,7 @@ private:
 		/* Parent exists: ensure space */
 		if (parent->count == B) {
 			this->split_internal(parent);
-			assert(left->parent != nullptr && left->parent->role == BPlusNodeRole::Internal);
+			assert(left->parent != nullptr && !left->parent->is_leaf);
 			parent = left->parent; // left may have moved
 		}
 
@@ -990,7 +982,7 @@ private:
 		assert(right != nullptr);
 
 		/* Case 1: right child is a Leaf */
-		if (right->role == BPlusNodeRole::Leaf) {
+		if (right->is_leaf) {
 			Leaf *right_leaf = static_cast<Leaf *>(right);
 			assert(right_leaf->count > 0 && "Empty right leaf should have been removed in merge");
 			parent->keys[sep_idx] = right_leaf->keys[0];
@@ -1001,7 +993,7 @@ private:
 			Node *cur = right_internal;
 
 			/* Descend to leftmost leaf of right subtree */
-			while (cur->role == BPlusNodeRole::Internal) {
+			while (!cur->is_leaf) {
 				Internal *internal = static_cast<Internal *>(cur);
 				assert(internal->children[0] != nullptr);
 				cur = internal->children[0].get();
@@ -1277,7 +1269,7 @@ private:
 		Node *child = parent->children[i].get();
 		assert(child != nullptr);
 
-		if (child->role == BPlusNodeRole::Leaf) {
+		if (child->is_leaf) {
 			Leaf *leaf = static_cast<Leaf *>(child);
 			this->fix_underflow_leaf_child(leaf, succ_it);
 		} else {
@@ -1295,7 +1287,7 @@ private:
 
 		Node *node = parent->children[index].get();
 		assert(node != nullptr);
-		assert(node->role == BPlusNodeRole::Internal);
+		assert(!node->is_leaf);
 
 		Internal *internal = static_cast<Internal *>(node);
 		assert(internal != nullptr);
@@ -1570,13 +1562,13 @@ private:
 		assert(this->root != nullptr);
 
 		/* Case 1: root is a Leaf -> nothing to shrink */
-		if (this->root->role == BPlusNodeRole::Leaf) {
+		if (this->root->is_leaf) {
 			return;
 		}
 
 		/* Case 2: root is an Internal */
 		Internal *root_internal = static_cast<Internal *>(this->root.get());
-		assert(root_internal->role == BPlusNodeRole::Internal);
+		assert(!root_internal->is_leaf);
 
 		/* If root has no separators, promote its single child */
 		if (root_internal->count == 0) {
@@ -1613,7 +1605,7 @@ private:
 		assert(node->parent != nullptr);
 
 		Internal *parent = static_cast<Internal *>(node->parent);
-		assert(parent->role == BPlusNodeRole::Internal);
+		assert(!parent->is_leaf);
 
 		/* Find node's index in parent */
 		assert(node->index_in_parent == this->find_child_index(parent, node));
@@ -1665,10 +1657,10 @@ private:
 		assert(this->root != nullptr);
 
 		/* Root invariants */
-		if (this->root->role == BPlusNodeRole::Leaf) {
+		if (this->root->is_leaf) {
 			[[maybe_unused]] const Leaf *rleaf = static_cast<const Leaf *>(this->root.get());
 			assert(rleaf->count <= B);
-		} else if (this->root->role == BPlusNodeRole::Internal) {
+		} else {
 			const Internal *rint = static_cast<const Internal *>(this->root.get());
 			assert(rint->count <= B);
 			for (uint8_t i = 0; i <= rint->count; ++i) {
@@ -1676,8 +1668,6 @@ private:
 				assert(ch != nullptr);
 				assert(ch->parent == rint);
 			}
-		} else {
-			assert(false && "Root must be Leaf or Internal");
 		}
 
 		/* Recursive node validation (capacity, ordering, ranges, separator consistency) */
@@ -1699,7 +1689,7 @@ private:
 	{
 		assert(node != nullptr);
 
-		if (node->role == BPlusNodeRole::Leaf) {
+		if (node->is_leaf) {
 			const Leaf *leaf = static_cast<const Leaf *>(node);
 
 			/* Capacity bounds */
@@ -1720,7 +1710,6 @@ private:
 			return; // leaf has no children
 		}
 
-		assert(node->role == BPlusNodeRole::Internal && "validate_node: node must be Leaf or Internal");
 		const Internal *internal = static_cast<const Internal *>(node);
 
 		/* Capacity bounds */
@@ -1833,7 +1822,7 @@ private:
 			return;
 		}
 
-		if (n->role == BPlusNodeRole::Internal) {
+		if (!n->is_leaf) {
 			Internal *internal = static_cast<Internal *>(n);
 			for (uint8_t j = 0; j <= internal->count; ++j) {
 				if (internal->children[j] != nullptr) {
@@ -1857,13 +1846,12 @@ private:
 		Node *cur = node;
 
 		/* Descend until we reach a leaf */
-		while (cur->role == BPlusNodeRole::Internal) {
+		while (!cur->is_leaf) {
 			Internal *internal = static_cast<Internal *>(cur);
 			assert(internal->children[0] != nullptr);
 			cur = internal->children[0].get();
 		}
 
-		assert(cur->role == BPlusNodeRole::Leaf);
 		Leaf *leaf = static_cast<Leaf *>(cur);
 		assert(leaf->count > 0);
 
@@ -1945,7 +1933,7 @@ public:
 			}
 		}
 
-		if (node->role == BPlusNodeRole::Leaf) {
+		if (node->is_leaf) {
 			const Leaf *leaf = static_cast<const Leaf *>(node);
 			std::cerr << pad << "Leaf count=" << leaf->count << " keys=[";
 			this->dump_sequence(leaf->keys, leaf->count);
@@ -1957,7 +1945,7 @@ public:
 				std::cerr << "]\n";
 			}
 
-		} else if (node->role == BPlusNodeRole::Internal) {
+		} else {
 			const Internal *internal = static_cast<const Internal *>(node);
 			std::cerr << pad << "Internal count=" << internal->count << " keys=[";
 			this->dump_sequence(internal->keys, internal->count);
@@ -1976,8 +1964,6 @@ public:
 						<< " (right.min=" << this->sequence_to_string(this->subtree_min(right)) << ")\n";
 				}
 			}
-		} else {
-			std::cerr << pad << "Unknown node role\n";
 		}
 	}
 };
