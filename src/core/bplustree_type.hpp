@@ -32,18 +32,18 @@
 /**
  * 1) Forward declare the tree
  */
-template <typename Tkey, typename Tvalue = void, uint8_t B = 64>
+template <typename Tkey, typename Tvalue = void>
 class BPlusTree;
 
 /**
  * 2) Common base (shared fields, virtual dtor)
  */
-template <typename Tkey, uint8_t B>
+template <typename Tkey>
 struct BPlusNodeBase {
 	bool is_leaf; // Leaf or Internal
 	uint8_t count = 0;
 	uint8_t index_in_parent = 0;
-	std::array<Tkey, B> keys;
+	std::array<Tkey, 64> keys;
 
 	explicit BPlusNodeBase(bool is_leaf) : is_leaf(is_leaf)
 	{
@@ -55,42 +55,42 @@ struct BPlusNodeBase {
 /**
  * 3) Forward declare internals (needed for parent pointers)
  */
-template <typename Tkey, typename Tvalue, uint8_t B>
+template <typename Tkey, typename Tvalue>
 struct BPlusInternalMap;
 
-template <typename Tkey, uint8_t B>
+template <typename Tkey>
 struct BPlusInternalSet;
 
 /**
  * 4) Map mode hierarchy
  */
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusNodeMap : BPlusNodeBase<Tkey, B> {
-	BPlusInternalMap<Tkey, Tvalue, B> *parent = nullptr; // always internal or null (root)
+template <typename Tkey, typename Tvalue>
+struct BPlusNodeMap : BPlusNodeBase<Tkey> {
+	BPlusInternalMap<Tkey, Tvalue> *parent = nullptr; // always internal or null (root)
 
-	explicit BPlusNodeMap(bool is_leaf) : BPlusNodeBase<Tkey, B>(is_leaf)
+	explicit BPlusNodeMap(bool is_leaf) : BPlusNodeBase<Tkey>(is_leaf)
 	{
 	}
 
 	virtual ~BPlusNodeMap() = default; // keep polymorphic at Node level too
 };
 
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusLeafMap : BPlusNodeMap<Tkey, Tvalue, B> {
-	std::array<Tvalue, B> values;
+template <typename Tkey, typename Tvalue>
+struct BPlusLeafMap : BPlusNodeMap<Tkey, Tvalue> {
+	std::array<Tvalue, 64> values;
 	BPlusLeafMap *next_leaf = nullptr;
 	BPlusLeafMap *prev_leaf = nullptr;
 
-	BPlusLeafMap() : BPlusNodeMap<Tkey, Tvalue, B>(true)
+	BPlusLeafMap() : BPlusNodeMap<Tkey, Tvalue>(true)
 	{
 	}
 };
 
-template <typename Tkey, typename Tvalue, uint8_t B>
-struct BPlusInternalMap : BPlusNodeMap<Tkey, Tvalue, B> {
-	std::array<std::unique_ptr<BPlusNodeMap<Tkey, Tvalue, B>>, B + 1> children;
+template <typename Tkey, typename Tvalue>
+struct BPlusInternalMap : BPlusNodeMap<Tkey, Tvalue> {
+	std::array<std::unique_ptr<BPlusNodeMap<Tkey, Tvalue>>, 65> children;
 
-	BPlusInternalMap() : BPlusNodeMap<Tkey, Tvalue, B>(false)
+	BPlusInternalMap() : BPlusNodeMap<Tkey, Tvalue>(false)
 	{
 	}
 };
@@ -98,32 +98,32 @@ struct BPlusInternalMap : BPlusNodeMap<Tkey, Tvalue, B> {
 /**
  * 5) Set mode hierarchy
  */
-template <typename Tkey, uint8_t B>
-struct BPlusNodeSet : BPlusNodeBase<Tkey, B> {
-	BPlusInternalSet<Tkey, B> *parent = nullptr; // always internal or null (root)
+template <typename Tkey>
+struct BPlusNodeSet : BPlusNodeBase<Tkey> {
+	BPlusInternalSet<Tkey> *parent = nullptr; // always internal or null (root)
 
-	explicit BPlusNodeSet(bool is_leaf) : BPlusNodeBase<Tkey, B>(is_leaf)
+	explicit BPlusNodeSet(bool is_leaf) : BPlusNodeBase<Tkey>(is_leaf)
 	{
 	}
 
 	virtual ~BPlusNodeSet() = default; // keep polymorphic at Node level too
 };
 
-template <typename Tkey, uint8_t B>
-struct BPlusLeafSet : BPlusNodeSet<Tkey, B> {
+template <typename Tkey>
+struct BPlusLeafSet : BPlusNodeSet<Tkey> {
 	BPlusLeafSet *next_leaf = nullptr;
 	BPlusLeafSet *prev_leaf = nullptr;
 
-	BPlusLeafSet() : BPlusNodeSet<Tkey, B>(true)
+	BPlusLeafSet() : BPlusNodeSet<Tkey>(true)
 	{
 	}
 };
 
-template <typename Tkey, uint8_t B>
-struct BPlusInternalSet : BPlusNodeSet<Tkey, B> {
-	std::array<std::unique_ptr<BPlusNodeSet<Tkey, B>>, B + 1> children;
+template <typename Tkey>
+struct BPlusInternalSet : BPlusNodeSet<Tkey> {
+	std::array<std::unique_ptr<BPlusNodeSet<Tkey>>, 65> children;
 
-	BPlusInternalSet() : BPlusNodeSet<Tkey, B>(false)
+	BPlusInternalSet() : BPlusNodeSet<Tkey>(false)
 	{
 	}
 };
@@ -131,35 +131,32 @@ struct BPlusInternalSet : BPlusNodeSet<Tkey, B> {
 /**
  * 6) Traits - primary template and partial specialization for set mode
  */
-template <typename Tkey, typename Tvalue, uint8_t B>
+template <typename Tkey, typename Tvalue>
 struct BPlusNodeTraits {
-	using Base = BPlusNodeBase<Tkey, B>;
-	using Node = BPlusNodeMap<Tkey, Tvalue, B>;
-	using Leaf = BPlusLeafMap<Tkey, Tvalue, B>;
-	using Internal = BPlusInternalMap<Tkey, Tvalue, B>;
+	using Base = BPlusNodeBase<Tkey>;
+	using Node = BPlusNodeMap<Tkey, Tvalue>;
+	using Leaf = BPlusLeafMap<Tkey, Tvalue>;
+	using Internal = BPlusInternalMap<Tkey, Tvalue>;
 };
 
-template <typename Tkey, uint8_t B>
-struct BPlusNodeTraits<Tkey, void, B> {
-	using Base = BPlusNodeBase<Tkey, B>;
-	using Node = BPlusNodeSet<Tkey, B>;
-	using Leaf = BPlusLeafSet<Tkey, B>;
-	using Internal = BPlusInternalSet<Tkey, B>;
+template <typename Tkey>
+struct BPlusNodeTraits<Tkey, void> {
+	using Base = BPlusNodeBase<Tkey>;
+	using Node = BPlusNodeSet<Tkey>;
+	using Leaf = BPlusLeafSet<Tkey>;
+	using Internal = BPlusInternalSet<Tkey>;
 };
 
 /**
  * 7) Tree - use traits for types, including root
  */
-template <typename Tkey, typename Tvalue, uint8_t B>
+template <typename Tkey, typename Tvalue>
 class BPlusTree {
 private:
-	using Traits = BPlusNodeTraits<Tkey, Tvalue, B>;
+	using Traits = BPlusNodeTraits<Tkey, Tvalue>;
 	using Node = typename Traits::Node;
 	using Leaf = typename Traits::Leaf;
 	using Internal = typename Traits::Internal;
-
-	static constexpr uint8_t MIN_LEAF = (B + 1) / 2; // ceil(B/2)
-	static constexpr uint8_t MIN_INTERNAL = (B - 1) / 2; // ceil(B/2) - 1
 
 	std::unique_ptr<Node> root;
 
@@ -544,7 +541,7 @@ public:
 		}
 
 		/* Fix underflow, passing iterator by reference */
-		if (leaf->parent != nullptr && leaf->count < MIN_LEAF) {
+		if (leaf->parent != nullptr && leaf->count < 32) {
 			Internal *parent = leaf->parent;
 			assert(leaf->index_in_parent == this->find_child_index(parent, leaf));
 			uint8_t child_idx = leaf->index_in_parent;
@@ -692,7 +689,7 @@ private:
 		}
 
 		/* Split if leaf is full */
-		if (leaf->count == B) {
+		if (leaf->count == 64) {
 			this->split_leaf(leaf);
 		}
 	}
@@ -843,7 +840,7 @@ private:
 		}
 
 		/* Parent exists: ensure space */
-		if (parent->count == B) {
+		if (parent->count == 64) {
 			this->split_internal(parent);
 			assert(left->parent != nullptr && !left->parent->is_leaf);
 			parent = left->parent; // left may have moved
@@ -885,7 +882,7 @@ private:
 	void split_internal(Internal *node)
 	{
 		assert(node != nullptr);
-		assert(node->count == B && "split_internal called on non-full internal");
+		assert(node->count == 64 && "split_internal called on non-full internal");
 
 		uint8_t mid = node->count / 2;
 		assert(mid < node->count);
@@ -917,7 +914,7 @@ private:
 		node->count = mid;
 
 		/* Clear dangling child slots beyond mid in left */
-		std::fill(node->children.begin() + mid + 1, node->children.begin() + B + 1, nullptr);
+		std::fill(node->children.begin() + mid + 1, node->children.begin() + 65, nullptr);
 
 		/* Verify left children wiring */
 		assert(this->verify_children_parent(node));
@@ -1025,7 +1022,7 @@ private:
 			/* Borrow from right into leaf */
 			Leaf *right = leaf->next_leaf;
 			assert(right != nullptr);
-			assert(leaf->count < B && right->count > MIN_LEAF);
+			assert(leaf->count < 64 && right->count > 32);
 
 			/* 1) Prepare slot at end (no shift needed) */
 
@@ -1043,7 +1040,7 @@ private:
 			/* 4) Update counts */
 			++leaf->count;
 			--right->count;
-			assert(right->count >= MIN_LEAF);
+			assert(right->count >= 32);
 
 			/* 5) Shift donor left */
 			std::move(right->keys.begin() + 1, right->keys.begin() + right->count + 1, right->keys.begin());
@@ -1057,7 +1054,7 @@ private:
 			/* Borrow from left into leaf */
 			Leaf *left = leaf->prev_leaf;
 			assert(left != nullptr);
-			assert(leaf->count < B && left->count > MIN_LEAF);
+			assert(leaf->count < 64 && left->count > 32);
 
 			/* 1) Prepare slot at front (shift leaf right) */
 			std::move_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
@@ -1077,7 +1074,7 @@ private:
 			/* 4) Update counts */
 			++leaf->count;
 			--left->count;
-			assert(left->count >= MIN_LEAF);
+			assert(left->count >= 32);
 
 			/* 5) Donor shift not needed (removed last element) */
 
@@ -1170,7 +1167,7 @@ private:
 	inline bool can_merge_leaf(const Leaf *left, const Leaf *right)
 	{
 		assert(left != nullptr && right != nullptr);
-		return left->count + right->count <= B; // leaf capacity
+		return left->count + right->count <= 64; // leaf capacity
 	}
 
 	/**
@@ -1190,7 +1187,7 @@ private:
 			Leaf *right = child->next_leaf;
 			assert((right == nullptr) == (i >= parent->count) && "Link/index mismatch");
 
-			if (right != nullptr && right->count > MIN_LEAF) {
+			if (right != nullptr && right->count > 32) {
 				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/true);
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1202,7 +1199,7 @@ private:
 			Leaf *left = child->prev_leaf;
 			assert((left == nullptr) == (i == 0) && "Link/index mismatch");
 
-			if (left != nullptr && left->count > MIN_LEAF) {
+			if (left != nullptr && left->count > 32) {
 				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1223,7 +1220,7 @@ private:
 			/* Fallback: borrow from left if possible (second chance) */
 			if (i > 0) {
 				Leaf *left = child->prev_leaf;
-				if (left != nullptr && left->count > MIN_LEAF) {
+				if (left != nullptr && left->count > 32) {
 					this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 					this->fix_internal_underflow_cascade(parent);
 					return;
@@ -1251,7 +1248,7 @@ private:
 			}
 
 			/* Fallback: borrow from left */
-			if (left->count > MIN_LEAF) {
+			if (left->count > 32) {
 				this->borrow_leaf(child, succ_it, /*recipient_is_left=*/false);
 				this->fix_internal_underflow_cascade(parent);
 				return;
@@ -1405,7 +1402,7 @@ private:
 	inline bool can_merge_internal(const Internal *left, const Internal *right)
 	{
 		assert(left != nullptr && right != nullptr);
-		return left->count + 1 + right->count <= B;
+		return left->count + 1 + right->count <= 64;
 	}
 
 	/**
@@ -1479,7 +1476,7 @@ private:
 		if (i < parent->count) {
 			Internal *right = this->get_child_internal(parent, i + 1);
 
-			if (right->count > MIN_INTERNAL) {
+			if (right->count > 31) {
 				this->borrow_internal(parent, i, /*recipient_is_left=*/true);
 				this->refresh_boundary_upward(parent, i); // right-min changed
 				this->fix_internal_underflow_cascade(parent);
@@ -1491,7 +1488,7 @@ private:
 		if (i > 0) {
 			Internal *left = this->get_child_internal(parent, i - 1);
 
-			if (left->count > MIN_INTERNAL) {
+			if (left->count > 31) {
 				this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 				this->refresh_boundary_upward(parent, i - 1); // left subtree min may change
 				this->fix_internal_underflow_cascade(parent);
@@ -1514,7 +1511,7 @@ private:
 			if (i > 0) {
 				Internal *left = this->get_child_internal(parent, i - 1);
 
-				if (left->count > MIN_INTERNAL) {
+				if (left->count > 31) {
 					this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 					this->refresh_boundary_upward(parent, i - 1);
 					this->fix_internal_underflow_cascade(parent);
@@ -1542,7 +1539,7 @@ private:
 			}
 
 			/* Fallback: borrow-left */
-			if (left->count > MIN_INTERNAL) {
+			if (left->count > 31) {
 				this->borrow_internal(parent, i - 1, /*recipient_is_left=*/false);
 				this->refresh_boundary_upward(parent, i - 1);
 				this->fix_internal_underflow_cascade(parent);
@@ -1612,7 +1609,7 @@ private:
 		uint8_t i = node->index_in_parent;
 
 		/* If node is below minimum, fix it (internal child path) */
-		if (node->count < MIN_INTERNAL) {
+		if (node->count < 31) {
 			this->fix_underflow_internal_child(parent, i);
 		}
 
@@ -1623,7 +1620,7 @@ private:
 	/**
 	 * Linear search over keys[0..count), returning first index i where keys[i] >= key.
 	 */
-	static uint8_t lower_bound(const std::array<Tkey, B> &keys, uint8_t count, const Tkey &key)
+	static uint8_t lower_bound(const std::array<Tkey, 64> &keys, uint8_t count, const Tkey &key)
 	{
 		for (uint8_t i = 0; i < count; ++i) {
 			if (!(keys[i] < key)) { // equivalent to keys[i] >= key
@@ -1636,7 +1633,7 @@ private:
 	/**
 	 * Linear search over keys[0..count), returning first index i where keys[i] > key.
 	 */
-	static uint8_t upper_bound(const std::array<Tkey, B> &keys, uint8_t count, const Tkey &key)
+	static uint8_t upper_bound(const std::array<Tkey, 64> &keys, uint8_t count, const Tkey &key)
 	{
 		for (uint8_t i = 0; i < count; ++i) {
 			if (key < keys[i]) { // equivalent to keys[i] > key
@@ -1659,10 +1656,10 @@ private:
 		/* Root invariants */
 		if (this->root->is_leaf) {
 			[[maybe_unused]] const Leaf *rleaf = static_cast<const Leaf *>(this->root.get());
-			assert(rleaf->count <= B);
+			assert(rleaf->count <= 64);
 		} else {
 			const Internal *rint = static_cast<const Internal *>(this->root.get());
-			assert(rint->count <= B);
+			assert(rint->count <= 64);
 			for (uint8_t i = 0; i <= rint->count; ++i) {
 				[[maybe_unused]] const Node *ch = rint->children[i].get();
 				assert(ch != nullptr);
@@ -1693,7 +1690,7 @@ private:
 			const Leaf *leaf = static_cast<const Leaf *>(node);
 
 			/* Capacity bounds */
-			assert(leaf->count <= B);
+			assert(leaf->count <= 64);
 
 			if (leaf->count > 0) {
 				/* Keys strictly ascending */
@@ -1713,7 +1710,7 @@ private:
 		const Internal *internal = static_cast<const Internal *>(node);
 
 		/* Capacity bounds */
-		assert(internal->count <= B);
+		assert(internal->count <= 64);
 
 		if (internal->count > 0) {
 			/* Internal keys non-decreasing */
@@ -1791,7 +1788,7 @@ private:
 
 		while (leaf != nullptr) {
 			/* Capacity bounds */
-			assert(leaf->count <= B);
+			assert(leaf->count <= 64);
 
 			/* Keys strictly ascending within leaf */
 			this->assert_strictly_ascending(leaf->keys, leaf->count);
