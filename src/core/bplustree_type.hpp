@@ -1413,7 +1413,7 @@ private:
 	inline bool can_merge_internal(const Internal *left, const Internal *right)
 	{
 		assert(left != nullptr && right != nullptr);
-		return left->count + 1 + right->count <= B - 1;
+		return left->count + 1 + right->count <= B;
 	}
 
 	/**
