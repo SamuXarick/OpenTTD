@@ -16,6 +16,6 @@
 ScriptIndustryTypeList::ScriptIndustryTypeList()
 {
 	for (int i = 0; i < NUM_INDUSTRYTYPES; i++) {
-		if (ScriptIndustryType::IsValidIndustryType(i)) this->AddItem(i);
+		if (ScriptIndustryType::IsValidIndustryType(i)) this->AddItemUnchecked(i);
 	}
 }
