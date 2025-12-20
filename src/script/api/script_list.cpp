@@ -99,48 +99,63 @@ public:
 	void Retarget(const ScriptList *new_list)
 	{
 		this->list = new_list;
+		this->CollectionProjection();
 	}
+
+private:
+	/**
+	 * Project the collection to use (items or values).
+	 */
+	virtual void CollectionProjection() = 0;
 };
 
 /**
  * Base class for any ScriptList sorter.
  */
-template <bool ASCENDING, typename Range, auto CollectionProjection, auto ItemProjection>
-class ScriptListSorterT : public ScriptListSorter {
+template <bool BY_ITEM, bool ASCENDING>
+class ScriptListSorterType : public ScriptListSorter {
 protected:
+	using Range = std::conditional_t<BY_ITEM, decltype(ScriptList::items), decltype(ScriptList::values)>;
+	const Range *range; ///< Pointer to the active container (items or values)
+
 	/* Note: We cannot use reverse_iterator.
 	 *       The iterators must only be invalidated when the element they are pointing to is removed.
 	 *       This only holds for forward iterators. */
-	typename Range::const_iterator iter; ///< The iterator over the value/item pairs in the set.
-	static_assert(std::ranges::range<Range>);
+	Range::const_iterator iter; ///< Iterator into the active container
 
+public:
 	/**
 	 * Create a new sorter.
 	 * @param list The list to sort.
 	 */
-	ScriptListSorterT(const ScriptList *list) : ScriptListSorter(list) {}
+	ScriptListSorterType(const ScriptList *list) : ScriptListSorter(list)
+	{
+		this->CollectionProjection();
+	}
 
-public:
 	/**
 	 * Get the first item of the sorter.
 	 */
 	std::optional<SQInteger> Begin() final
 	{
-		const Range *range = CollectionProjection(this->list);
-		if (range->empty()) {
+		if (this->range->empty()) {
 			this->item_next = std::nullopt;
 			return std::nullopt;
 		}
 		this->has_no_more_items = false;
 
 		if constexpr (ASCENDING) {
-			this->iter = range->begin();
+			this->iter = this->range->begin();
 		} else {
-			this->iter = range->end();
+			this->iter = this->range->end();
 			--this->iter;
 		}
 
-		this->item_next = ItemProjection(this->iter);
+		if constexpr (BY_ITEM) {
+			this->item_next = this->iter->first;
+		} else {
+			this->item_next = this->iter->second;
+		}
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
@@ -152,9 +167,8 @@ public:
 	 */
 	void FindNext() final
 	{
-		const Range *range = CollectionProjection(this->list);
 		this->item_next = std::nullopt;
-		if (this->iter == range->end()) {
+		if (this->iter == this->range->end()) {
 			this->has_no_more_items = true;
 			return;
 		}
@@ -162,70 +176,34 @@ public:
 		if constexpr (ASCENDING) {
 			++this->iter;
 		} else {
-			if (this->iter == range->begin()) {
+			if (this->iter == this->range->begin()) {
 				/* Use 'end' as marker for 'beyond begin' */
-				this->iter = range->end();
+				this->iter = this->range->end();
 			} else {
 				--this->iter;
 			}
 		}
 
-		if (this->iter != range->end()) this->item_next = ItemProjection(this->iter);
+		if (this->iter != this->range->end()) {
+			if constexpr (BY_ITEM) {
+				this->item_next = this->iter->first;
+			} else {
+				this->item_next = this->iter->second;
+			}
+		}
 	}
-};
 
-auto ValueCollectionProjection = [](const ScriptList *list) constexpr { return &list->values; };
-auto ValueItemProjection = [](const auto &p) constexpr { return p->second; };
-
-/**
- * Sort by value, ascending.
- */
-class ScriptListSorterValueAscending : public ScriptListSorterT<true, ScriptList::ScriptListSet, ValueCollectionProjection, ValueItemProjection> {
-public:
 	/**
-	 * Create a new sorter.
-	 * @param list The list to sort.
+	 * Project the collection to use (items or values).
 	 */
-	ScriptListSorterValueAscending(const ScriptList *list) : ScriptListSorterT(list) {}
-};
-
-/**
- * Sort by value, descending.
- */
-class ScriptListSorterValueDescending : public ScriptListSorterT<false, ScriptList::ScriptListSet, ValueCollectionProjection, ValueItemProjection>  {
-public:
-	/**
-	 * Create a new sorter.
-	 * @param list The list to sort.
-	 */
-	ScriptListSorterValueDescending(const ScriptList *list) : ScriptListSorterT(list) {}
-};
-
-auto MapCollectionProjection = [](const ScriptList *list) constexpr { return &list->items; };
-auto MapItemProjection = [](const auto &p) constexpr { return p->first; };
-
-/**
- * Sort by item, ascending.
- */
-class ScriptListSorterItemAscending : public ScriptListSorterT<true, ScriptList::ScriptListMap, MapCollectionProjection, MapItemProjection>  {
-public:
-	/**
-	 * Create a new sorter.
-	 * @param list The list to sort.
-	 */
-	ScriptListSorterItemAscending(const ScriptList *list) : ScriptListSorterT(list) {}
-};
-
-/**
- * Sort by item, descending.
- */
-class ScriptListSorterItemDescending : public ScriptListSorterT<false, ScriptList::ScriptListMap, MapCollectionProjection, MapItemProjection> {
-public:
-	/**
-	 * Create a new sorter.
-	 * @param list The list to sort.
-	 */
-	ScriptListSorterItemDescending(const ScriptList *list) : ScriptListSorterT(list) {}
+	void CollectionProjection() final
+	{
+		if constexpr (BY_ITEM) {
+			this->range = &this->list->items;
+		} else {
+			this->range = &this->list->values;
+		}
+	}
 };
 
 
@@ -297,7 +275,7 @@ void ScriptList::CopyList(const ScriptList *list)
 ScriptList::ScriptList()
 {
 	/* Default sorter */
-	this->sorter         = std::make_unique<ScriptListSorterValueDescending>(this);
+	this->sorter         = std::make_unique<ScriptListSorterType<false, false>>(this);
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
 	this->initialized    = false;
@@ -418,17 +396,17 @@ void ScriptList::Sort(SorterType sorter, bool ascending)
 	switch (sorter) {
 		case SORT_BY_ITEM:
 			if (ascending) {
-				this->sorter = std::make_unique<ScriptListSorterItemAscending>(this);
+				this->sorter = std::make_unique<ScriptListSorterType<true, true>>(this);
 			} else {
-				this->sorter = std::make_unique<ScriptListSorterItemDescending>(this);
+				this->sorter = std::make_unique<ScriptListSorterType<true, false>>(this);
 			}
 			break;
 
 		case SORT_BY_VALUE:
 			if (ascending) {
-				this->sorter = std::make_unique<ScriptListSorterValueAscending>(this);
+				this->sorter = std::make_unique<ScriptListSorterType<false, true>>(this);
 			} else {
-				this->sorter = std::make_unique<ScriptListSorterValueDescending>(this);
+				this->sorter = std::make_unique<ScriptListSorterType<false, false>>(this);
 			}
 			break;
 
