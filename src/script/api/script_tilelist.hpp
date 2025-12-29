@@ -20,8 +20,6 @@
  * @ingroup ScriptList
  */
 class ScriptTileList : public ScriptList {
-private:
-	std::optional<OrthogonalTileIterator> resume_iter;
 protected:
 	virtual bool SaveObject(HSQUIRRELVM) const override;
 	virtual ScriptObject *CloneObject() const override;

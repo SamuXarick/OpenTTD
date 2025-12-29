@@ -655,22 +655,24 @@ bool ScriptList::AddList(ScriptList *list)
 	} else {
 		ScriptObject::DisableDoCommandScope disabler{};
 
-		auto begin = list->items.begin();
-		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-			begin = list->items.lower_bound(this->resume_item.value());
+		ScriptListMap::iterator begin;
+		if (disabler.GetOriginalValue() && std::holds_alternative<ScriptListMap::iterator>(this->resume_item)) {
+			begin = std::get<ScriptListMap::iterator>(this->resume_item);
+		} else {
+			begin = list->items.begin();
 		}
 
-		for (const auto &item : std::ranges::subrange(begin, list->items.end())) {
-			if (disabler.GetOriginalValue() && item.first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = item.first;
+		for (auto iter = begin; iter != list->items.end(); ++iter) {
+			if (disabler.GetOriginalValue() && iter != begin && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = iter;
 				return true;
 			}
-			this->AddItem(item.first);
-			this->SetValue(item.first, item.second);
+			this->AddItem(iter->first);
+			this->SetValue(iter->first, iter->second);
 			ScriptController::DecreaseOps(5);
 		}
 
-		this->resume_item.reset();
+		this->resume_item = {};
 	}
 
 	return false;
@@ -717,9 +719,9 @@ bool ScriptList::RemoveTop(SQInteger count)
 
 	ScriptObject::DisableDoCommandScope disabler{};
 
-	if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-		count = this->resume_item.value();
-		this->resume_item.reset();
+	if (disabler.GetOriginalValue() && std::holds_alternative<SQInteger>(this->resume_item)) {
+		count = std::get<SQInteger>(this->resume_item);
+		this->resume_item = {};
 	}
 
 	while (--count >= 0 && !this->items.empty()) {
@@ -892,14 +894,16 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	/* Push the function to call */
 	sq_push(vm, 2);
 
-	auto begin = this->items.begin();
-	if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-		begin = this->items.lower_bound(this->resume_item.value());
+	ScriptListMap::iterator begin;
+	if (disabler.GetOriginalValue() && std::holds_alternative<ScriptListMap::iterator>(this->resume_item)) {
+		begin = std::get<ScriptListMap::iterator>(this->resume_item);
+	} else {
+		begin = this->items.begin();
 	}
 
-	for (const auto &[item, _] : std::ranges::subrange(begin, this->items.end())) {
-		if (disabler.GetOriginalValue() && item != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-			this->resume_item = item;
+	for (auto iter = begin; iter != this->items.end(); ++iter) {
+		if (disabler.GetOriginalValue() && iter != begin && ScriptController::GetOpsTillSuspend() < 0) {
+			this->resume_item = iter;
 			/* Pop the valuator function. */
 			sq_poptop(vm);
 			sq_pushbool(vm, SQTrue);
@@ -912,7 +916,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 		/* Push the root table as instance object, this is what squirrel does for meta-functions. */
 		sq_pushroottable(vm);
 		/* Push all arguments for the valuator function. */
-		sq_pushinteger(vm, item);
+		sq_pushinteger(vm, iter->first);
 		for (int i = 0; i < nparam - 1; i++) {
 			sq_push(vm, i + 3);
 		}
@@ -953,7 +957,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "modifying valuated list outside of valuator function");
 		}
 
-		this->SetValue(item, value);
+		this->SetValue(iter->first, value);
 
 		/* Pop the return value. */
 		sq_poptop(vm);
@@ -964,7 +968,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	/* Pop the valuator function from the squirrel stack. */
 	sq_poptop(vm);
 
-	this->resume_item.reset();
+	this->resume_item = {};
 	sq_pushbool(vm, SQFalse);
 	return 1;
 }

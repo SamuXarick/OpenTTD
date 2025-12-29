@@ -42,7 +42,6 @@ private:
 	bool sort_ascending;          ///< Whether to sort ascending or descending
 	bool initialized;             ///< Whether an iteration has been started
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
-	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -162,14 +161,16 @@ protected:
 
 		ScriptObject::DisableDoCommandScope disabler{};
 
-		auto begin = this->items.begin();
-		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-			begin = this->items.lower_bound(this->resume_item.value());
+		ScriptListMap::iterator begin;
+		if (disabler.GetOriginalValue() && std::holds_alternative<ScriptListMap::iterator>(this->resume_item)) {
+			begin = std::get<ScriptListMap::iterator>(this->resume_item);
+		} else {
+			begin = this->items.begin();
 		}
 
 		for (ScriptListMap::iterator next_iter, iter = begin; iter != this->items.end(); iter = next_iter) {
-			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = iter->first;
+			if (disabler.GetOriginalValue() && iter != begin && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = iter;
 				return true;
 			}
 			next_iter = std::next(iter);
@@ -177,13 +178,15 @@ protected:
 			ScriptController::DecreaseOps(5);
 		}
 
-		this->resume_item.reset();
+		this->resume_item = {};
 		return false;
 	}
 
 public:
 	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
 	using ScriptListMap = std::map<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
+
+	std::variant<std::monostate, SQInteger, ScriptListMap::iterator, OrthogonalTileIterator> resume_item = {}; ///< Item to use on valuation start.
 
 	ScriptListMap items;           ///< The items in the list
 	ScriptListSet values; ///< The items in the list, sorted by value

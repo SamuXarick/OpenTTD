@@ -40,21 +40,21 @@ bool ScriptTileList::AddRectangle(TileIndex t1, TileIndex t2)
 	ScriptObject::DisableDoCommandScope disabler{};
 
 	OrthogonalTileIterator begin = ta.begin();
-	if (disabler.GetOriginalValue() && this->resume_iter.has_value()) {
-		begin = this->resume_iter.value();
+	if (disabler.GetOriginalValue() && std::holds_alternative<OrthogonalTileIterator>(this->resume_item)) {
+		begin = std::get<OrthogonalTileIterator>(this->resume_item);
 	}
 
-	for (OrthogonalTileIterator iter = begin; iter != ta.end(); ++iter) {
-		TileIndex t = iter;
+	for (auto iter = begin; iter != ta.end(); ++iter) {
 		if (disabler.GetOriginalValue() && iter != begin && ScriptController::GetOpsTillSuspend() < 0) {
-			this->resume_iter = iter;
+			this->resume_item = iter;
 			return true;
 		}
+		TileIndex t = iter;
 		this->AddItem(t.base());
 		ScriptController::DecreaseOps(5);
 	}
 
-	this->resume_iter.reset();
+	this->resume_item = {};
 	return false;
 }
 
@@ -75,21 +75,21 @@ bool ScriptTileList::RemoveRectangle(TileIndex t1, TileIndex t2)
 	ScriptObject::DisableDoCommandScope disabler{};
 
 	OrthogonalTileIterator begin = ta.begin();
-	if (disabler.GetOriginalValue() && this->resume_iter.has_value()) {
-		begin = this->resume_iter.value();
+	if (disabler.GetOriginalValue() && std::holds_alternative<OrthogonalTileIterator>(this->resume_item)) {
+		begin = std::get<OrthogonalTileIterator>(this->resume_item);
 	}
 
 	for (OrthogonalTileIterator iter = begin; iter != ta.end(); ++iter) {
-		TileIndex t = iter;
 		if (disabler.GetOriginalValue() && iter != begin && ScriptController::GetOpsTillSuspend() < 0) {
-			this->resume_iter = iter;
+			this->resume_item = iter;
 			return true;
 		}
+		TileIndex t = iter;
 		this->RemoveItem(t.base());
 		ScriptController::DecreaseOps(5);
 	}
 
-	this->resume_iter.reset();
+	this->resume_item = {};
 	return false;
 }
 
