@@ -166,16 +166,16 @@ protected:
 
 		auto begin = this->items.begin();
 		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-			begin = this->items.lower_bound(FakeIter{this->resume_item.value()});
+			begin = this->items.lower_bound(this->resume_item.value());
 		}
 
 		for (ScriptListMap::iterator next_iter, iter = begin; iter != this->items.end(); iter = next_iter) {
-			if (disabler.GetOriginalValue() && (*iter)->second != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = (*iter)->second;
+			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = iter->first;
 				return true;
 			}
 			next_iter = std::next(iter);
-			if (value_filter((*iter)->second, (*iter)->first)) this->RemoveItem((*iter)->second);
+			if (value_filter(iter->first, iter->second->first)) this->RemoveItem(iter->first);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -185,31 +185,7 @@ protected:
 
 public:
 	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-
-	struct FakeIter {
-		SQInteger second;
-	};
-
-	struct CompareIterBySecond {
-		using is_transparent = void; // enables heterogeneous lookup
-
-		bool operator()(const ScriptListSet::iterator &a, const ScriptListSet::iterator &b) const
-		{
-			return a->second < b->second;
-		}
-
-		bool operator()(const ScriptListSet::iterator &a, const FakeIter &b) const
-		{
-			return a->second < b.second;
-		}
-
-		bool operator()(const FakeIter &a, const ScriptListSet::iterator &b) const
-		{
-			return a.second < b->second;
-		}
-	};
-
-	using ScriptListMap = std::set<ScriptListSet::iterator, CompareIterBySecond, ScriptStdAllocator<ScriptListSet::iterator>>;
+	using ScriptListMap = std::map<SQInteger, ScriptListSet::iterator, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, ScriptListSet::iterator>>>; ///< List per item
 
 	ScriptListMap items;           ///< The items in the list
 	ScriptListSet values; ///< The items in the list, sorted by value

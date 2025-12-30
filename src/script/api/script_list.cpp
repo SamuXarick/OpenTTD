@@ -152,8 +152,8 @@ public:
 	void RetargetIterator() override
 	{
 		if (this->item_next.has_value()) {
-			auto item_iter = this->list->items.find(ScriptList::FakeIter{this->item_next.value()});
-			this->value_iter = *item_iter;
+			auto item_iter = this->list->items.find(this->item_next.value());
+			this->value_iter = item_iter->second;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -246,8 +246,8 @@ public:
 	void RetargetIterator() override
 	{
 		if (this->item_next.has_value()) {
-			auto item_iter = this->list->items.find(ScriptList::FakeIter{this->item_next.value()});
-			this->value_iter = *item_iter;
+			auto item_iter = this->list->items.find(this->item_next.value());
+			this->value_iter = item_iter->second;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -281,7 +281,7 @@ public:
 		this->has_no_more_items = false;
 
 		this->item_iter = this->list->items.begin();
-		this->item_next = (*this->item_iter)->second;
+		this->item_next = this->item_iter->first;
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
@@ -305,7 +305,7 @@ public:
 			return;
 		}
 		++this->item_iter;
-		if (this->item_iter != this->list->items.end()) this->item_next = (*this->item_iter)->second;
+		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
 	}
 
 	std::optional<SQInteger> Next() override
@@ -331,7 +331,7 @@ public:
 	void RetargetIterator() override
 	{
 		if (this->item_next.has_value()) {
-			this->item_iter = this->list->items.find(ScriptList::FakeIter{this->item_next.value()});
+			this->item_iter = this->list->items.find(this->item_next.value());
 		} else {
 			this->item_iter = this->list->items.end();
 		}
@@ -369,7 +369,7 @@ public:
 
 		this->item_iter = this->list->items.end();
 		--this->item_iter;
-		this->item_next = (*this->item_iter)->second;
+		this->item_next = this->item_iter->first;
 
 		std::optional<SQInteger> item_current = this->item_next;
 		this->FindNext();
@@ -398,7 +398,7 @@ public:
 		} else {
 			--this->item_iter;
 		}
-		if (this->item_iter != this->list->items.end()) this->item_next = (*this->item_iter)->second;
+		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
 	}
 
 	std::optional<SQInteger> Next() override
@@ -424,7 +424,7 @@ public:
 	void RetargetIterator() override
 	{
 		if (this->item_next.has_value()) {
-			this->item_iter = this->list->items.find(ScriptList::FakeIter{this->item_next.value()});
+			this->item_iter = this->list->items.find(this->item_next.value());
 		} else {
 			this->item_iter = this->list->items.end();
 		}
@@ -443,8 +443,8 @@ bool ScriptList::SaveObject(HSQUIRRELVM vm) const
 	sq_arrayappend(vm, -2);
 	sq_newtable(vm);
 	for (const auto &item : this->items) {
-		sq_pushinteger(vm, item->second);
-		sq_pushinteger(vm, item->first);
+		sq_pushinteger(vm, item.first);
+		sq_pushinteger(vm, item.second->first);
 		sq_rawset(vm, -3);
 	}
 	sq_arrayappend(vm, -2);
@@ -513,7 +513,7 @@ ScriptList::~ScriptList()
 
 bool ScriptList::HasItem(SQInteger item) const
 {
-	return this->items.count(FakeIter{item}) == 1;
+	return this->items.count(item) == 1;
 }
 
 void ScriptList::Clear()
@@ -531,18 +531,18 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 
 	if (this->HasItem(item)) return;
 
-	this->items.emplace(this->values.emplace(value, item).first);
+	this->items.try_emplace(item, this->values.emplace(value, item).first);
 }
 
 void ScriptList::RemoveItem(SQInteger item)
 {
 	this->modifications++;
 
-	auto item_iter = this->items.find(FakeIter{item});
+	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return;
 
 	this->sorter->Remove(item);
-	this->values.erase(*item_iter);
+	this->values.erase(item_iter->second);
 	this->items.erase(item_iter);
 }
 
@@ -582,26 +582,25 @@ SQInteger ScriptList::Count() const
 
 SQInteger ScriptList::GetValue(SQInteger item) const
 {
-	auto item_iter = this->items.find(FakeIter{item});
-	return item_iter == this->items.end() ? 0 : (*item_iter)->first;
+	auto item_iter = this->items.find(item);
+	return item_iter == this->items.end() ? 0 : item_iter->second->first;
 }
 
 bool ScriptList::SetValue(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	auto item_iter = this->items.find(FakeIter{item});
+	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return false;
 
-	SQInteger value_old = (*item_iter)->first;
+	SQInteger value_old = item_iter->second->first;
 	if (value_old == value) return true;
 
 	this->sorter->Remove(item);
-	assert(*item_iter != this->values.end());
-	auto node_handle = this->values.extract(*item_iter);
+	assert(item_iter->second != this->values.end());
+	auto node_handle = this->values.extract(item_iter->second);
 	node_handle.value().first = value;
-	this->items.erase(item_iter);
-	this->items.emplace(this->values.insert(std::move(node_handle)).position);
+	item_iter->second = this->values.insert(std::move(node_handle)).position;
 
 	return true;
 }
@@ -651,17 +650,16 @@ bool ScriptList::AddList(ScriptList *list)
 
 		auto begin = list->items.begin();
 		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-			begin = list->items.lower_bound(FakeIter{this->resume_item.value()});
+			begin = list->items.lower_bound(this->resume_item.value());
 		}
 
-		for (ScriptListMap::iterator next_iter, iter = begin; iter != list->items.end(); iter = next_iter) {
-			if (disabler.GetOriginalValue() && (*iter)->second != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = (*iter)->second;
+		for (const auto &item : std::ranges::subrange(begin, list->items.end())) {
+			if (disabler.GetOriginalValue() && item.first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = item.first;
 				return true;
 			}
-			next_iter = std::next(iter);
-			this->AddItem((*iter)->second);
-			this->SetValue((*iter)->second, (*iter)->first);
+			this->AddItem(item.first);
+			this->SetValue(item.first, item.second->first);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -679,16 +677,14 @@ void ScriptList::InitItems()
 	insertion_buffer.reserve(this->values.size());
 
 	for (auto value_iter = this->values.begin(); value_iter != this->values.end(); ++value_iter) {
-		insertion_buffer.emplace_back(value_iter->second, value_iter);
+		insertion_buffer.push_back({value_iter->second, value_iter});
 	}
 
 	std::ranges::sort(insertion_buffer, [](auto &a, auto &b) {
 		return a.first < b.first;
 	});
 
-	for (auto &elem : insertion_buffer) {
-		this->items.insert(elem.second);
-	}
+	this->items.insert(insertion_buffer.begin(), insertion_buffer.end());
 }
 
 void ScriptList::SwapList(ScriptList *list)
@@ -810,10 +806,10 @@ SQInteger ScriptList::_get(HSQUIRRELVM vm) const
 	SQInteger idx;
 	sq_getinteger(vm, 2, &idx);
 
-	auto item_iter = this->items.find(FakeIter{idx});
+	auto item_iter = this->items.find(idx);
 	if (item_iter == this->items.end()) return SQ_ERROR;
 
-	sq_pushinteger(vm, (*item_iter)->first);
+	sq_pushinteger(vm, item_iter->second->first);
 	return 1;
 }
 
@@ -910,12 +906,12 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 
 	auto begin = this->items.begin();
 	if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
-		begin = this->items.lower_bound(FakeIter{this->resume_item.value()});
+		begin = this->items.lower_bound(this->resume_item.value());
 	}
 
-	for (ScriptListMap::iterator next_iter, iter = begin; iter != this->items.end(); iter = next_iter) {
-		if (disabler.GetOriginalValue() && (*iter)->second != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-			this->resume_item = (*iter)->second;
+	for (const auto &[item, _] : std::ranges::subrange(begin, this->items.end())) {
+		if (disabler.GetOriginalValue() && item != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+			this->resume_item = item;
 			/* Pop the valuator function. */
 			sq_poptop(vm);
 			sq_pushbool(vm, SQTrue);
@@ -928,7 +924,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 		/* Push the root table as instance object, this is what squirrel does for meta-functions. */
 		sq_pushroottable(vm);
 		/* Push all arguments for the valuator function. */
-		sq_pushinteger(vm, (*iter)->second);
+		sq_pushinteger(vm, item);
 		for (int i = 0; i < nparam - 1; i++) {
 			sq_push(vm, i + 3);
 		}
@@ -969,8 +965,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "modifying valuated list outside of valuator function");
 		}
 
-		next_iter = std::next(iter);
-		this->SetValue((*iter)->second, value);
+		this->SetValue(item, value);
 
 		/* Pop the return value. */
 		sq_poptop(vm);
