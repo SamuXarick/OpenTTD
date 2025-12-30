@@ -44,7 +44,7 @@ private:
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
 	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
 
-	void RefreshValueItemLinks();
+	void InitItems();
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -175,7 +175,7 @@ protected:
 				return true;
 			}
 			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second.value)) this->RemoveItem(iter->first);
+			if (value_filter(iter->first, iter->second->first)) this->RemoveItem(iter->first);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -185,15 +185,7 @@ protected:
 
 public:
 	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-
-	struct ItemRecord {
-		SQInteger value;
-		ScriptListSet::iterator viter;  ///< iterator into `values`
-
-		explicit ItemRecord(SQInteger value, ScriptListSet::iterator value_iter) : value(value), viter(value_iter) {}
-	};
-
-	using ScriptListMap = std::map<SQInteger, ItemRecord, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, ItemRecord>>>; ///< List per item
+	using ScriptListMap = std::map<SQInteger, ScriptListSet::iterator, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, ScriptListSet::iterator>>>; ///< List per item
 
 	ScriptListMap items;           ///< The items in the list
 	ScriptListSet values; ///< The items in the list, sorted by value

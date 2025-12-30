@@ -153,7 +153,7 @@ public:
 	{
 		if (this->item_next.has_value()) {
 			auto item_iter = this->list->items.find(this->item_next.value());
-			this->value_iter = item_iter->second.viter;
+			this->value_iter = item_iter->second;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -247,7 +247,7 @@ public:
 	{
 		if (this->item_next.has_value()) {
 			auto item_iter = this->list->items.find(this->item_next.value());
-			this->value_iter = item_iter->second.viter;
+			this->value_iter = item_iter->second;
 		} else {
 			this->value_iter = this->list->values.end();
 		}
@@ -444,7 +444,7 @@ bool ScriptList::SaveObject(HSQUIRRELVM vm) const
 	sq_newtable(vm);
 	for (const auto &item : this->items) {
 		sq_pushinteger(vm, item.first);
-		sq_pushinteger(vm, item.second.value);
+		sq_pushinteger(vm, item.second->first);
 		sq_rawset(vm, -3);
 	}
 	sq_arrayappend(vm, -2);
@@ -493,9 +493,8 @@ ScriptObject *ScriptList::CloneObject() const
 void ScriptList::CopyList(const ScriptList *list)
 {
 	this->Sort(list->sorter_type, list->sort_ascending);
-	this->items = list->items;
 	this->values = list->values;
-	this->RefreshValueItemLinks();
+	this->InitItems();
 }
 
 ScriptList::ScriptList()
@@ -532,7 +531,7 @@ void ScriptList::AddItem(SQInteger item, SQInteger value)
 
 	if (this->HasItem(item)) return;
 
-	this->items.try_emplace(item, value, this->values.emplace(value, item).first);
+	this->items.try_emplace(item, this->values.emplace(value, item).first);
 }
 
 void ScriptList::RemoveItem(SQInteger item)
@@ -543,7 +542,7 @@ void ScriptList::RemoveItem(SQInteger item)
 	if (item_iter == this->items.end()) return;
 
 	this->sorter->Remove(item);
-	this->values.erase(item_iter->second.viter);
+	this->values.erase(item_iter->second);
 	this->items.erase(item_iter);
 }
 
@@ -584,7 +583,7 @@ SQInteger ScriptList::Count() const
 SQInteger ScriptList::GetValue(SQInteger item) const
 {
 	auto item_iter = this->items.find(item);
-	return item_iter == this->items.end() ? 0 : item_iter->second.value;
+	return item_iter == this->items.end() ? 0 : item_iter->second->first;
 }
 
 bool ScriptList::SetValue(SQInteger item, SQInteger value)
@@ -594,15 +593,14 @@ bool ScriptList::SetValue(SQInteger item, SQInteger value)
 	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return false;
 
-	SQInteger value_old = item_iter->second.value;
+	SQInteger value_old = item_iter->second->first;
 	if (value_old == value) return true;
 
 	this->sorter->Remove(item);
-	assert(item_iter->second.viter != this->values.end());
-	item_iter->second.value = value;
-	auto node_handle = this->values.extract(item_iter->second.viter);
+	assert(item_iter->second != this->values.end());
+	auto node_handle = this->values.extract(item_iter->second);
 	node_handle.value().first = value;
-	item_iter->second.viter = this->values.insert(std::move(node_handle)).position;
+	item_iter->second = this->values.insert(std::move(node_handle)).position;
 
 	return true;
 }
@@ -644,9 +642,8 @@ bool ScriptList::AddList(ScriptList *list)
 
 	if (this->IsEmpty()) {
 		/* If this is empty, we can just take the items of the other list as is. */
-		this->items = list->items;
 		this->values = list->values;
-		this->RefreshValueItemLinks();
+		this->InitItems();
 		this->modifications++;
 	} else {
 		ScriptObject::DisableDoCommandScope disabler{};
@@ -662,7 +659,7 @@ bool ScriptList::AddList(ScriptList *list)
 				return true;
 			}
 			this->AddItem(item.first);
-			this->SetValue(item.first, item.second.value);
+			this->SetValue(item.first, item.second->first);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -672,52 +669,31 @@ bool ScriptList::AddList(ScriptList *list)
 	return false;
 }
 
-void ScriptList::RefreshValueItemLinks()
+void ScriptList::InitItems()
 {
-	/* Define a helper struct that links each item key to its ItemRecord.
-	 * It can be implicitly converted into the (value,item) pair required
-	 * by ScriptListSet for insertion. */
-	struct ValueItemLink {
-		SQInteger item;
-		ItemRecord *record; ///< pointer to original record
+	this->items.clear();
 
-		/* Conversion operator: allows direct insertion into values set */
-		operator ScriptListSet::value_type() const { return {record->value, item}; }
-	};
+	std::vector<std::pair<SQInteger, ScriptListSet::iterator>, ScriptStdAllocator<std::pair<SQInteger, ScriptListSet::iterator>>> insertion_buffer;
+	insertion_buffer.reserve(this->values.size());
 
-	/* Build a buffer of links (item -> record) for all items.
-	 * This buffer will be sorted before bulk insertion. */
-	std::vector<ValueItemLink> insertion_buffer;
-	insertion_buffer.reserve(this->items.size());
-
-	/* Populate buffer with (item, record) links */
-	for (auto &[item, record] : this->items) {
-		insertion_buffer.push_back({item, &record});
+	for (auto value_iter = this->values.begin(); value_iter != this->values.end(); ++value_iter) {
+		insertion_buffer.push_back({value_iter->second, value_iter});
 	}
 
-	/* Sort buffer by (value,item) so that bulk insertion into the set
-	 * can be performed in linear time. */
 	std::ranges::sort(insertion_buffer, [](auto &a, auto &b) {
-		return std::tie(a.record->value, a.item) < std::tie(b.record->value, b.item);
+		return a.first < b.first;
 	});
 
-	/* Walk values set and buffer in parallel.
-	 * Assign each ItemRecord its correct iterator into values. */
-	auto value_iter = this->values.begin();
-	for (auto &link : insertion_buffer) {
-		link.record->viter = value_iter;
-		++value_iter;
-	}
+	this->items.insert(insertion_buffer.begin(), insertion_buffer.end());
 }
 
 void ScriptList::SwapList(ScriptList *list)
 {
 	if (list == this) return;
 
-	this->items.swap(list->items);
 	this->values.swap(list->values);
-	this->RefreshValueItemLinks();
-	list->RefreshValueItemLinks();
+	this->InitItems();
+	list->InitItems();
 	std::swap(this->sorter, list->sorter);
 	std::swap(this->sorter_type, list->sorter_type);
 	std::swap(this->sort_ascending, list->sort_ascending);
@@ -833,7 +809,7 @@ SQInteger ScriptList::_get(HSQUIRRELVM vm) const
 	auto item_iter = this->items.find(idx);
 	if (item_iter == this->items.end()) return SQ_ERROR;
 
-	sq_pushinteger(vm, item_iter->second.value);
+	sq_pushinteger(vm, item_iter->second->first);
 	return 1;
 }
 
