@@ -37,8 +37,8 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
-	using ScriptListSet = BPlusTree<std::pair<SQInteger, SQInteger>, void, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-	using ScriptListMap = BPlusTree<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
+	using ScriptListSet = BPlusTree<std::pair<SQInteger, SQInteger>, void, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
+	using ScriptListMap = BPlusTree<SQInteger, SQInteger, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
 
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
@@ -180,11 +180,11 @@ protected:
 		}
 
 		for (auto iter = begin; iter != this->items.end();) {
-			if (disabler.GetOriginalValue() && (*iter).first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = (*iter).first;
+			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = iter->first;
 				return true;
 			}
-			if (value_filter((*iter).first, (*iter).second)) {
+			if (value_filter(iter->first, iter->second)) {
 				iter = this->RemoveMapIter(iter);
 			} else {
 				++iter;
