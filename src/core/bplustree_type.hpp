@@ -761,9 +761,9 @@ public:
 			uint8_t child_idx = leaf->index_in_parent;
 
 			if (parent->count > 0 && child_idx > 0) {
-				this->RefreshBoundaryUpward(parent, child_idx - 1);
+				this->MaintainBoundaryUpward(parent, child_idx - 1);
 			} else {
-				this->RefreshBoundaryUpward(parent, 0);
+				this->MaintainBoundaryUpward(parent, 0);
 			}
 		}
 
@@ -911,7 +911,7 @@ private:
 			assert(leaf->index_in_parent == this->FindChildIndex(parent, leaf));
 			uint8_t child_idx = leaf->index_in_parent;
 			if (child_idx > 0) {
-				this->MaintainParentBoundary(parent, child_idx - 1);
+				this->MaintainBoundaryLocal(parent, child_idx - 1);
 			}
 		}
 
@@ -968,7 +968,11 @@ private:
 	}
 
 	/**
-	 * Verify and rewire children's parent/index_in_parent fields for a given internal node.
+	 * Verify structural invariants for an internal node:
+	 *  - children[0 .. count] must be non-null
+	 *  - children[count+1 .. max_children-1] must be null
+	 *  - each child->parent == this internal
+	 *  - each child->index_in_parent == its index
 	 */
 	bool VerifyChildrenParent(const NodeBase *node) const
 	{
@@ -976,19 +980,26 @@ private:
 			return true;
 		}
 
-		/* Must be an internal node */
 		assert(!node->is_leaf);
 		const Internal *internal = static_cast<const Internal *>(node);
 
+		/* 1. Active children must be non-null */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
 			const NodeBase *child_base = internal->children[i].get();
 			assert(child_base != nullptr);
 
-			/* index_in_parent is in NodeBase, parent is in Node */
 			const Node *child = static_cast<const Node *>(child_base);
 
+			/* Parent pointer must match */
 			assert(child->parent == internal);
+
+			/* index_in_parent must match */
 			assert(child->index_in_parent == i);
+		}
+
+		/* 2. Inactive children must be null */
+		for (uint8_t i = internal->count + 1; i < internal->children.size(); ++i) {
+			assert(internal->children[i] == nullptr);
 		}
 
 		return true;
@@ -1178,13 +1189,13 @@ private:
 	 * Refresh the separator at sep_idx in 'parent' to match right subtree min,
 	 * then propagate the change upward if needed.
 	 */
-	void RefreshBoundaryUpward(Internal *parent, uint8_t sep_idx)
+	void MaintainBoundaryUpward(Internal *parent, uint8_t sep_idx)
 	{
 		assert(parent != nullptr);
 
 		/* Refresh at this parent only if there is a valid separator */
 		if (sep_idx < parent->count) {
-			this->MaintainParentBoundary(parent, sep_idx);
+			this->MaintainBoundaryLocal(parent, sep_idx);
 		}
 
 		/* Propagate upward along the leftmost path */
@@ -1196,7 +1207,7 @@ private:
 			/* If this subtree sits to the right of some separator in gp,
 			 * refresh that ancestor separator. */
 			if (idx_in_gp > 0) {
-				this->MaintainParentBoundary(gp, idx_in_gp - 1);
+				this->MaintainBoundaryLocal(gp, idx_in_gp - 1);
 				break; // not on leftmost path anymore
 			}
 		}
@@ -1205,7 +1216,7 @@ private:
 	/**
 	 * Refresh the separator at sep_idx in 'parent' to match right subtree min.
 	 */
-	void MaintainParentBoundary(Internal *parent, uint8_t sep_idx)
+	void MaintainBoundaryLocal(Internal *parent, uint8_t sep_idx)
 	{
 		assert(parent != nullptr);
 
@@ -1214,37 +1225,32 @@ private:
 			return;
 		}
 
-		/* If sep_idx is out of range (e.g. after merge), skip silently */
+		/* If sep_idx is out of range (e.g. after merge), nothing to refresh */
 		if (sep_idx >= parent->count) {
 			return;
 		}
 
-		/* Right child at sep_idx + 1 */
-		NodeBase *right_base = parent->children[sep_idx + 1].get();
-		assert(right_base != nullptr);
+		/* Right child at sep_idx + 1 must exist and be valid */
+		NodeBase *right = parent->children[sep_idx + 1].get();
+		assert(right != nullptr);
 
-		/* Case 1: right child is a Leaf */
-		if (right_base->is_leaf) {
-			Leaf *right_leaf = static_cast<Leaf *>(right_base);
-			assert(right_leaf->count > 0 && "Empty right leaf should have been removed in merge");
-			parent->keys[sep_idx] = right_leaf->keys[0];
+		/* Descend to the leftmost leaf of the right subtree */
+		NodeBase *current = right;
+		while (!current->is_leaf) {
+			Internal *internal = static_cast<Internal *>(current);
 
-		/* Case 2: right child is an Internal */
-		} else {
-			Internal *right_internal = static_cast<Internal *>(right_base);
-			NodeBase *cur = right_internal;
+			/* Invariant: children[0] must be non-null for any internal node */
+			assert(internal->children[0] != nullptr);
 
-			/* Descend to leftmost leaf of right subtree */
-			while (!cur->is_leaf) {
-				Internal *internal = static_cast<Internal *>(cur);
-				assert(internal->children[0] != nullptr);
-				cur = internal->children[0].get();
-			}
-
-			Leaf *leaf = static_cast<Leaf *>(cur);
-			assert(leaf != nullptr && leaf->count > 0);
-			parent->keys[sep_idx] = leaf->keys[0];
+			current = internal->children[0].get();
 		}
+
+		/* current is now a leaf */
+		Leaf *leaf = static_cast<Leaf *>(current);
+		assert(leaf->count > 0);
+
+		/* Update separator */
+		parent->keys[sep_idx] = leaf->keys[0];
 	}
 
 	/**
@@ -1270,34 +1276,32 @@ private:
 			assert(right->parent == parent);
 			assert(leaf->count < 64 && right->count > 32);
 
-			/* 1) Prepare slot at end (no shift needed) */
-
-			/* 2) Insert donor extremum: right.min -> leaf[end] */
+			/* 1. Insert donor extremum: right.min -> leaf[end] */
 			leaf->keys[leaf->count] = right->keys[0];
 			if constexpr (!std::is_void_v<Tvalue>) {
 				leaf->values[leaf->count] = right->values[0];
 			}
 
-			/* 3) Retarget iterator if it was pointing into right */
+			/* 2. Retarget iterator if it was pointing into right */
 			if (succ_it.leaf == right) {
 				succ_it.leaf = leaf;
 				succ_it.index = leaf->count;
 			}
 
-			/* 4) Update counts */
+			/* 3. Update counts */
 			++leaf->count;
 			--right->count;
 			assert(right->count >= 32);
 
-			/* 5) Shift donor left */
+			/* 4. Shift donor left */
 			std::copy(right->keys.begin() + 1, right->keys.begin() + right->count + 1, right->keys.begin());
 			if constexpr (!std::is_void_v<Tvalue>) {
 				std::copy(right->values.begin() + 1, right->values.begin() + right->count + 1, right->values.begin());
 			}
 
-			/* 6) Refresh boundary (separator pointing to right changed) */
+			/* 5. Refresh boundary (separator pointing to right changed) */
 			assert(idx + 1 <= parent->count);
-			this->RefreshBoundaryUpward(parent, idx);
+			this->MaintainBoundaryUpward(parent, idx);
 
 		} else {
 			/* Borrow from left into leaf */
@@ -1306,33 +1310,31 @@ private:
 			assert(left->parent == parent);
 			assert(leaf->count < 64 && left->count > 32);
 
-			/* 1) Prepare slot at front (shift leaf right) */
+			/* 1. Prepare slot at front (shift leaf right) */
 			std::copy_backward(leaf->keys.begin(), leaf->keys.begin() + leaf->count, leaf->keys.begin() + leaf->count + 1);
 			if constexpr (!std::is_void_v<Tvalue>) {
 				std::copy_backward(leaf->values.begin(), leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
 			}
 
-			/* 2) Insert donor extremum: left.max -> leaf[0] */
+			/* 2. Insert donor extremum: left.max -> leaf[0] */
 			leaf->keys[0] = left->keys[left->count - 1];
 			if constexpr (!std::is_void_v<Tvalue>) {
 				leaf->values[0] = left->values[left->count - 1];
 			}
 
-			/* 3) Retarget iterator if it was pointing into leaf (indices shifted + 1) */
+			/* 3. Retarget iterator if it was pointing into leaf (indices shifted + 1) */
 			if (succ_it.leaf == leaf) {
 				++succ_it.index;
 			}
 
-			/* 4) Update counts */
+			/* 4. Update counts */
 			++leaf->count;
 			--left->count;
 			assert(left->count >= 32);
 
-			/* 5) Donor shift not needed (removed last element) */
-
-			/* 6) Refresh boundary (separator pointing to leaf changed) */
+			/* 5. Refresh boundary (separator pointing to leaf changed) */
 			assert(idx > 0); // leaf cannot be the 0th child if it has a left sibling
-			this->RefreshBoundaryUpward(parent, idx - 1);
+			this->MaintainBoundaryUpward(parent, idx - 1);
 		}
 	}
 
@@ -1376,7 +1378,7 @@ private:
 
 		/* After removal, the separator at idx may now reflect a different right-min */
 		if (idx < parent->count) {
-			this->RefreshBoundaryUpward(parent, idx);
+			this->MaintainBoundaryUpward(parent, idx);
 		}
 	}
 
@@ -1388,29 +1390,24 @@ private:
 		assert(parent != nullptr);
 		assert(sep_idx < parent->count);
 
-		/* Shift keys left: [sep_idx + 1..count - 1] -> [sep_idx..count - 2] */
+		/* 1. Shift keys left: [sep_idx + 1..count - 1] -> [sep_idx..count - 2] */
 		std::copy(parent->keys.begin() + sep_idx + 1, parent->keys.begin() + parent->count, parent->keys.begin() + sep_idx);
 
-		/* Shift children left: [sep_idx + 2..count] -> [sep_idx + 1..count - 1] */
+		/* 2. Shift children left: [sep_idx + 2..count] -> [sep_idx + 1..count - 1] */
 		std::move(parent->children.begin() + sep_idx + 2, parent->children.begin() + parent->count + 1, parent->children.begin() + sep_idx + 1);
 
-		/* Fix parent/index_in_parent pointers for shifted children */
-		for (uint8_t j = sep_idx + 1; j < parent->count; ++j) {
-			NodeBase *child_base = parent->children[j].get();
-			assert(child_base != nullptr);
-
-			Node *child = static_cast<Node *>(child_base);
-			child->parent = parent;
-			child->index_in_parent = j;
+		/* 3. Fix parent/index_in_parent pointers for shifted children */
+		if (parent->count > sep_idx + 1) {
+			this->ReindexChildren(parent, sep_idx + 1, parent->count - 1);
 		}
 
-		/* Clear the last child slot that is now out of range */
+		/* 4. Clear the last child slot that is now out of range */
 		parent->children[parent->count].reset();
 
-		/* Decrement count (number of separators) */
+		/* 5. Decrement count (number of separators) */
 		--parent->count;
 
-		/* Safety: ensure all children are valid and wired */
+		/* 6. Safety: ensure all children are valid and wired */
 		assert(this->VerifyChildrenParent(parent));
 
 		/* Optional: if parent becomes empty and is root, shrink height elsewhere */
@@ -1571,79 +1568,57 @@ private:
 		if (recipient_is_left) {
 			/* Left receives from right */
 
-			/* 1) Prepare recipient slot (end, no shift needed) */
-
-			/* 2) Insert parent key into left[end] */
+			/* 1. Insert parent key into left[end] */
 			left->keys[left->count] = parent->keys[left_idx];
 
-			/* 3) Move donor's first child into left[end + 1] */
+			/* 2. Move donor's first child into left[end + 1] */
 			left->children[left->count + 1] = std::move(right->children[0]);
-			if (left->children[left->count + 1] != nullptr) {
-				NodeBase *moved_base = left->children[left->count + 1].get();
-				Node *moved = static_cast<Node *>(moved_base);
-				moved->parent = left;
-				moved->index_in_parent = left->count + 1;
-			}
+			this->SetParent(left->children[left->count + 1].get(), left, left->count + 1);
 
-			/* 4) Update recipient count */
+			/* 3. Update recipient count */
 			++left->count;
 
-			/* 5) Move donor's first key up into parent */
+			/* 4. Move donor's first key up into parent */
 			parent->keys[left_idx] = right->keys[0];
 
-			/* 6) Shift donor left to close gap */
+			/* 5. Shift donor left to close gap */
 			std::copy(right->keys.begin() + 1, right->keys.begin() + right->count, right->keys.begin());
 			std::move(right->children.begin() + 1, right->children.begin() + right->count + 1, right->children.begin());
 
-			/* 7) Fix parent/index_in_parent pointers for shifted donor children */
-			for (uint8_t c = 0; c < right->count; ++c) {
-				NodeBase *child_base = right->children[c].get();
-				if (child_base != nullptr) {
-					Node *child = static_cast<Node *>(child_base);
-					child->parent = right;
-					child->index_in_parent = c;
-				}
+			/* 6. Fix parent/index_in_parent pointers for shifted donor children */
+			if (right->count > 0) {
+				this->ReindexChildren(right, 0, right->count - 1);
 			}
 
-			/* 8) Update donor count */
+			/* 7. Update donor count */
 			--right->count;
 
 		} else {
 			/* Right receives from left */
 
-			/* 1) Prepare recipient slot (shift right's keys/children right) */
+			/* 1. Prepare recipient slot (shift right's keys/children right) */
 			std::copy_backward(right->keys.begin(), right->keys.begin() + right->count, right->keys.begin() + right->count + 1);
 			std::move_backward(right->children.begin(), right->children.begin() + right->count + 1, right->children.begin() + right->count + 2);
 
-			/* 2) Fix parent/index_in_parent pointers for shifted recipient children */
-			for (uint8_t c = 1; c <= right->count + 1; ++c) {
-				NodeBase *child_base = right->children[c].get();
-				Node *child = static_cast<Node *>(child_base);
-				if (child != nullptr) {
-					child->parent = right;
-					child->index_in_parent = c;
-				}
+			/* 2. Fix parent/index_in_parent pointers for shifted recipient children */
+			if (right->count > 0) {
+				this->ReindexChildren(right, 1, right->count + 1);
 			}
 
-			/* 3) Insert parent key into right[0] */
+			/* 3. Insert parent key into right[0] */
 			right->keys[0] = parent->keys[left_idx];
 
-			/* 4) Move donor's last child into right[0] */
+			/* 4. Move donor's last child into right[0] */
 			right->children[0] = std::move(left->children[left->count]);
-			if (right->children[0] != nullptr) {
-				NodeBase *moved_base = right->children[0].get();
-				Node *moved = static_cast<Node *>(moved_base);
-				moved->parent = right;
-				moved->index_in_parent = 0;
-			}
+			this->SetParent(right->children[0].get(), right, 0);
 
-			/* 5) Update recipient count */
+			/* 5. Update recipient count */
 			++right->count;
 
-			/* 6) Move donor's last key up into parent */
+			/* 6. Move donor's last key up into parent */
 			parent->keys[left_idx] = left->keys[left->count - 1];
 
-			/* 7) Update donor count */
+			/* 7. Update donor count */
 			--left->count;
 		}
 
@@ -1653,7 +1628,7 @@ private:
 		assert(this->VerifyChildrenParent(parent));
 
 		/* Refresh boundary separator at left_idx */
-		this->RefreshBoundaryUpward(parent, left_idx);
+		this->MaintainBoundaryUpward(parent, left_idx);
 	}
 
 	/**
@@ -1680,40 +1655,34 @@ private:
 		/* Guard if merge would overflow */
 		assert(this->CanMergeInternal(left, right) && "MergeKeepLeftInternal called when merge is not possible");
 
-		/* Append separator i */
+		/* 1. Append separator i */
 		left->keys[left->count] = parent->keys[i];
 
-		/* Move right's keys into left */
+		/* 2. Move right's keys into left */
 		std::copy(right->keys.begin(), right->keys.begin() + right->count, left->keys.begin() + left->count + 1);
 
-		/* Move right's children into left */
+		/* 3. Move right's children into left */
 		std::move(right->children.begin(), right->children.begin() + right->count + 1, left->children.begin() + left->count + 1);
 
-		/* Fix parent/index_in_parent pointers for moved children */
-		for (uint8_t c = 0; c <= right->count; ++c) {
-			NodeBase *child_base = left->children[left->count + 1 + c].get();
-			assert(child_base != nullptr);
+		/* 4. Fix parent/index_in_parent pointers for moved children */
+		this->ReindexChildren(left, left->count + 1, left->count + 1 + right->count);
 
-			Node *moved = static_cast<Node *>(child_base);
-			moved->parent = left;
-			moved->index_in_parent = left->count + 1 + c;
-		}
-
+		/* 5 Update count */
 		left->count += 1 + right->count;
 
-		/* Remove separator i and child i + 1 from parent */
+		/* 6. Remove separator i and child i + 1 from parent */
 		this->RemoveSeparatorAndChild(parent, i);
 
-		/* Defensive rewiring */
+		/* 7. Defensive checks */
 		assert(this->VerifyChildrenParent(left));
 		assert(this->VerifyChildrenParent(parent));
 
-		/* Boundary refresh: separator at i now points to the merged right-min,
+		/* 8. Boundary refresh: separator at i now points to the merged right-min,
 		 * or if i is out of range, refresh the last separator. */
 		if (i < parent->count) {
-			this->RefreshBoundaryUpward(parent, i);
+			this->MaintainBoundaryUpward(parent, i);
 		} else if (parent->count > 0) {
-			this->RefreshBoundaryUpward(parent, parent->count - 1);
+			this->MaintainBoundaryUpward(parent, parent->count - 1);
 		}
 	}
 
@@ -1823,10 +1792,7 @@ private:
 			assert(child != nullptr);
 
 			/* Reset child's parent to null (new root) */
-			NodeBase *child_base = child.get();
-			Node *child_node = static_cast<Node *>(child_base);
-			child_node->parent = nullptr;
-			child_node->index_in_parent = 0;
+			this->SetParent(child.get(), nullptr, 0);
 
 			this->root = std::move(child);
 			return;
@@ -1895,6 +1861,23 @@ private:
 		return count;
 	}
 
+	inline void SetParent(NodeBase *child, Internal *parent, uint8_t idx)
+	{
+		Node *node = static_cast<Node *>(child);
+		node->parent = parent;
+		node->index_in_parent = idx;
+	}
+
+	void ReindexChildren(Internal *parent, uint8_t start, uint8_t end)
+	{
+		for (uint8_t i = start; i <= end; ++i) {
+			NodeBase *child = parent->children[i].get();
+			assert(child != nullptr);
+
+			this->SetParent(child, parent, i);
+		}
+	}
+
 #if BPLUSTREE_CHECK
 	/**
 	 * Run all validation checks on the tree.
@@ -1926,9 +1909,6 @@ private:
 
 		/* Leaf chain validation (ordering, linkage, duplicates) */
 		this->ValidateLeafChain();
-
-		/* Parent/index_in_parent invariants */
-		this->VerifyNode(root_base);
 	}
 
 	/**
@@ -2013,11 +1993,17 @@ private:
 
 	void AssertChildInvariants(const Internal *internal) const
 	{
+		/* Active children: 0 .. count must be non-null and correctly wired */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
 			[[maybe_unused]] Node *child = static_cast<Node *>(internal->children[i].get());
 			assert(child != nullptr);
 			assert(child->parent == internal);
 			assert(child->index_in_parent == i);
+		}
+
+		/* Inactive children: count + 1 .. max - 1 must be null */
+		for (uint8_t i = internal->count + 1; i < internal->children.size(); ++i) {
+			assert(internal->children[i] == nullptr);
 		}
 	}
 
@@ -2061,32 +2047,6 @@ private:
 
 			prev = leaf;
 			leaf = leaf->next_leaf;
-		}
-	}
-
-	/**
-	 * Recursive verification of parent/index_in_parent invariants.
-	 */
-	void VerifyNode(const NodeBase *n) const
-	{
-		if (n == nullptr) return;
-
-		if (!n->is_leaf) {
-			const Internal *internal = static_cast<const Internal *>(n);
-
-			for (uint8_t j = 0; j <= internal->count; ++j) {
-				const NodeBase *child_base = internal->children[j].get();
-				if (child_base == nullptr) continue;
-
-				/* In this instantiation, Node is NodeSet or NodeMap, which is the
-				 * actual dynamic type behind NodeBase * in children[]. */
-				const Node *child = static_cast<const Node *>(child_base);
-
-				assert(child->parent == internal);
-				assert(child->index_in_parent == j);
-
-				this->VerifyNode(child_base);
-			}
 		}
 	}
 #endif /* BPLUSTREE_CHECK */
