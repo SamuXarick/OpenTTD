@@ -36,7 +36,6 @@ private:
 		std::array<Tkey, 64> keys;
 
 		NodeBase(bool leaf) : is_leaf(leaf) {}
-		virtual ~NodeBase() = default;
 	};
 
 	struct InternalSet;
@@ -46,14 +45,12 @@ private:
 		InternalSet *parent = nullptr;
 
 		explicit NodeSet(bool leaf) : NodeBase(leaf) {}
-		virtual ~NodeSet() = default;
 	};
 
 	struct NodeMap : NodeBase {
 		InternalMap *parent = nullptr;
 
 		explicit NodeMap(bool leaf) : NodeBase(leaf) {}
-		virtual ~NodeMap() = default;
 	};
 
 	using Node = std::conditional_t<std::is_void_v<Tvalue>, NodeSet, NodeMap>;
