@@ -7,6 +7,9 @@
 
 /** @file bplustree_type.hpp BPlusTree container implementation, tailored for ScriptList. */
 
+#ifndef BPLUSTREE_TYPE_HPP
+#define BPLUSTREE_TYPE_HPP
+
 /**
  * @brief Header-only B+ tree container used as an alternative to std::map / std::set.
  *
@@ -106,18 +109,14 @@
  *  - keep implementation and documentation together.
  */
 
-
-#ifndef BPLUSTREE_TYPE_HPP
-#define BPLUSTREE_TYPE_HPP
-
 /** Enable it if you suspect b+ tree doesn't work well. */
 #define BPLUSTREE_CHECK 0
 
 #if BPLUSTREE_CHECK
-/** Validate nodes after insert / erase. */
+	/** Validate nodes after insert / erase. */
 #	define VALIDATE_NODES() this->ValidateAll()
 #else
-/** Don't check for consistency. */
+	/** Don't check for consistency. */
 #	define VALIDATE_NODES() ;
 #endif
 
@@ -348,6 +347,19 @@ public:
 	}
 
 	/**
+	 * @brief Copy constructor.
+	 *
+	 * Constructs this tree as a deep copy of @p other.
+	 * Node structure, leaf chain, and parent pointers are all rebuilt.
+	 *
+	 * @param other Tree to copy from.
+	 */
+	BPlusTree(const BPlusTree &other)
+	{
+		this->CopyFrom(other);
+	}
+
+	/**
 	 * @brief Copy-assignment operator.
 	 *
 	 * Replaces the contents of this tree with a deep copy of @p other.
@@ -359,22 +371,8 @@ public:
 	BPlusTree &operator=(const BPlusTree &other)
 	{
 		if (this != &other) {
-			this->root.reset();
-
-			if (other.root != nullptr) {
-				std::vector<Leaf *> leaves;
-				this->root = this->CloneNode(other.root.get(), nullptr, 0, leaves);
-
-				/* Root invariants: parent = nullptr, index_in_parent = 0 */
-				Node *root_node = this->root.get();
-				assert(root_node != nullptr);
-				this->SetParent(root_node, nullptr, 0);
-
-				this->RebuildLeafChain(leaves);
-			}
+			this->CopyFrom(other);
 		}
-
-		VALIDATE_NODES();
 		return *this;
 	}
 
@@ -395,6 +393,33 @@ private:
 			}
 			return total;
 		}
+	}
+
+	/**
+	 * @brief Internal helper to deep-copy the contents of @p other into this tree.
+	 *
+	 * Rebuilds the entire node structure, parent pointers, and leaf chain.
+	 * Assumes the current tree has already been cleared/reset by the caller.
+	 *
+	 * @param other Source tree to copy from.
+	 */
+	void CopyFrom(const BPlusTree &other)
+	{
+		this->root.reset();
+
+		if (other.root != nullptr) {
+			std::vector<Leaf *> leaves;
+			this->root = this->CloneNode(other.root.get(), nullptr, 0, leaves);
+
+			/* Root invariants: parent = nullptr, index_in_parent = 0 */
+			Node *root_node = this->root.get();
+			assert(root_node != nullptr);
+			this->SetParent(root_node, nullptr, 0);
+
+			this->RebuildLeafChain(leaves);
+		}
+
+		VALIDATE_NODES();
 	}
 
 	NodePtr CloneNode(const Node *src, Internal *parent, uint8_t slot, std::vector<Leaf *> &leaves)
@@ -1319,7 +1344,7 @@ private:
 		}
 
 		/* 2. Inactive children must be null */
-		for (uint8_t i = internal->count + 1; i < internal->children.size(); ++i) {
+		for (uint8_t i = internal->count + 1; i < 65; ++i) {
 			assert(internal->children[i] == nullptr);
 		}
 
@@ -2435,7 +2460,7 @@ private:
 		}
 
 		/* Inactive children: count + 1 .. max - 1 must be null */
-		for (uint8_t i = internal->count + 1; i < internal->children.size(); ++i) {
+		for (uint8_t i = internal->count + 1; i < 65; ++i) {
 			assert(internal->children[i] == nullptr);
 		}
 	}
