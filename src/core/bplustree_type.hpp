@@ -29,48 +29,43 @@
 template<typename Tkey, typename Tvalue = void, typename Allocator = std::allocator<std::conditional_t<std::is_void_v<Tvalue>, Tkey, std::pair<const Tkey, Tvalue>>>>
 class BPlusTree {
 private:
-	struct NodeBase {
+	/* Forward declaration for parent pointer */
+	struct Internal;
+
+	/* Common node header */
+	struct Node {
 		bool is_leaf;
 		uint8_t count = 0;
 		uint8_t index_in_parent = 0;
+		Internal *parent = nullptr;
 		std::array<Tkey, 64> keys;
 
-		NodeBase(bool leaf) : is_leaf(leaf) {}
+		explicit Node(bool leaf) : is_leaf(leaf) {}
 	};
 
-	struct InternalSet;
-	struct InternalMap;
+	/* Storage for values, only in map mode */
+	template<typename V, bool IsVoid = std::is_void_v<V>>
+	struct LeafValueStorage;
 
-	struct NodeSet : NodeBase {
-		InternalSet *parent = nullptr;
-
-		explicit NodeSet(bool leaf) : NodeBase(leaf) {}
+	/* Set mode: no values array */
+	template<typename V>
+	struct LeafValueStorage<V, true> {
+		/* empty - EBO makes this zero-cost */
 	};
 
-	struct NodeMap : NodeBase {
-		InternalMap *parent = nullptr;
-
-		explicit NodeMap(bool leaf) : NodeBase(leaf) {}
+	/* Map mode: has values array */
+	template<typename V>
+	struct LeafValueStorage<V, false> {
+		std::array<V, 64> values;
 	};
 
-	using Node = std::conditional_t<std::is_void_v<Tvalue>, NodeSet, NodeMap>;
+	/* Leaf node (set + map combined) */
+	struct Leaf : Node, LeafValueStorage<Tvalue> {
+		Leaf *next_leaf = nullptr;
+		Leaf *prev_leaf = nullptr;
 
-	struct LeafSet : NodeSet {
-		LeafSet *next_leaf = nullptr;
-		LeafSet *prev_leaf = nullptr;
-
-		LeafSet() : NodeSet(true) {}
+		Leaf() : Node(true) {}
 	};
-
-	struct LeafMap : NodeMap {
-		LeafMap *next_leaf = nullptr;
-		LeafMap *prev_leaf = nullptr;
-		std::array<Tvalue, 64> values;
-
-		LeafMap() : NodeMap(true) {}
-	};
-
-	using Leaf = std::conditional_t<std::is_void_v<Tvalue>, LeafSet, LeafMap>;
 
 	using NodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<std::byte>;
 
@@ -80,24 +75,17 @@ private:
 		NodeDeleter() = default;
 		explicit NodeDeleter(NodeAllocator *allocator) : allocator(allocator) {}
 
-		void operator()(NodeBase *node) const noexcept; // declaration only
+		void operator()(Node *node) const noexcept; // defined after class
 	};
 
-	using NodePtr = std::unique_ptr<NodeBase, NodeDeleter>;
+	using NodePtr = std::unique_ptr<Node, NodeDeleter>;
 
-	struct InternalSet : NodeSet {
+	/* Internal node (set + map combined) */
+	struct Internal : Node {
 		std::array<NodePtr, 65> children;
 
-		InternalSet() : NodeSet(false) {}
+		Internal() : Node(false) {}
 	};
-
-	struct InternalMap : NodeMap {
-		std::array<NodePtr, 65> children;
-
-		InternalMap() : NodeMap(false) {}
-	};
-
-	using Internal = std::conditional_t<std::is_void_v<Tvalue>, InternalSet, InternalMap>;
 
 	NodeAllocator node_allocator;
 	Allocator allocator;
@@ -108,14 +96,14 @@ private:
 	{
 		std::byte *mem = this->node_allocator.allocate(sizeof(Leaf));
 		Leaf *leaf = new (mem) Leaf();
-		return NodePtr(static_cast<NodeBase *>(leaf), NodeDeleter(&this->node_allocator));
+		return NodePtr(static_cast<Node *>(leaf), NodeDeleter(&this->node_allocator));
 	}
 
 	NodePtr AllocateInternal()
 	{
 		std::byte *mem = this->node_allocator.allocate(sizeof(Internal));
 		Internal *internal = new (mem) Internal();
-		return NodePtr(static_cast<NodeBase *>(internal), NodeDeleter(&this->node_allocator));
+		return NodePtr(static_cast<Node *>(internal), NodeDeleter(&this->node_allocator));
 	}
 
 public:
@@ -179,13 +167,9 @@ public:
 				this->root = this->CloneNode(other.root.get(), nullptr, 0, leaves);
 
 				/* Root invariants: parent = nullptr, index_in_parent = 0 */
-				NodeBase *root_base = this->root.get();
-				if (root_base != nullptr) {
-					root_base->index_in_parent = 0;
-
-					Node *root_node = static_cast<Node *>(root_base);
-					root_node->parent = nullptr;
-				}
+				Node *root_node = this->root.get();
+				assert(root_node != nullptr);
+				this->SetParent(root_node, nullptr, 0);
 
 				this->RebuildLeafChain(leaves);
 			}
@@ -196,7 +180,7 @@ public:
 	}
 
 private:
-	size_t CountRecursive(const NodeBase *node) const
+	size_t CountRecursive(const Node *node) const
 	{
 		if (node == nullptr) {
 			return 0;
@@ -214,7 +198,7 @@ private:
 		}
 	}
 
-	NodePtr CloneNode(const NodeBase *src, Internal *parent, uint8_t slot, std::vector<Leaf *> &leaves)
+	NodePtr CloneNode(const Node *src, Internal *parent, uint8_t slot, std::vector<Leaf *> &leaves)
 	{
 		if (src->is_leaf) {
 			/* Clone leaf node */
@@ -230,8 +214,7 @@ private:
 				dst_leaf->values = src_leaf->values;
 			}
 
-			dst_leaf->parent = parent;
-			dst_leaf->index_in_parent = (parent != nullptr ? slot : 0);
+			this->SetParent(dst_leaf, parent, parent != nullptr ? slot : 0);
 
 			leaves.push_back(dst_leaf);
 			return dst;
@@ -246,8 +229,7 @@ private:
 		dst_internal->count = src_internal->count;
 		dst_internal->keys = src_internal->keys;
 
-		dst_internal->parent = parent;
-		dst_internal->index_in_parent = (parent != nullptr ? slot : 0);
+		this->SetParent(dst_internal, parent, parent != nullptr ? slot : 0);
 
 		for (uint8_t i = 0; i <= src_internal->count; ++i) {
 			if (src_internal->children[i] != nullptr) {
@@ -258,8 +240,7 @@ private:
 				if (!dst_internal->children[i]->is_leaf) {
 					Internal *child_internal = static_cast<Internal *>(dst_internal->children[i].get());
 
-					child_internal->parent = dst_internal;
-					child_internal->index_in_parent = i;
+					this->SetParent(child_internal, dst_internal, i);
 				}
 			} else {
 				dst_internal->children[i].reset();
@@ -654,7 +635,7 @@ public:
 	{
 		assert(this->root != nullptr);
 
-		NodeBase *node = this->root.get();
+		Node *node = this->root.get();
 
 		/* Descend while we're in an internal node */
 		while (!node->is_leaf) {
@@ -676,7 +657,7 @@ public:
 	{
 		assert(this->root != nullptr);
 
-		const NodeBase *node = this->root.get();
+		const Node *node = this->root.get();
 
 		/* Descend while we're in an internal node */
 		while (!node->is_leaf) {
@@ -802,7 +783,7 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		NodeBase *node = this->root.get();
+		Node *node = this->root.get();
 
 		/* Descend leftmost children while internal */
 		while (!node->is_leaf) {
@@ -821,7 +802,7 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		NodeBase *node = this->root.get();
+		Node *node = this->root.get();
 
 		/* Descend rightmost children while internal */
 		while (!node->is_leaf) {
@@ -848,7 +829,7 @@ private:
 		assert(child->index_in_parent <= parent->count);
 
 		/* Retrieve the node at the expected slot */
-		[[maybe_unused]] NodeBase *node = parent->children[child->index_in_parent].get();
+		[[maybe_unused]] Node *node = parent->children[child->index_in_parent].get();
 		assert(node != nullptr);
 
 		/* Verify that the pointer matches the expected child */
@@ -948,7 +929,7 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		NodeBase *node = this->root.get();
+		Node *node = this->root.get();
 
 		/* Descend while internal */
 		while (!node->is_leaf) {
@@ -971,7 +952,7 @@ private:
 	 *  - each child->parent == this internal
 	 *  - each child->index_in_parent == its index
 	 */
-	bool VerifyChildrenParent(const NodeBase *node) const
+	bool VerifyChildrenParent(const Node *node) const
 	{
 		if (node == nullptr) {
 			return true;
@@ -982,10 +963,8 @@ private:
 
 		/* 1. Active children must be non-null */
 		for (uint8_t i = 0; i <= internal->count; ++i) {
-			const NodeBase *child_base = internal->children[i].get();
-			assert(child_base != nullptr);
-
-			const Node *child = static_cast<const Node *>(child_base);
+			const Node *child = static_cast<const Node *>(internal->children[i].get());
+			assert(child != nullptr);
 
 			/* Parent pointer must match */
 			assert(child->parent == internal);
@@ -1068,17 +1047,13 @@ private:
 
 			/* Fix children's parent/index_in_parent */
 			if (new_root->children[0] != nullptr) {
-				NodeBase *cl_base = new_root->children[0].get();
-				Node *children_left = static_cast<Node *>(cl_base);
-				children_left->parent = new_root;
-				children_left->index_in_parent = 0;
+				Node *children_left = static_cast<Node *>(new_root->children[0].get());
+				this->SetParent(children_left, new_root, 0);
 			}
 
 			if (new_root->children[1] != nullptr) {
-				NodeBase *cr_base = new_root->children[1].get();
-				Node *children_right = static_cast<Node *>(cr_base);
-				children_right->parent = new_root;
-				children_right->index_in_parent = 1;
+				Node *children_right = static_cast<Node *>(new_root->children[1].get());
+				this->SetParent(children_right, new_root, 1);
 			}
 
 			this->root = std::move(new_root_ptr);
@@ -1104,10 +1079,8 @@ private:
 		/* Refresh children's parent/index_in_parent after shift */
 		for (uint8_t j = i + 1; j <= parent->count + 1; ++j) {
 			if (parent->children[j] != nullptr) {
-				NodeBase *child_base = parent->children[j].get();
-				Node *child = static_cast<Node *>(child_base);
-				child->parent = parent;
-				child->index_in_parent = j;
+				Node *child = static_cast<Node *>(parent->children[j].get());
+				this->SetParent(child, parent, j);
 			}
 		}
 
@@ -1117,10 +1090,8 @@ private:
 		parent->children[i + 1] = std::move(right_node);
 
 		if (parent->children[i + 1] != nullptr) {
-			NodeBase *child_base = parent->children[i + 1].get();
-			Node *child = static_cast<Node *>(child_base);
-			child->parent = parent;
-			child->index_in_parent = i + 1;
+			Node *child = static_cast<Node *>(parent->children[i + 1].get());
+			this->SetParent(child, parent, i + 1);
 		}
 
 		++parent->count;
@@ -1154,14 +1125,7 @@ private:
 		std::move(node->children.begin() + mid + 1, node->children.begin() + node->count + 1, right->children.begin());
 
 		/* Fix parent/index_in_parent for moved children in right */
-		for (uint8_t j = 0; j <= right->count; ++j) {
-			NodeBase *child_base = right->children[j].get();
-			assert(child_base != nullptr);
-
-			Node *child = static_cast<Node *>(child_base);
-			child->parent = right;
-			child->index_in_parent = j;
-		}
+		this->ReindexChildren(right, 0, right->count);
 
 		/* Left node keeps first mid keys and mid + 1 children */
 		node->count = mid;
@@ -1228,11 +1192,11 @@ private:
 		}
 
 		/* Right child at sep_idx + 1 must exist and be valid */
-		NodeBase *right = parent->children[sep_idx + 1].get();
+		Node *right = parent->children[sep_idx + 1].get();
 		assert(right != nullptr);
 
 		/* Descend to the leftmost leaf of the right subtree */
-		NodeBase *current = right;
+		Node *current = right;
 		while (!current->is_leaf) {
 			Internal *internal = static_cast<Internal *>(current);
 
@@ -1513,7 +1477,7 @@ private:
 		assert(parent != nullptr);
 		assert(i <= parent->count);
 
-		NodeBase *child_base = parent->children[i].get();
+		Node *child_base = parent->children[i].get();
 		assert(child_base != nullptr);
 
 		if (child_base->is_leaf) {
@@ -1532,7 +1496,7 @@ private:
 		assert(parent != nullptr);
 		assert(index <= parent->count);
 
-		NodeBase *child_base = parent->children[index].get();
+		Node *child_base = parent->children[index].get();
 		assert(child_base != nullptr);
 		assert(!child_base->is_leaf);
 
@@ -1858,19 +1822,17 @@ private:
 		return count;
 	}
 
-	inline void SetParent(NodeBase *child, Internal *parent, uint8_t idx)
+	inline void SetParent(Node *child, Internal *parent, uint8_t idx)
 	{
-		Node *node = static_cast<Node *>(child);
-		node->parent = parent;
-		node->index_in_parent = idx;
+		child->parent = parent;
+		child->index_in_parent = idx;
 	}
 
 	void ReindexChildren(Internal *parent, uint8_t start, uint8_t end)
 	{
 		for (uint8_t i = start; i <= end; ++i) {
-			NodeBase *child = parent->children[i].get();
+			Node *child = parent->children[i].get();
 			assert(child != nullptr);
-
 			this->SetParent(child, parent, i);
 		}
 	}
@@ -1885,7 +1847,7 @@ private:
 	{
 		assert(this->root != nullptr);
 
-		NodeBase *root_base = this->root.get();
+		Node *root_base = this->root.get();
 
 		/* Root invariants */
 		if (root_base->is_leaf) {
@@ -1913,7 +1875,7 @@ private:
 	 * Checks capacity, ordering, range constraints, separator consistency,
 	 * and recurses into children.
 	 */
-	void ValidateNode(const NodeBase *node, const Tkey *min = nullptr, const Tkey *max = nullptr) const
+	void ValidateNode(const Node *node, const Tkey *min = nullptr, const Tkey *max = nullptr) const
 	{
 		assert(node != nullptr);
 
@@ -2006,7 +1968,7 @@ private:
 
 	void AssertSeparatorConsistency(const Internal *internal, uint8_t i) const
 	{
-		NodeBase *right = internal->children[i + 1].get();
+		Node *right = internal->children[i + 1].get();
 		assert(right != nullptr);
 		[[maybe_unused]] const Tkey &right_min = this->SubTreeMin(right);
 		assert(internal->keys[i] == right_min && "Separator must equal min of right subtree");
@@ -2051,17 +2013,17 @@ private:
 	/**
 	 * Return the minimum key in the subtree rooted at node.
 	 */
-	const Tkey &SubTreeMin(NodeBase *node) const
+	const Tkey &SubTreeMin(Node *node) const
 	{
 		assert(node != nullptr);
 
-		NodeBase *cur = node;
+		Node *cur = node;
 
 		/* Descend until we reach a leaf */
 		while (!cur->is_leaf) {
 			Internal *internal = static_cast<Internal *>(cur);
 			assert(internal->children[0] != nullptr);
-			cur = internal->children[0].get(); // NodeBase *
+			cur = internal->children[0].get();
 		}
 
 		Leaf *leaf = static_cast<Leaf *>(cur);
@@ -2105,7 +2067,7 @@ public:
 	/**
 	 * Dump a node and its subtree for debugging.
 	 */
-	void DumpNode(const NodeBase *node = nullptr, int indent = 0) const
+	void DumpNode(const Node *node = nullptr, int indent = 0) const
 	{
 		if (node == nullptr) {
 			if (indent == 0) {
@@ -2140,7 +2102,7 @@ public:
 
 			/* Separators */
 			for (uint8_t i = 0; i < internal->count; ++i) {
-				NodeBase *right = internal->children[i + 1].get();
+				Node *right = internal->children[i + 1].get();
 				if (right != nullptr) {
 					Debug(script, 0, "{}  separator[{}]={} (right.min={})", pad, i, SequenceToString(internal->keys[i]), SequenceToString(SubTreeMin(right)));
 				}
@@ -2151,7 +2113,7 @@ public:
 };
 
 template<typename Tkey, typename Tvalue, typename Allocator>
-void BPlusTree<Tkey, Tvalue, Allocator>::NodeDeleter::operator()(NodeBase *node) const noexcept
+void BPlusTree<Tkey, Tvalue, Allocator>::NodeDeleter::operator()(Node *node) const noexcept
 {
 	if (node == nullptr) {
 		return;
