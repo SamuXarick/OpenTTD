@@ -5,92 +5,248 @@
  * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
  */
 
-/** @file bplustree_type.hpp BPlusTree container implementation. */
+/** @file bplustree_type.hpp BPlusTree container implementation, tailored for ScriptList. */
+
+/**
+ * @brief Header-only B+ tree container used as an alternative to std::map / std::set.
+ *
+ * This file implements a unified B+ tree template supporting both map-like and set-like
+ * semantics. When @c Tvalue is @c void the container behaves like a sorted set of keys.
+ * When @c Tvalue is non-void the container behaves like a sorted associative map storing
+ * @c std::pair<const Tkey, Tvalue>.
+ *
+ * The implementation uses fixed-size nodes (64 keys per node) and maintains a linked
+ * chain of leaf nodes for fast in-order iteration. All operations preserve the standard
+ * B+ tree invariants:
+ *  - All keys are stored in leaves; internal nodes only store separator keys.
+ *  - Internal nodes with @c count separators have @c count + 1 children.
+ *  - Leaves are kept between 32 and 64 keys (except the root).
+ *  - Internal nodes are kept between 31 and 64 separators (except the root).
+ *  - Separator keys always equal the minimum key of their right subtree.
+ *  - Leaves form a doubly-linked list in strictly ascending key order.
+ *
+ * The container provides:
+ *  - bidirectional iterators with stable semantics across insert/erase,
+ *  - logarithmic search, insertion, and deletion,
+ *  - contiguous leaf scans for fast range iteration,
+ *  - allocator support compatible with OpenTTD's memory model,
+ *  - optional deep validation of all invariants (BPLUSTREE_CHECK).
+ *
+ * This implementation is designed for clarity, maintainability, and predictable
+ * performance characteristics inside OpenTTD's codebase.
+ *
+ * @see BPlusTree
+ */
+
+/**
+ * @section bplustree_design_rationale Design Rationale
+ *
+ * The design of this B+ tree balances three competing goals:
+ *  - predictable performance,
+ *  - ease of maintenance,
+ *  - strict structural correctness.
+ *
+ * @subsection node_layout Node Layout
+ * Nodes use fixed-size @c std::array buffers (64 keys per node). This avoids dynamic
+ * allocation inside nodes, improves cache locality, and simplifies split/merge logic.
+ * The capacity of 64 was chosen as a practical balance between:
+ *  - reducing tree height,
+ *  - keeping nodes small enough to fit comfortably in cache,
+ *  - simplifying boundary conditions.
+ *
+ * @subsection leaf_chain Leaf Chain
+ * Leaves form a doubly-linked list. This enables:
+ *  - O(1) increment/decrement of iterators,
+ *  - fast range scans,
+ *  - efficient lower_bound() followed by sequential iteration.
+ *
+ * The leaf chain is rebuilt only during cloning; all other operations maintain it
+ * incrementally.
+ *
+ * @subsection parent_pointers Parent Pointers
+ * Every node stores a pointer to its parent and its @c index_in_parent. This allows:
+ *  - O(1) upward navigation,
+ *  - simple and reliable separator maintenance,
+ *  - efficient underflow repair without recursive searches.
+ *
+ * @subsection invariants Invariant Enforcement
+ * The implementation centralizes invariant maintenance:
+ *  - @c MaintainBoundaryLocal and @c MaintainBoundaryUpward keep separators correct.
+ *  - @c FixUnderflowLeafChild and @c FixUnderflowInternalChild handle borrow/merge.
+ *  - @c ReindexChildren ensures parent/child wiring is always consistent.
+ *
+ * When @c BPLUSTREE_CHECK is enabled, @c ValidateAll() performs:
+ *  - full subtree validation,
+ *  - separator consistency checks,
+ *  - leaf chain ordering checks,
+ *  - parent/child pointer correctness checks.
+ *
+ * @subsection iterator_design Iterator Design
+ * Iterators store:
+ *  - a pointer to the current leaf,
+ *  - an index within that leaf,
+ *  - a pointer back to the tree.
+ *
+ * This design ensures:
+ *  - stable iterators across most structural changes,
+ *  - O(1) increment/decrement,
+ *  - no need for proxy objects except in map mode.
+ *
+ * @subsection allocator_support Allocator Support
+ * The tree uses two allocators:
+ *  - @c Allocator for values (map mode),
+ *  - a rebound allocator for node storage.
+ *
+ * This matches STL conventions and OpenTTD's allocator expectations.
+ *
+ * @subsection header_only Why Header-Only?
+ * The template is fully defined in this header to:
+ *  - simplify integration into OpenTTD,
+ *  - avoid linker complications with templates,
+ *  - keep implementation and documentation together.
+ */
+
 
 #ifndef BPLUSTREE_TYPE_HPP
 #define BPLUSTREE_TYPE_HPP
 
-/** Enable it if you suspect b+ tree doesn't work well */
+/** Enable it if you suspect b+ tree doesn't work well. */
 #define BPLUSTREE_CHECK 0
 
 #if BPLUSTREE_CHECK
-	/** Validate nodes after insert / erase. */
+/** Validate nodes after insert / erase. */
 #	define VALIDATE_NODES() this->ValidateAll()
 #else
-	/** Don't check for consistency. */
+/** Don't check for consistency. */
 #	define VALIDATE_NODES() ;
 #endif
 
 /**
- * Unified B+ tree template.
- * - If Tvalue != void -> behaves like std::map<Tkey,Tvalue>
- * - If Tvalue == void -> behaves like std::set<Tkey>
+ * @brief Unified B+ tree template.
+ *
+ * Behaves as a map or set depending on @p Tvalue:
+ * - If @p Tvalue is not void, the tree behaves like std::map<Tkey, Tvalue>.
+ * - If @p Tvalue is void, the tree behaves like std::set<Tkey>.
+ *
+ * Nodes are fixed-size with a maximum of 64 keys and 65 children per internal
+ * node. Leaf nodes form a doubly-linked chain for efficient iteration over
+ * key ranges. Memory for nodes is obtained from a rebound allocator type
+ * derived from @p Allocator and managed via unique_ptr with a custom deleter.
+ *
+ * Complexity:
+ * - Lookup: O(log n)
+ * - Insert: O(log n)
+ * - Erase: O(log n)
+ * - Iteration: O(n)
+ *
+ * @tparam Tkey       Key type. Must be totally ordered via operator<.
+ * @tparam Tvalue     Mapped type. Use void for set-like mode.
+ * @tparam Allocator  Allocator used for node storage and value storage.
  */
-template<typename Tkey, typename Tvalue = void, typename Allocator = std::allocator<std::conditional_t<std::is_void_v<Tvalue>, Tkey, std::pair<const Tkey, Tvalue>>>>
+template <typename Tkey, typename Tvalue = void, typename Allocator = std::allocator<std::conditional_t<std::is_void_v<Tvalue>, Tkey, std::pair<const Tkey, Tvalue>>>>
 class BPlusTree {
 private:
-	/* Forward declaration for parent pointer */
+	/** Forward declaration for parent pointer of nodes. */
 	struct Internal;
 
-	/* Common node header */
+	/**
+	 * @brief Common node header for both internal and leaf nodes.
+	 *
+	 * @invariant is_leaf determines the dynamic node type.
+	 * @invariant count is the number of valid keys in the node.
+	 * @invariant index_in_parent is the index in the parent's children[] array.
+	 * @invariant parent is nullptr only for the root.
+	 */
 	struct Node {
-		bool is_leaf;
-		uint8_t count = 0;
-		uint8_t index_in_parent = 0;
-		Internal *parent = nullptr;
-		std::array<Tkey, 64> keys;
+		bool is_leaf;                    ///< True if this node is a leaf.
+		uint8_t count = 0;               ///< Number of valid keys in the node.
+		uint8_t index_in_parent = 0;     ///< Index into parent->children[].
+		Internal *parent = nullptr;      ///< Parent internal node, nullptr for root.
+		std::array<Tkey, 64> keys;       ///< Stored keys in sorted order.
 
 		explicit Node(bool leaf) : is_leaf(leaf) {}
 	};
 
-	/* Storage for values, only in map mode */
-	template<typename V, bool IsVoid = std::is_void_v<V>>
+	/**
+	 * @brief Storage for leaf values, specialized on whether Tvalue is void.
+	 *
+	 * In set mode (Tvalue = void), this is an empty base class (EBO).
+	 * In map mode, this holds a fixed-size array of mapped values.
+	 *
+	 * @tparam V      Mapped value type.
+	 * @tparam IsVoid True if V is void (set mode).
+	 */
+	template <typename V, bool IsVoid = std::is_void_v<V>>
 	struct LeafValueStorage;
 
-	/* Set mode: no values array */
-	template<typename V>
+	/** @brief Set mode: no values array (empty base, zero-cost). */
+	template <typename V>
 	struct LeafValueStorage<V, true> {
 		/* empty - EBO makes this zero-cost */
 	};
 
-	/* Map mode: has values array */
-	template<typename V>
+	/** @brief Map mode: leaf nodes store values parallel to keys. */
+	template <typename V>
 	struct LeafValueStorage<V, false> {
-		std::array<V, 64> values;
+		std::array<V, 64> values; ///< Values aligned with keys[0..count-1].
 	};
 
-	/* Leaf node (set + map combined) */
+	/**
+	 * @brief Leaf node in the B+ tree.
+	 *
+	 * Stores keys and optionally values, and participates in the doubly-linked
+	 * leaf chain used for iteration.
+	 *
+	 * @invariant keys[0..count-1] are strictly ascending.
+	 * @invariant next_leaf / prev_leaf form a consistent bi-directional chain.
+	 */
 	struct Leaf : Node, LeafValueStorage<Tvalue> {
-		Leaf *next_leaf = nullptr;
-		Leaf *prev_leaf = nullptr;
+		Leaf *next_leaf = nullptr; ///< Next leaf in key order.
+		Leaf *prev_leaf = nullptr; ///< Previous leaf in key order.
 
 		Leaf() : Node(true) {}
 	};
 
+	/** Allocator used for raw node storage (bytes). */
 	using NodeAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<std::byte>;
 
+	/**
+	 * @brief Custom deleter for node unique_ptr.
+	 *
+	 * Stores a pointer to the node allocator and destroys/deallocates nodes
+	 * using the correct concrete node type (Leaf or Internal).
+	 */
 	struct NodeDeleter {
-		NodeAllocator *allocator = nullptr;
+		NodeAllocator *allocator = nullptr; ///< Allocator used for node memory.
 
 		NodeDeleter() = default;
 		explicit NodeDeleter(NodeAllocator *allocator) : allocator(allocator) {}
 
-		void operator()(Node *node) const noexcept; // defined after class
+		void operator()(Node *node) const noexcept; ///< Destroy and deallocate @p node.
 	};
 
+	/** Ownership type for nodes with custom deleter. */
 	using NodePtr = std::unique_ptr<Node, NodeDeleter>;
 
-	/* Internal node (set + map combined) */
+	/**
+	 * @brief Internal node in the B+ tree.
+	 *
+	 * Holds keys and child pointers. For @p count keys, there are @p count + 1
+	 * active children in the @p children array.
+	 *
+	 * @invariant children[0..count] are non-null.
+	 * @invariant children[count+1..64] are null.
+	 */
 	struct Internal : Node {
-		std::array<NodePtr, 65> children;
+		std::array<NodePtr, 65> children; ///< Children pointers, size = keys + 1.
 
 		Internal() : Node(false) {}
 	};
 
-	NodeAllocator node_allocator;
-	Allocator allocator;
+	NodeAllocator node_allocator; ///< Allocator used for node storage.
+	Allocator allocator;          ///< Allocator used for value/mapped storage.
 
-	NodePtr root;
+	NodePtr root;                 ///< Root node of the tree (leaf or internal).
 
 	NodePtr AllocateLeaf()
 	{
@@ -107,7 +263,18 @@ private:
 	}
 
 public:
-	BPlusTree(const Allocator &allocator = Allocator()) : node_allocator(allocator), allocator(allocator), root(nullptr, NodeDeleter(&this->node_allocator))
+	/**
+	 * @brief Construct an empty B+ tree.
+	 *
+	 * Allocates an initial empty leaf as the root and stores copies of
+	 * the supplied allocator for node and value allocation.
+	 *
+	 * @param allocator Allocator instance used for node and value storage.
+	 */
+	BPlusTree(const Allocator &allocator = Allocator()) :
+		node_allocator(allocator),
+		allocator(allocator),
+		root(nullptr, NodeDeleter(&this->node_allocator))
 	{
 		this->root = this->AllocateLeaf();
 	}
@@ -115,7 +282,12 @@ public:
 	~BPlusTree() = default;
 
 	/**
-	 * Check if tree contains a key
+	 * @brief Check whether the tree contains a key.
+	 *
+	 * Performs a lookup equivalent to @c find(key) != end().
+	 *
+	 * @param key Key to look up.
+	 * @return True if @p key is present, false otherwise.
 	 */
 	bool contains(const Tkey &key) const
 	{
@@ -123,7 +295,12 @@ public:
 	}
 
 	/**
-	 * Swap roots between two trees.
+	 * @brief Swap roots and allocators between two trees.
+	 *
+	 * Swaps the internal root pointer and allocator state with @p other.
+	 * Node ownership is exchanged; no individual node is moved.
+	 *
+	 * @param other Other BPlusTree to swap with.
 	 */
 	void swap(BPlusTree &other) noexcept
 	{
@@ -132,7 +309,10 @@ public:
 	}
 
 	/**
-	 * Clear tree: reset to a fresh empty leaf node.
+	 * @brief Clear the tree and reset to a fresh empty leaf node.
+	 *
+	 * Destroys the entire tree structure and replaces the root with a new,
+	 * empty leaf node. All iterators are invalidated.
 	 */
 	void clear() noexcept
 	{
@@ -141,7 +321,9 @@ public:
 	}
 
 	/**
-	 * Check if tree is empty
+	 * @brief Check whether the tree is empty.
+	 *
+	 * @return True if the tree contains no keys, false otherwise.
 	 */
 	bool empty() const noexcept
 	{
@@ -150,6 +332,14 @@ public:
 		return this->root->count == 0;
 	}
 
+	/**
+	 * @brief Return the number of keys stored in the tree.
+	 *
+	 * This method recursively counts keys in all leaves. It is O(n) and
+	 * primarily intended for debugging and validation.
+	 *
+	 * @return Total number of keys stored.
+	 */
 	size_t size() const noexcept
 	{
 		assert(this->root != nullptr);
@@ -157,6 +347,15 @@ public:
 		return this->CountRecursive(this->root.get());
 	}
 
+	/**
+	 * @brief Copy-assignment operator.
+	 *
+	 * Replaces the contents of this tree with a deep copy of @p other.
+	 * Node structure, leaf chain, and parent pointers are all rebuilt.
+	 *
+	 * @param other Tree to copy from.
+	 * @return Reference to this tree.
+	 */
 	BPlusTree &operator=(const BPlusTree &other)
 	{
 		if (this != &other) {
@@ -268,12 +467,19 @@ private:
 	}
 
 	/**
-	 * Iterator types: yields either pair<key, value> or const key &
+	 * @brief Iterator traits for map vs set modes.
+	 *
+	 * Specializes key/value/reference/pointer types used by iterators,
+	 * depending on whether Tvalue is void.
+	 *
+	 * @tparam K Key type.
+	 * @tparam V Value type.
+	 * @tparam IsVoid True if V is void.
 	 */
 	template <typename K, typename V, bool IsVoid = std::is_void_v<V>>
 	struct BPlusIteratorTraits;
 
-	/* Set mode: Tvalue = void */
+	/** @brief Iterator traits for set mode (Tvalue = void). */
 	template <typename K, typename V>
 	struct BPlusIteratorTraits<K, V, true> {
 		using key_type = K;
@@ -287,7 +493,7 @@ private:
 		using const_pointer = const K *;
 	};
 
-	/* Map mode: Tvalue != void, proxy by value */
+	/** @brief Iterator traits for map mode (Tvalue != void) using proxy types. */
 	template <typename K, typename V>
 	struct BPlusIteratorTraits<K, V, false> {
 		using key_type = K;
@@ -320,6 +526,16 @@ private:
 	};
 
 public:
+	/**
+	 * @brief Bidirectional iterator over the tree.
+	 *
+	 * In set mode, dereferences to @c Tkey. In map mode, dereferences to
+	 * a proxy reference with @c first and @c second members behaving like
+	 * std::pair<const Tkey, Tvalue>.
+	 *
+	 * Iterators remain valid across non-structural modifications but are
+	 * invalidated by insertions or erasures that split/merge nodes.
+	 */
 	struct iterator {
 		using Traits = BPlusIteratorTraits<Tkey, Tvalue>;
 		using iterator_category = std::bidirectional_iterator_tag;
@@ -328,9 +544,9 @@ public:
 		using reference = typename Traits::reference;
 		using pointer = typename Traits::pointer;
 
-		Leaf *leaf = nullptr;
-		uint8_t index = 0;
-		const BPlusTree *tree = nullptr;
+		Leaf *leaf = nullptr;         ///< Current leaf node.
+		uint8_t index = 0;            ///< Index within leaf->keys[0..count-1].
+		const BPlusTree *tree = nullptr; ///< Owning tree, for end()/--end() handling.
 
 		iterator() = default;
 
@@ -345,12 +561,12 @@ public:
 			if constexpr (std::is_void_v<Tvalue>) {
 				return this->leaf->keys[this->index]; // set mode
 			} else {
-				/* proxy_ already bound to current element */
+				/* proxy already bound to current element */
 				return reference{this->leaf->keys[this->index], this->leaf->values[this->index]};
 			}
 		}
 
-		[[nodiscard]]pointer operator->() const
+		[[nodiscard]] pointer operator->() const
 		{
 			assert(this->leaf != nullptr);
 			assert(this->index < this->leaf->count);
@@ -431,6 +647,11 @@ public:
 		}
 	};
 
+	/**
+	 * @brief Constant bidirectional iterator over the tree.
+	 *
+	 * Behaves like @c iterator but yields const references / proxies.
+	 */
 	struct const_iterator {
 		using Traits = BPlusIteratorTraits<Tkey, Tvalue>;
 		using iterator_category = std::bidirectional_iterator_tag;
@@ -439,9 +660,9 @@ public:
 		using reference = typename Traits::const_reference;
 		using pointer = typename Traits::const_pointer;
 
-		const Leaf *leaf = nullptr;
-		uint8_t index = 0;
-		const BPlusTree *tree = nullptr;
+		const Leaf *leaf = nullptr;     ///< Current leaf node.
+		uint8_t index = 0;              ///< Index within leaf->keys[0..count-1].
+		const BPlusTree *tree = nullptr; ///< Owning tree, for end()/--end() handling.
 
 		const_iterator() = default;
 
@@ -544,7 +765,11 @@ public:
 	};
 
 	/**
-	 * Return iterator to first element
+	 * @brief Return iterator to the first element in the tree.
+	 *
+	 * If the tree is empty, returns end().
+	 *
+	 * @return Iterator to the smallest key, or end() if empty.
 	 */
 	iterator begin()
 	{
@@ -561,6 +786,13 @@ public:
 		return iterator(first, 0, this);
 	}
 
+	/**
+	 * @brief Return const_iterator to the first element in the tree.
+	 *
+	 * If the tree is empty, returns end().
+	 *
+	 * @return Const iterator to the smallest key, or end() if empty.
+	 */
 	const_iterator begin() const
 	{
 		assert(this->root != nullptr);
@@ -577,18 +809,33 @@ public:
 	}
 
 	/**
-	 * Return iterator to "one past the last element"
+	 * @brief Return iterator to the element past the last key.
+	 *
+	 * This acts as the usual end() sentinel and does not point to a valid key.
+	 *
+	 * @return Iterator representing one-past-the-end.
 	 */
 	iterator end()
 	{
 		return iterator(nullptr, 0, this); // sentinel
 	}
 
+	/**
+	 * @brief Return const_iterator to the element past the last key.
+	 *
+	 * @return Const iterator representing one-past-the-end.
+	 */
 	const_iterator end() const
 	{
 		return const_iterator(nullptr, 0, this);
 	}
 
+	/**
+	 * @brief Find an element with the given key.
+	 *
+	 * @param key Key to look up.
+	 * @return Iterator to the element if found, end() otherwise.
+	 */
 	iterator find(const Tkey &key)
 	{
 		assert(this->root != nullptr);
@@ -610,6 +857,12 @@ public:
 		return this->end();
 	}
 
+	/**
+	 * @brief Find an element with the given key (const overload).
+	 *
+	 * @param key Key to look up.
+	 * @return Const iterator to the element if found, end() otherwise.
+	 */
 	const_iterator find(const Tkey &key) const
 	{
 		assert(this->root != nullptr);
@@ -631,6 +884,15 @@ public:
 		return this->end();
 	}
 
+	/**
+	 * @brief Return iterator to the first element not less than @p key.
+	 *
+	 * Descends the tree to locate the appropriate leaf, then performs a
+	 * linear search within that leaf.
+	 *
+	 * @param key Key to search for.
+	 * @return Iterator to the first element with key >= @p key, or end().
+	 */
 	iterator lower_bound(const Tkey &key)
 	{
 		assert(this->root != nullptr);
@@ -653,6 +915,12 @@ public:
 		return iterator(leaf, i, this);
 	}
 
+	/**
+	 * @brief Return const_iterator to the first element not less than @p key.
+	 *
+	 * @param key Key to search for.
+	 * @return Const iterator to the first element with key >= @p key, or end().
+	 */
 	const_iterator lower_bound(const Tkey &key) const
 	{
 		assert(this->root != nullptr);
@@ -676,10 +944,18 @@ public:
 	}
 
 	/**
-	 * Map mode emplace
+	 * @brief Emplace a key/value pair in map mode.
+	 *
+	 * If the key already exists, no insertion is performed and the iterator
+	 * to the existing element is returned with a false flag. Otherwise, a
+	 * new element is inserted and the iterator points to it with a true flag.
+	 *
+	 * @param key   Key to insert.
+	 * @param value Value to insert.
+	 * @return Pair of iterator to element and a bool indicating insertion.
 	 */
 	template <typename U = Tvalue> requires (!std::is_void_v<U>)
-	std::pair<iterator, bool> emplace(const Tkey &key, const U &value)
+		std::pair<iterator, bool> emplace(const Tkey &key, const U &value)
 	{
 		return this->InsertCommon(key, [&](Leaf *leaf, uint8_t idx) {
 			this->Insert(leaf, idx, key, value);
@@ -687,16 +963,35 @@ public:
 	}
 
 	/**
-	 * Set mode emplace
+	 * @brief Emplace a key in set mode.
+	 *
+	 * If the key already exists, no insertion is performed and the iterator
+	 * to the existing element is returned with a false flag. Otherwise, a
+	 * new key is inserted and the iterator points to it with a true flag.
+	 *
+	 * @param key Key to insert.
+	 * @return Pair of iterator to element and a bool indicating insertion.
 	 */
 	template <typename U = Tvalue> requires (std::is_void_v<U>)
-	std::pair<iterator, bool> emplace(const Tkey &key)
+		std::pair<iterator, bool> emplace(const Tkey &key)
 	{
 		return this->InsertCommon(key, [&](Leaf *leaf, uint8_t idx) {
 			this->Insert(leaf, idx, key);
 		});
 	}
 
+	/**
+	 * @brief Erase the element pointed to by @p pos.
+	 *
+	 * Removes the key (and associated value in map mode) at @p pos and
+	 * returns an iterator to the logical successor, if any.
+	 *
+	 * Structural changes (borrows/merges) may occur; the returned iterator
+	 * is checked in debug builds to ensure it still points to @p succ_key.
+	 *
+	 * @param pos Iterator to the element to erase.
+	 * @return Iterator to the successor element, or end() if none.
+	 */
 	iterator erase(iterator pos)
 	{
 		if (pos == this->end()) {
@@ -818,8 +1113,16 @@ private:
 	}
 
 	/**
-	 * Find the index of a child in its parent.
-	 * Works for both Leaf and Internal children.
+	 * @brief Find the index of a child in its parent.
+	 *
+	 * Works for both leaf and internal children and uses the child's
+	 * @c index_in_parent field as the expected index. Debug builds
+	 * verify that parent->children[index_in_parent] refers to @p child.
+	 *
+	 * @tparam T      Node type (Leaf or Internal).
+	 * @param parent  Parent internal node.
+	 * @param child   Child node whose index to retrieve.
+	 * @return Index in @p parent->children[] where @p child resides.
 	 */
 	template <typename T>
 	uint8_t FindChildIndex(Internal *parent, T *child) const
@@ -839,7 +1142,16 @@ private:
 	}
 
 	/**
-	 * Common Insert logic: find position, check existence, call do_insert lambda
+	 * @brief Common insert logic for map/set emplace.
+	 *
+	 * Performs a lookup of @p key, checks for existing key, and invokes
+	 * @p do_insert to perform the actual insertion into a leaf. After the
+	 * operation, it computes and returns an iterator to the inserted key.
+	 *
+	 * @tparam Tfunc   Callable type accepting (Leaf*, uint8_t).
+	 * @param key      Key to insert.
+	 * @param do_insert Callable that performs the insertion in the leaf.
+	 * @return Pair of iterator to the key and a bool indicating insertion.
 	 */
 	template <typename Tfunc>
 	std::pair<iterator, bool> InsertCommon(const Tkey &key, Tfunc &&do_insert)
@@ -873,7 +1185,14 @@ private:
 	}
 
 	/**
-	 * Core insert logic: always shifts keys, optionally shifts values
+	 * @brief Core leaf insert logic shared by map and set modes.
+	 *
+	 * Shifts keys to make room at index @p i, inserts @p key, and updates
+	 * separators and split handling as needed.
+	 *
+	 * @param leaf Leaf node to insert into.
+	 * @param i    Index where the new key should be placed.
+	 * @param key  Key to insert.
 	 */
 	void InsertCommon(Leaf *leaf, uint8_t i, const Tkey &key)
 	{
@@ -900,10 +1219,18 @@ private:
 	}
 
 	/**
-	 * Map mode insert
+	 * @brief Map mode leaf insert.
+	 *
+	 * Inserts @p key and @p value into @p leaf at index @p i, shifting
+	 * existing keys and values as needed.
+	 *
+	 * @param leaf   Leaf node to insert into.
+	 * @param i      Index where the new key/value should be placed.
+	 * @param key    Key to insert.
+	 * @param value  Value to insert.
 	 */
 	template <typename U = Tvalue> requires (!std::is_void_v<U>)
-	void Insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
+		void Insert(Leaf *leaf, uint8_t i, const Tkey &key, const U &value)
 	{
 		/* Shift values */
 		std::copy_backward(leaf->values.begin() + i, leaf->values.begin() + leaf->count, leaf->values.begin() + leaf->count + 1);
@@ -914,16 +1241,29 @@ private:
 	}
 
 	/**
-	 * Set mode insert
+	 * @brief Set mode leaf insert.
+	 *
+	 * Inserts @p key into @p leaf at index @p i, shifting existing keys
+	 * as needed. No value array is present in set mode.
+	 *
+	 * @param leaf Leaf node to insert into.
+	 * @param i    Index where the new key should be placed.
+	 * @param key  Key to insert.
 	 */
 	template <typename U = Tvalue> requires (std::is_void_v<U>)
-	void Insert(Leaf *leaf, uint8_t i, const Tkey &key)
+		void Insert(Leaf *leaf, uint8_t i, const Tkey &key)
 	{
 		this->InsertCommon(leaf, i, key);
 	}
 
 	/**
-	 * Descend the tree to find the leaf containing or suitable for the given key.
+	 * @brief Descend the tree to find the leaf for the given key.
+	 *
+	 * Follows internal separators using UpperBound until a leaf is reached.
+	 * Returns the leaf where @p key is stored or should be inserted.
+	 *
+	 * @param key Key to locate.
+	 * @return Leaf node containing or suitable for @p key.
 	 */
 	Leaf *FindLeaf(const Tkey &key) const
 	{
@@ -946,11 +1286,16 @@ private:
 	}
 
 	/**
-	 * Verify structural invariants for an internal node:
-	 *  - children[0 .. count] must be non-null
-	 *  - children[count+1 .. max_children-1] must be null
-	 *  - each child->parent == this internal
-	 *  - each child->index_in_parent == its index
+	 * @brief Verify structural invariants for an internal node.
+	 *
+	 * Checks that:
+	 * - children[0..count] are non-null,
+	 * - children[count+1..max-1] are null,
+	 * - each child->parent == this internal,
+	 * - each child->index_in_parent == its index.
+	 *
+	 * @param node Node that is expected to be internal.
+	 * @return Always true in non-asserting builds.
 	 */
 	bool VerifyChildrenParent(const Node *node) const
 	{
@@ -982,11 +1327,19 @@ private:
 	}
 
 	/**
-	 * Split a full leaf into two halves and insert separator into parent.
+	 * @brief Split a full leaf into two halves and insert separator into parent.
+	 *
+	 * The left leaf keeps the lower half of the keys, and a new right leaf
+	 * receives the upper half. The first key of the new leaf is promoted
+	 * to the parent as a separator. The leaf chain links are updated.
+	 *
+	 * @param leaf Full leaf to split.
 	 */
 	void SplitLeaf(Leaf *leaf)
 	{
 		assert(leaf != nullptr);
+		assert(leaf->count == 64);
+
 		uint8_t mid = leaf->count / 2;
 
 		/* Create a new Leaf node */
@@ -1020,8 +1373,16 @@ private:
 	}
 
 	/**
-	 * Insert a separator key and right child into the parent of 'left'.
-	 * If 'left' has no parent, create a new root.
+	 * @brief Insert a separator key and right child into the parent of @p left.
+	 *
+	 * If @p left has no parent, a new internal root is created and both the
+	 * old root (@p left) and @p right_node become its children. Otherwise the
+	 * separator and right child are inserted into the existing parent, splitting
+	 * the parent if needed.
+	 *
+	 * @param left       Existing child node on the left side of the separator.
+	 * @param separator  Key to insert into the parent.
+	 * @param right_node New right child node produced by a split.
 	 */
 	void InsertIntoParent(Node *left, const Tkey &separator, NodePtr right_node)
 	{
@@ -1099,7 +1460,13 @@ private:
 	}
 
 	/**
-	 * Split a full internal node into two halves and promote a separator key.
+	 * @brief Split a full internal node into two halves and promote a separator.
+	 *
+	 * The separator at the middle index is moved up into the parent of @p node.
+	 * The left node keeps the lower half of the keys and children, and a new
+	 * right node receives the upper half. Child parent metadata is updated.
+	 *
+	 * @param node Full internal node to split.
 	 */
 	void SplitInternal(Internal *node)
 	{
@@ -1147,8 +1514,14 @@ private:
 	}
 
 	/**
-	 * Refresh the separator at sep_idx in 'parent' to match right subtree min,
-	 * then propagate the change upward if needed.
+	 * @brief Refresh a separator and propagate changes upward if needed.
+	 *
+	 * Refreshes the separator at @p sep_idx in @p parent to match the
+	 * minimum key in the right subtree, then walks upward along the tree
+	 * to refresh affected ancestor separators on the same path.
+	 *
+	 * @param parent  Internal node containing the separator.
+	 * @param sep_idx Index of the separator to refresh.
 	 */
 	void MaintainBoundaryUpward(Internal *parent, uint8_t sep_idx)
 	{
@@ -1175,7 +1548,14 @@ private:
 	}
 
 	/**
-	 * Refresh the separator at sep_idx in 'parent' to match right subtree min.
+	 * @brief Refresh a separator at @p sep_idx to match right-subtree minimum.
+	 *
+	 * Looks at the subtree rooted at children[sep_idx + 1], descends to its
+	 * leftmost leaf, and updates @p parent->keys[sep_idx] to the minimum key
+	 * in that subtree.
+	 *
+	 * @param parent  Internal node containing the separator.
+	 * @param sep_idx Index of the separator to refresh.
 	 */
 	void MaintainBoundaryLocal(Internal *parent, uint8_t sep_idx)
 	{
@@ -1215,11 +1595,15 @@ private:
 	}
 
 	/**
-	 * Borrow one key/value across leaf neighbors, symmetrically.
+	 * @brief Borrow one key/value across leaf neighbours, symmetrically.
 	 *
-	 * @param leaf The recipient leaf.
-	 * @param succ_it Iterator potentially impacted by the move.
-	 * @param recipient_is_left If true, borrow from right into leaf; if false, borrow from left into leaf.
+	 * If @p recipient_is_left is true, @p leaf borrows from its right sibling.
+	 * Otherwise it borrows from its left sibling. Iterator @p succ_it is
+	 * updated if it pointed into a shifted or donor leaf.
+	 *
+	 * @param leaf             Recipient leaf.
+	 * @param succ_it          Iterator potentially impacted by the move.
+	 * @param recipient_is_left True if borrows from right into @p leaf.
 	 */
 	void BorrowLeaf(Leaf *leaf, iterator &succ_it, bool recipient_is_left)
 	{
@@ -1300,8 +1684,14 @@ private:
 	}
 
 	/**
-	 * Merge right (next_leaf) into left, keeping the left leaf.
-	 * Structural removal is done on the parent.
+	 * @brief Merge right leaf into left leaf, keeping the left leaf.
+	 *
+	 * Moves keys (and values in map mode) from @p right into @p left, fixes
+	 * the leaf chain, and removes the appropriate separator and child from
+	 * the parent. Iterator @p succ_it is retargeted if it pointed into right.
+	 *
+	 * @param left    Left leaf to keep.
+	 * @param succ_it Iterator potentially impacted by the merge.
 	 */
 	void MergeKeepLeftLeaf(Leaf *left, iterator &succ_it)
 	{
@@ -1344,7 +1734,13 @@ private:
 	}
 
 	/**
-	 * Remove separator at sep_idx and its right child from an internal node.
+	 * @brief Remove separator at @p sep_idx and its right child from an internal node.
+	 *
+	 * Shifts keys and children left to close the gap, updates child parent
+	 * metadata, and decrements the count of separators.
+	 *
+	 * @param parent  Internal node to remove from.
+	 * @param sep_idx Index of the separator to remove.
 	 */
 	void RemoveSeparatorAndChild(Internal *parent, uint8_t sep_idx)
 	{
@@ -1370,12 +1766,14 @@ private:
 
 		/* 6. Safety: ensure all children are valid and wired */
 		assert(this->VerifyChildrenParent(parent));
-
-		/* Optional: if parent becomes empty and is root, shrink height elsewhere */
 	}
 
 	/**
-	 * Prefer a leaf-specific signature to avoid variant unwraps at call sites.
+	 * @brief Check if two leaf siblings can be merged without overflow.
+	 *
+	 * @param left  Left leaf.
+	 * @param right Right leaf.
+	 * @return True if merging @p right into @p left fits within capacity.
 	 */
 	inline bool CanMergeLeaf(const Leaf *left, const Leaf *right)
 	{
@@ -1384,7 +1782,14 @@ private:
 	}
 
 	/**
-	 * Fix underflow of a leaf child by borrowing or merging from siblings.
+	 * @brief Fix underflow of a leaf child by borrowing or merging.
+	 *
+	 * Attempts to borrow from the right or left sibling if possible. If
+	 * borrowing is not possible, tries to merge with a sibling. Iterator
+	 * @p succ_it is updated when keys move across leaves.
+	 *
+	 * @param child   Leaf child that underflowed.
+	 * @param succ_it Iterator potentially impacted by rebalancing.
 	 */
 	void FixUnderflowLeafChild(Leaf *child, iterator &succ_it)
 	{
@@ -1489,7 +1894,13 @@ private:
 	}
 
 	/**
-	 * Helper to fetch a child internal node from an internal node.
+	 * @brief Helper to fetch an internal child node from an internal parent.
+	 *
+	 * Asserts that the child exists and is an internal node.
+	 *
+	 * @param parent Parent internal node.
+	 * @param index  Index in parent->children[].
+	 * @return Internal child at the given index.
 	 */
 	Internal *GetChildInternal(Internal *parent, uint8_t index)
 	{
@@ -1507,15 +1918,15 @@ private:
 	}
 
 	/**
-	 * Borrow across a boundary between two consecutive internal siblings.
+	 * @brief Borrow across a boundary between two consecutive internal siblings.
 	 *
-	 * @param parent The parent internal node.
-	 * @param left_idx Index of the left sibling in parent->children.
-	 * @param recipient_is_left If true, left receives from right; else right receives from left.
+	 * If @p recipient_is_left is true, the left child receives a key and child
+	 * from the right sibling. Otherwise, the right child receives from the left.
+	 * Parent separator is updated accordingly and child metadata is refreshed.
 	 *
-	 * Preconditions:
-	 * - left_idx < parent->count
-	 * - right sibling is at left_idx + 1
+	 * @param parent          Parent internal node.
+	 * @param left_idx        Index of the left sibling in parent->children.
+	 * @param recipient_is_left True if left receives from right.
 	 */
 	void BorrowInternal(Internal *parent, uint8_t left_idx, bool recipient_is_left)
 	{
@@ -1593,7 +2004,14 @@ private:
 	}
 
 	/**
-	 * Recipient gets: left.count + 1 (parent sep) + right.count
+	 * @brief Check if two internal siblings can be merged without overflow.
+	 *
+	 * The merged node will contain left.count + 1 (parent separator)
+	 * + right.count keys.
+	 *
+	 * @param left  Left internal node.
+	 * @param right Right internal node.
+	 * @return True if merge fits within internal node capacity.
 	 */
 	inline bool CanMergeInternal(const Internal *left, const Internal *right)
 	{
@@ -1602,8 +2020,14 @@ private:
 	}
 
 	/**
-	 * Merge internal at i + 1 into internal at i, keep the left internal.
-	 * Preconditions: parent->children[i] and parent->children[i + 1] exist and are Internal.
+	 * @brief Merge internal at i+1 into internal at i, keeping the left node.
+	 *
+	 * Moves the separator @p i from @p parent into the left node, appends all
+	 * keys and children from the right node, and removes the separator and
+	 * right child from @p parent.
+	 *
+	 * @param parent Parent internal node.
+	 * @param i      Index of the left child in parent->children.
 	 */
 	void MergeKeepLeftInternal(Internal *parent, uint8_t i)
 	{
@@ -1648,8 +2072,13 @@ private:
 	}
 
 	/**
-	 * Fix underflow when parent's child at i is an internal node.
-	 * Chooses borrow if possible; otherwise merges.
+	 * @brief Fix underflow when parent's child at @p i is an internal node.
+	 *
+	 * Chooses borrow (from right or left sibling) if possible; otherwise
+	 * performs a merge and triggers an upward underflow cascade if needed.
+	 *
+	 * @param parent Parent internal node.
+	 * @param i      Index of the child in parent->children.
 	 */
 	void FixUnderflowInternalChild(Internal *parent, uint8_t i)
 	{
@@ -1731,8 +2160,10 @@ private:
 	}
 
 	/**
-	 * Shrink tree height if root is an empty internal node.
-	 * Root special case: if root is a leaf, nothing to shrink.
+	 * @brief Shrink tree height if root is an empty internal node.
+	 *
+	 * If the root is an internal node with zero separators, its single child
+	 * is promoted as the new root. If the root is a leaf, nothing happens.
 	 */
 	void MaybeShrinkHeight()
 	{
@@ -1764,8 +2195,13 @@ private:
 	}
 
 	/**
-	 * If an internal node underflows, borrow/merge upward until root is handled.
-	 * Root special case: if root becomes empty and has one child, promote the child.
+	 * @brief Cascade underflow handling upward from an internal node.
+	 *
+	 * If @p node is the root, possibly shrinks the tree height and stops.
+	 * Otherwise, its parent is examined and rebalanced if @p node falls
+	 * below the minimum occupancy.
+	 *
+	 * @param node Internal node that may have underflowed.
 	 */
 	void FixUnderflowInternalCascade(Internal *node)
 	{
@@ -1797,7 +2233,14 @@ private:
 	}
 
 	/**
-	 * Linear search over keys[0..count), returning first index i where keys[i] >= key.
+	 * @brief Linear lower_bound over a fixed-size key array.
+	 *
+	 * Searches keys[0..count) for the first index where keys[i] >= key.
+	 *
+	 * @param keys  Array of keys.
+	 * @param count Number of valid keys.
+	 * @param key   Key to search for.
+	 * @return Index of first key >= @p key, or @p count if none.
 	 */
 	uint8_t LowerBound(const std::array<Tkey, 64> &keys, uint8_t count, const Tkey &key) const
 	{
@@ -1810,7 +2253,14 @@ private:
 	}
 
 	/**
-	 * Linear search over keys[0..count), returning first index i where keys[i] > key.
+	 * @brief Linear upper_bound over a fixed-size key array.
+	 *
+	 * Searches keys[0..count) for the first index where keys[i] > key.
+	 *
+	 * @param keys  Array of keys.
+	 * @param count Number of valid keys.
+	 * @param key   Key to search for.
+	 * @return Index of first key > @p key, or @p count if none.
 	 */
 	uint8_t UpperBound(const std::array<Tkey, 64> &keys, uint8_t count, const Tkey &key) const
 	{
@@ -1822,12 +2272,29 @@ private:
 		return count;
 	}
 
+	/**
+	 * @brief Set the parent pointer and index for a child node.
+	 *
+	 * @param child  Child node whose metadata is updated.
+	 * @param parent Parent internal node (or nullptr for root).
+	 * @param idx    Index in parent->children[] where child resides.
+	 */
 	inline void SetParent(Node *child, Internal *parent, uint8_t idx)
 	{
 		child->parent = parent;
 		child->index_in_parent = idx;
 	}
 
+	/**
+	 * @brief Reassign parent/index metadata for a range of children.
+	 *
+	 * Updates @c parent and @c index_in_parent for all non-null children in
+	 * the range [start, end] of @p parent->children[].
+	 *
+	 * @param parent Internal node whose children are updated.
+	 * @param start  First child index to update.
+	 * @param end    Last child index to update (inclusive).
+	 */
 	void ReindexChildren(Internal *parent, uint8_t start, uint8_t end)
 	{
 		for (uint8_t i = start; i <= end; ++i) {
@@ -1839,9 +2306,11 @@ private:
 
 #if BPLUSTREE_CHECK
 	/**
-	 * Run all validation checks on the tree.
-	 * Combines root invariants, recursive node validation,
-	 * separator consistency, leaf chain linkage, and parent/child invariants.
+	 * @brief Run all validation checks on the tree.
+	 *
+	 * Combines root invariants, recursive node validation, separator consistency,
+	 * leaf chain linkage, and parent/child invariants. Only enabled when
+	 * BPLUSTREE_CHECK is non-zero.
 	 */
 	void ValidateAll() const
 	{
@@ -1871,9 +2340,14 @@ private:
 	}
 
 	/**
-	 * Recursive node validation.
-	 * Checks capacity, ordering, range constraints, separator consistency,
-	 * and recurses into children.
+	 * @brief Recursive node validation.
+	 *
+	 * Checks capacity bounds, ordering, range constraints, separator consistency,
+	 * and recurses into children with updated key ranges.
+	 *
+	 * @param node Node to validate.
+	 * @param min  Optional lower bound for keys in this subtree.
+	 * @param max  Optional upper bound for keys in this subtree.
 	 */
 	void ValidateNode(const Node *node, const Tkey *min = nullptr, const Tkey *max = nullptr) const
 	{
@@ -1975,8 +2449,12 @@ private:
 	}
 
 	/**
-	 * No duplicates across leaves (global check).
-	 * Ensures keys are strictly increasing across the entire leaf chain.
+	 * @brief Validate leaf chain ordering and linkage.
+	 *
+	 * Ensures that:
+	 * - keys are strictly ascending within each leaf,
+	 * - keys are strictly ascending across the entire chain,
+	 * - prev_leaf / next_leaf links are consistent.
 	 */
 	void ValidateLeafChain() const
 	{
@@ -2011,7 +2489,12 @@ private:
 #endif /* BPLUSTREE_CHECK */
 
 	/**
-	 * Return the minimum key in the subtree rooted at node.
+	 * @brief Return the minimum key in the subtree rooted at @p node.
+	 *
+	 * Descends to the leftmost leaf of the subtree and returns the first key.
+	 *
+	 * @param node Subtree root.
+	 * @return Reference to the minimum key in the subtree.
 	 */
 	const Tkey &SubTreeMin(Node *node) const
 	{
@@ -2033,8 +2516,14 @@ private:
 	}
 
 	/**
-	 * Generic sequence-to-string helper.
-	 * Special handling for pair-like types.
+	 * @brief Generic sequence-to-string helper for debugging.
+	 *
+	 * Provides special handling for pair-like types by formatting them
+	 * as "(first,second)"; otherwise relies on fmt::format for elements.
+	 *
+	 * @tparam T Sequence element type.
+	 * @param sequence Element or pair-like type to format.
+	 * @return String representation for debugging output.
 	 */
 	template <typename T>
 	std::string SequenceToString(const T &sequence) const
@@ -2046,9 +2535,13 @@ private:
 		}
 	}
 
-
 	/**
-	 * Utility to print keys and values in a uniform way.
+	 * @brief Dump a sequence of keys or values to a formatted string.
+	 *
+	 * @tparam T      Sequence type supporting operator[].
+	 * @param sequence Sequence of elements.
+	 * @param count    Number of elements to include.
+	 * @return Comma-separated string representation of the sequence.
 	 */
 	template <typename T>
 	std::string DumpSequence(const T &sequence, uint8_t count) const
@@ -2065,7 +2558,15 @@ private:
 
 public:
 	/**
-	 * Dump a node and its subtree for debugging.
+	 * @brief Dump a node and its subtree for debugging.
+	 *
+	 * Prints a textual representation of the B+ tree structure starting
+	 * at @p node (or at the root if @p node is nullptr and @p indent is 0).
+	 * Uses the Debug() facility to output node type, key counts, keys, and
+	 * recursively prints children for internal nodes.
+	 *
+	 * @param node   Node to dump, or nullptr to start at the root.
+	 * @param indent Indentation level in spaces for nested output.
 	 */
 	void DumpNode(const Node *node = nullptr, int indent = 0) const
 	{
@@ -2109,10 +2610,9 @@ public:
 			}
 		}
 	}
-
 };
 
-template<typename Tkey, typename Tvalue, typename Allocator>
+template <typename Tkey, typename Tvalue, typename Allocator>
 void BPlusTree<Tkey, Tvalue, Allocator>::NodeDeleter::operator()(Node *node) const noexcept
 {
 	if (node == nullptr) {
