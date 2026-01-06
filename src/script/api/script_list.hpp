@@ -261,6 +261,11 @@ public:
 	SQInteger GetValue(SQInteger item) const;
 
 	/**
+	 * @api -all
+	 */
+	void SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value);
+
+	/**
 	 * Set a value of an item directly.
 	 * @param item the item to set the value for.
 	 * @param value the value to give to the item

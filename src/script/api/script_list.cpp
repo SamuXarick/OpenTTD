@@ -444,15 +444,12 @@ SQInteger ScriptList::GetValue(SQInteger item) const
 	return item_iter == this->items.end() ? 0 : item_iter->second;
 }
 
-bool ScriptList::SetValue(SQInteger item, SQInteger value)
+void ScriptList::SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value)
 {
-	this->modifications++;
-
-	auto item_iter = this->items.find(item);
-	if (item_iter == this->items.end()) return false;
-
 	SQInteger value_old = item_iter->second;
-	if (value_old == value) return true;
+	if (value_old == value) return;
+
+	SQInteger item = item_iter->first;
 
 	this->sorter->Remove(item);
 	auto value_iter = this->values.find({value_old, item});
@@ -461,6 +458,16 @@ bool ScriptList::SetValue(SQInteger item, SQInteger value)
 	auto node_handle = this->values.extract(value_iter);
 	node_handle.value().first = value;
 	this->values.insert(std::move(node_handle));
+}
+
+bool ScriptList::SetValue(SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	auto item_iter = this->items.find(item);
+	if (item_iter == this->items.end()) return false;
+
+	this->SetMapIterValue(item_iter, value);
 
 	return true;
 }
@@ -750,7 +757,8 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 		begin = this->items.lower_bound(this->resume_item.value());
 	}
 
-	for (const auto &[item, _] : std::ranges::subrange(begin, this->items.end())) {
+	for (auto iter = begin; iter != this->items.end(); ++iter) {
+		const SQInteger item = iter->first;
 		if (disabler.GetOriginalValue() && item != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
 			this->resume_item = item;
 			/* Pop the valuator function. */
@@ -806,7 +814,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "modifying valuated list outside of valuator function");
 		}
 
-		this->SetValue(item, value);
+		this->SetMapIterValue(iter, value);
 
 		/* Pop the return value. */
 		sq_poptop(vm);
