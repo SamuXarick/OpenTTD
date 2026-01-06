@@ -378,14 +378,27 @@ void ScriptList::Clear()
 	this->sorter->End();
 }
 
+void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	auto [item_iter, inserted] = this->items.try_emplace(item, value);
+	if (!inserted) {
+		/* Item was already present, insertion did not take place */
+		this->SetMapIterValue(item_iter, value);
+		return;
+	}
+
+	this->values.emplace(value, item);
+}
+
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	if (this->HasItem(item)) return;
-
-	this->items[item] = value;
-	this->values.emplace(value, item);
+	if (this->items.try_emplace(item, value).second) {
+		this->values.emplace(value, item);
+	}
 }
 
 void ScriptList::RemoveItem(SQInteger item)
@@ -525,8 +538,7 @@ bool ScriptList::AddList(ScriptList *list)
 				this->resume_item = item.first;
 				return true;
 			}
-			this->AddItem(item.first);
-			this->SetValue(item.first, item.second);
+			this->AddOrSetItem(item.first, item.second);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -690,12 +702,7 @@ SQInteger ScriptList::_set(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "you can only assign integers to this list");
 	}
 
-	if (!this->HasItem(idx)) {
-		this->AddItem(idx, val);
-		return 0;
-	}
-
-	this->SetValue(idx, val);
+	this->AddOrSetItem(idx, val);
 	return 0;
 }
 

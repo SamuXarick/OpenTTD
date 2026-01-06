@@ -191,6 +191,11 @@ public:
 	ScriptList();
 	~ScriptList() override;
 
+	/**
+	 * @api -all
+	 */
+	void AddOrSetItem(SQInteger item, SQInteger value);
+
 #ifdef DOXYGEN_API
 	/**
 	 * Add a single item to the list.
