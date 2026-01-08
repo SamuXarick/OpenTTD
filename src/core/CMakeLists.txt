@@ -3,6 +3,7 @@ add_files(
     backup_type.hpp
     base_bitset_type.hpp
     bitmath_func.hpp
+    bplustree_type.hpp
     container_func.hpp
     convertible_through_base.hpp
     endian_func.hpp

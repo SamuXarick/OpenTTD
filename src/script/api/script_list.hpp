@@ -13,6 +13,7 @@
 
 #include "script_object.hpp"
 #include "script_controller.hpp"
+#include "../../core/bplustree_type.hpp"
 
 /** Maximum number of operations allowed for valuating a list. */
 static const int MAX_VALUATE_OPS = 1000000;
@@ -36,13 +37,22 @@ public:
 	/** Sort descending */
 	static const bool SORT_DESCENDING = false;
 
+	using ScriptListSet = BPlusTree<std::pair<SQInteger, SQInteger>, void, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
+	using ScriptListMap = BPlusTree<SQInteger, SQInteger, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
+
 private:
 	std::unique_ptr<ScriptListSorter> sorter; ///< Sorting algorithm
 	SorterType sorter_type;       ///< Sorting type
 	bool sort_ascending;          ///< Whether to sort ascending or descending
 	bool initialized;             ///< Whether an iteration has been started
+	bool values_inited;           ///< Whether the 'values' field has been initialised
 	int modifications;            ///< Number of modification that has been done. To prevent changing data while valuating.
 	std::optional<SQInteger> resume_item; ///< Item to use on valuation start.
+
+	void InitValues();
+	void InitSorter();
+	void SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value);
+	ScriptListMap::iterator RemoveMapIter(ScriptListMap::iterator item_iter);
 
 protected:
 	/* Temporary helper functions to get the raw index from either strongly and non-strongly typed pool items. */
@@ -162,18 +172,23 @@ protected:
 
 		ScriptObject::DisableDoCommandScope disabler{};
 
-		auto begin = this->items.begin();
+		ScriptListMap::iterator begin;
 		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
 			begin = this->items.lower_bound(this->resume_item.value());
+		} else {
+			begin = this->items.begin();
 		}
 
-		for (ScriptListMap::iterator next_iter, iter = begin; iter != this->items.end(); iter = next_iter) {
+		for (auto iter = begin; iter != this->items.end();) {
 			if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
 				this->resume_item = iter->first;
 				return true;
 			}
-			next_iter = std::next(iter);
-			if (value_filter(iter->first, iter->second)) this->RemoveItem(iter->first);
+			if (value_filter(iter->first, iter->second)) {
+				iter = this->RemoveMapIter(iter);
+			} else {
+				++iter;
+			}
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -182,9 +197,6 @@ protected:
 	}
 
 public:
-	using ScriptListSet = std::set<std::pair<SQInteger, SQInteger>, std::less<>, ScriptStdAllocator<std::pair<SQInteger, SQInteger>>>; ///< List per value
-	using ScriptListMap = std::map<SQInteger, SQInteger, std::less<>, ScriptStdAllocator<std::pair<const SQInteger, SQInteger>>>; ///< List per item
-
 	ScriptListMap items;           ///< The items in the list
 	ScriptListSet values; ///< The items in the list, sorted by value
 
@@ -201,6 +213,11 @@ public:
 #else
 	void AddItem(SQInteger item, SQInteger value = 0);
 #endif /* DOXYGEN_API */
+
+	/**
+	 * @api -all
+	 */
+	void AddOrSetItem(SQInteger item, SQInteger value);
 
 	/**
 	 * Remove a single item from the list.

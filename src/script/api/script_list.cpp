@@ -34,6 +34,11 @@ protected:
 	 */
 	virtual void FindNext() = 0;
 
+	/**
+	 * Retarget sorter internal iterator after retargeting the list.
+	 */
+	virtual void RetargetIterator() = 0;
+
 public:
 	/**
 	 * Virtual dtor, needed to mute warnings.
@@ -87,21 +92,27 @@ public:
 	}
 
 	/**
-	 * Attach the sorter to a new list. This assumes the content of the old list has been moved to
-	 * the new list, too, so that we don't have to invalidate any iterators. Note that std::swap
-	 * doesn't invalidate iterators on lists and maps, so that should be safe.
-	 * @param new_list New list to attach to.
+	 * Callback from the list after an item gets removed.
+	 */
+	virtual void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListSet::iterator) = 0;
+
+	/**
+	 * Attach the sorter to a new list and update internal iterator so it remains valid
+	 * in the context of the new list. This assumes the content of the old list has been
+	 * moved to the new list.
+	 * @param new_list New list to attach to and update internal iterator.
 	 */
 	void Retarget(const ScriptList *new_list)
 	{
 		this->list = new_list;
+		this->RetargetIterator();
 	}
 };
 
 /**
  * Sort by value, ascending.
  */
-class ScriptListSorterValueAscending : public ScriptListSorter {
+class ScriptListSorterValueAscending final : public ScriptListSorter {
 private:
 	ScriptList::ScriptListSet::const_iterator value_iter; ///< The iterator over the value/item pairs in the set.
 
@@ -138,12 +149,43 @@ public:
 		++this->value_iter;
 		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
 	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListSet::iterator post_erase) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next.has_value()) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->values.end() && post_erase->second == this->item_next.value()) {
+			this->value_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		auto item_iter = this->list->items.find(this->item_next.value());
+		this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+	}
+
+	void RetargetIterator() override
+	{
+		if (this->item_next.has_value()) {
+			auto item_iter = this->list->items.find(this->item_next.value());
+			this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+		} else {
+			this->value_iter = this->list->values.end();
+		}
+	}
 };
 
 /**
  * Sort by value, descending.
  */
-class ScriptListSorterValueDescending : public ScriptListSorter {
+class ScriptListSorterValueDescending final : public ScriptListSorter {
 private:
 	/* Note: We cannot use reverse_iterator.
 	 *       The iterators must only be invalidated when the element they are pointing to is removed.
@@ -189,12 +231,43 @@ public:
 		}
 		if (this->value_iter != this->list->values.end()) this->item_next = this->value_iter->second;
 	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator, ScriptList::ScriptListSet::iterator post_erase) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next.has_value()) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->values.end() && post_erase->second == this->item_next.value()) {
+			this->value_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		auto item_iter = this->list->items.find(this->item_next.value());
+		this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+	}
+
+	void RetargetIterator() override
+	{
+		if (this->item_next.has_value()) {
+			auto item_iter = this->list->items.find(this->item_next.value());
+			this->value_iter = this->list->values.find({item_iter->second, this->item_next.value()});
+		} else {
+			this->value_iter = this->list->values.end();
+		}
+	}
 };
 
 /**
  * Sort by item, ascending.
  */
-class ScriptListSorterItemAscending : public ScriptListSorter {
+class ScriptListSorterItemAscending final : public ScriptListSorter {
 private:
 	ScriptList::ScriptListMap::const_iterator item_iter; ///< The iterator over the items in the map.
 
@@ -231,12 +304,41 @@ public:
 		++this->item_iter;
 		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
 	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListSet::iterator) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next.has_value()) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->items.end() && post_erase->first == this->item_next.value()) {
+			this->item_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		this->item_iter = this->list->items.find(this->item_next.value());
+	}
+
+	void RetargetIterator() override
+	{
+		if (this->item_next.has_value()) {
+			this->item_iter = this->list->items.find(this->item_next.value());
+		} else {
+			this->item_iter = this->list->items.end();
+		}
+	}
 };
 
 /**
  * Sort by item, descending.
  */
-class ScriptListSorterItemDescending : public ScriptListSorter {
+class ScriptListSorterItemDescending final : public ScriptListSorter {
 private:
 	/* Note: We cannot use reverse_iterator.
 	 *       The iterators must only be invalidated when the element they are pointing to is removed.
@@ -281,6 +383,35 @@ public:
 			--this->item_iter;
 		}
 		if (this->item_iter != this->list->items.end()) this->item_next = this->item_iter->first;
+	}
+
+	void PostErase(ScriptList::ScriptListMap::iterator post_erase, ScriptList::ScriptListSet::iterator) override
+	{
+		if (this->IsEnd()) {
+			return;
+		}
+
+		if (!this->item_next.has_value()) {
+			return;
+		}
+
+		/* If it exists, check if it matches item_next */
+		if (post_erase != this->list->items.end() && post_erase->first == this->item_next.value()) {
+			this->item_iter = post_erase;
+			return;
+		}
+
+		/* Otherwise, fall back to lookup by key */
+		this->item_iter = this->list->items.find(this->item_next.value());
+	}
+
+	void RetargetIterator() override
+	{
+		if (this->item_next.has_value()) {
+			this->item_iter = this->list->items.find(this->item_next.value());
+		} else {
+			this->item_iter = this->list->items.end();
+		}
 	}
 };
 
@@ -347,16 +478,15 @@ void ScriptList::CopyList(const ScriptList *list)
 {
 	this->Sort(list->sorter_type, list->sort_ascending);
 	this->items = list->items;
-	this->values = list->values;
 }
 
 ScriptList::ScriptList()
 {
 	/* Default sorter */
-	this->sorter         = std::make_unique<ScriptListSorterValueDescending>(this);
 	this->sorter_type    = SORT_BY_VALUE;
 	this->sort_ascending = false;
 	this->initialized    = false;
+	this->values_inited  = false;
 	this->modifications  = 0;
 }
 
@@ -366,7 +496,7 @@ ScriptList::~ScriptList()
 
 bool ScriptList::HasItem(SQInteger item) const
 {
-	return this->items.count(item) == 1;
+	return this->items.contains(item);
 }
 
 void ScriptList::Clear()
@@ -375,17 +505,57 @@ void ScriptList::Clear()
 
 	this->items.clear();
 	this->values.clear();
-	this->sorter->End();
+	this->values_inited = false;
+	if (this->sorter != nullptr) this->sorter->End();
+}
+
+void ScriptList::AddOrSetItem(SQInteger item, SQInteger value)
+{
+	this->modifications++;
+
+	auto [item_iter, inserted] = this->items.emplace(item, value);
+	if (!inserted) {
+		/* Key was already present, insertion did not take place */
+		this->SetMapIterValue(item_iter, value);
+		return;
+	}
+
+	if (this->values_inited) {
+		auto value_iter = this->values.emplace({value, item}).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
+	}
 }
 
 void ScriptList::AddItem(SQInteger item, SQInteger value)
 {
 	this->modifications++;
 
-	if (this->HasItem(item)) return;
+	auto [item_iter, inserted] = this->items.emplace(item, value);
 
-	this->items[item] = value;
-	this->values.emplace(value, item);
+	if (inserted && this->values_inited) {
+		auto value_iter = this->values.emplace({value, item}).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter);
+	}
+}
+
+ScriptList::ScriptListMap::iterator ScriptList::RemoveMapIter(ScriptListMap::iterator item_iter)
+{
+	SQInteger item = item_iter->first;
+	SQInteger value = item_iter->second;
+
+	if (this->initialized) this->sorter->Remove(item);
+
+	auto item_iter_post_erase = this->items.erase(item_iter);
+	if (this->values_inited) {
+		auto value_iter = this->values.find({value, item});
+
+		auto value_iter_post_erase = this->values.erase(value_iter);
+		if (this->initialized) this->sorter->PostErase(item_iter_post_erase, value_iter_post_erase);
+	} else {
+		if (this->initialized) this->sorter->PostErase(item_iter_post_erase, {});
+	}
+
+	return item_iter_post_erase;
 }
 
 void ScriptList::RemoveItem(SQInteger item)
@@ -393,20 +563,49 @@ void ScriptList::RemoveItem(SQInteger item)
 	this->modifications++;
 
 	auto item_iter = this->items.find(item);
-	if (item_iter == this->items.end()) return;
+	if (item_iter != this->items.end()) this->RemoveMapIter(item_iter);
+}
 
-	SQInteger value = item_iter->second;
+void ScriptList::InitValues()
+{
+	this->values.clear();
+	for (const auto &[item, value] : this->items) {
+		this->values.emplace({value, item});
+	}
+	this->values_inited = true;
+}
 
-	this->sorter->Remove(item);
-	auto value_iter = this->values.find({value, item});
-	assert(value_iter != this->values.end());
-	this->values.erase(value_iter);
-	this->items.erase(item_iter);
+void ScriptList::InitSorter()
+{
+	if (this->sorter == nullptr) {
+		switch (this->sorter_type) {
+			case SORT_BY_ITEM:
+				if (this->sort_ascending) {
+					this->sorter = std::make_unique<ScriptListSorterItemAscending>(this);
+				} else {
+					this->sorter = std::make_unique<ScriptListSorterItemDescending>(this);
+				}
+				break;
+
+			case SORT_BY_VALUE:
+				if (this->sort_ascending) {
+					this->sorter = std::make_unique<ScriptListSorterValueAscending>(this);
+				} else {
+					this->sorter = std::make_unique<ScriptListSorterValueDescending>(this);
+				}
+				break;
+			default: NOT_REACHED();
+		}
+	}
+	if (!this->values_inited && this->sorter_type == SORT_BY_VALUE) {
+		this->InitValues();
+	}
+	this->initialized = true;
 }
 
 SQInteger ScriptList::Begin()
 {
-	this->initialized = true;
+	this->InitSorter();
 	return this->sorter->Begin().value_or(0);
 }
 
@@ -444,6 +643,26 @@ SQInteger ScriptList::GetValue(SQInteger item) const
 	return item_iter == this->items.end() ? 0 : item_iter->second;
 }
 
+void ScriptList::SetMapIterValue(ScriptListMap::iterator item_iter, SQInteger value)
+{
+	SQInteger value_old = item_iter->second;
+	if (value_old == value) return;
+
+	SQInteger item = item_iter->first;
+
+	if (this->initialized) this->sorter->Remove(item);
+
+	item_iter->second = value;
+
+	if (this->values_inited) {
+		auto value_iter = this->values.find({value_old, item});
+		this->values.erase(value_iter);
+
+		auto value_iter_post_erase = this->values.emplace({value, item}).first;
+		if (this->initialized) this->sorter->PostErase(item_iter, value_iter_post_erase);
+	}
+}
+
 bool ScriptList::SetValue(SQInteger item, SQInteger value)
 {
 	this->modifications++;
@@ -451,16 +670,7 @@ bool ScriptList::SetValue(SQInteger item, SQInteger value)
 	auto item_iter = this->items.find(item);
 	if (item_iter == this->items.end()) return false;
 
-	SQInteger value_old = item_iter->second;
-	if (value_old == value) return true;
-
-	this->sorter->Remove(item);
-	auto value_iter = this->values.find({value_old, item});
-	assert(value_iter != this->values.end());
-	item_iter->second = value;
-	auto node_handle = this->values.extract(value_iter);
-	node_handle.value().first = value;
-	this->values.insert(std::move(node_handle));
+	this->SetMapIterValue(item_iter, value);
 
 	return true;
 }
@@ -472,25 +682,7 @@ void ScriptList::Sort(SorterType sorter, bool ascending)
 	if (sorter != SORT_BY_VALUE && sorter != SORT_BY_ITEM) return;
 	if (sorter == this->sorter_type && ascending == this->sort_ascending) return;
 
-	switch (sorter) {
-		case SORT_BY_ITEM:
-			if (ascending) {
-				this->sorter = std::make_unique<ScriptListSorterItemAscending>(this);
-			} else {
-				this->sorter = std::make_unique<ScriptListSorterItemDescending>(this);
-			}
-			break;
-
-		case SORT_BY_VALUE:
-			if (ascending) {
-				this->sorter = std::make_unique<ScriptListSorterValueAscending>(this);
-			} else {
-				this->sorter = std::make_unique<ScriptListSorterValueDescending>(this);
-			}
-			break;
-
-		default: NOT_REACHED();
-	}
+	this->sorter.reset();
 	this->sorter_type    = sorter;
 	this->sort_ascending = ascending;
 	this->initialized    = false;
@@ -504,22 +696,28 @@ bool ScriptList::AddList(ScriptList *list)
 		/* If this is empty, we can just take the items of the other list as is. */
 		this->items = list->items;
 		this->values = list->values;
+		this->values_inited = list->values_inited;
+		if (!this->values_inited && this->initialized && this->sorter_type == SORT_BY_VALUE) {
+			assert(this->values.empty());
+			this->InitValues();
+		}
 		this->modifications++;
 	} else {
 		ScriptObject::DisableDoCommandScope disabler{};
 
-		auto begin = list->items.begin();
+		ScriptListMap::iterator begin;
 		if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
 			begin = list->items.lower_bound(this->resume_item.value());
+		} else {
+			begin = list->items.begin();
 		}
 
-		for (const auto &item : std::ranges::subrange(begin, list->items.end())) {
-			if (disabler.GetOriginalValue() && item.first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-				this->resume_item = item.first;
+		for (auto item = begin; item != list->items.end(); ++item) {
+			if (disabler.GetOriginalValue() && item->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+				this->resume_item = item->first;
 				return true;
 			}
-			this->AddItem(item.first);
-			this->SetValue(item.first, item.second);
+			this->AddOrSetItem(item->first, item->second);
 			ScriptController::DecreaseOps(5);
 		}
 
@@ -539,9 +737,10 @@ void ScriptList::SwapList(ScriptList *list)
 	std::swap(this->sorter_type, list->sorter_type);
 	std::swap(this->sort_ascending, list->sort_ascending);
 	std::swap(this->initialized, list->initialized);
+	std::swap(this->values_inited, list->values_inited);
 	std::swap(this->modifications, list->modifications);
-	this->sorter->Retarget(this);
-	list->sorter->Retarget(list);
+	if (this->sorter != nullptr) this->sorter->Retarget(this);
+	if (list->sorter != nullptr) list->sorter->Retarget(list);
 }
 
 bool ScriptList::RemoveAboveValue(SQInteger value)
@@ -567,6 +766,8 @@ bool ScriptList::RemoveValue(SQInteger value)
 bool ScriptList::RemoveTop(SQInteger count)
 {
 	this->modifications++;
+
+	this->InitSorter();
 
 	ScriptObject::DisableDoCommandScope disabler{};
 
@@ -683,12 +884,7 @@ SQInteger ScriptList::_set(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "you can only assign integers to this list");
 	}
 
-	if (!this->HasItem(idx)) {
-		this->AddItem(idx, val);
-		return 0;
-	}
-
-	this->SetValue(idx, val);
+	this->AddOrSetItem(idx, val);
 	return 0;
 }
 
@@ -745,14 +941,16 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 	/* Push the function to call */
 	sq_push(vm, 2);
 
-	auto begin = this->items.begin();
+	ScriptListMap::iterator begin;
 	if (disabler.GetOriginalValue() && this->resume_item.has_value()) {
 		begin = this->items.lower_bound(this->resume_item.value());
+	} else {
+		begin = this->items.begin();
 	}
 
-	for (const auto &[item, _] : std::ranges::subrange(begin, this->items.end())) {
-		if (disabler.GetOriginalValue() && item != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
-			this->resume_item = item;
+	for (auto iter = begin; iter != this->items.end(); ++iter) {
+		if (disabler.GetOriginalValue() && iter->first != this->resume_item && ScriptController::GetOpsTillSuspend() < 0) {
+			this->resume_item = iter->first;
 			/* Pop the valuator function. */
 			sq_poptop(vm);
 			sq_pushbool(vm, SQTrue);
@@ -765,7 +963,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 		/* Push the root table as instance object, this is what squirrel does for meta-functions. */
 		sq_pushroottable(vm);
 		/* Push all arguments for the valuator function. */
-		sq_pushinteger(vm, item);
+		sq_pushinteger(vm, iter->first);
 		for (int i = 0; i < nparam - 1; i++) {
 			sq_push(vm, i + 3);
 		}
@@ -806,7 +1004,7 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			return sq_throwerror(vm, "modifying valuated list outside of valuator function");
 		}
 
-		this->SetValue(item, value);
+		this->SetMapIterValue(iter, value);
 
 		/* Pop the return value. */
 		sq_poptop(vm);
