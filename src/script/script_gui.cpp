@@ -28,7 +28,6 @@
 #include "../core/string_consumer.hpp"
 
 #include "script_gui.h"
-#include "script_log.hpp"
 #include "script_scanner.hpp"
 #include "script_config.hpp"
 #include "../ai/ai.hpp"
@@ -49,6 +48,43 @@ static ScriptConfig *GetConfig(CompanyID slot)
 {
 	if (slot == OWNER_DEITY) return GameConfig::GetConfig();
 	return AIConfig::GetConfig(slot);
+}
+
+/**
+ * Build a list of visible settings and return it. AI or GS settings with the flag
+ * SCRIPTCONFIG_DEVELOPER set will only be visible if the client setting
+ * gui.ai_developer_tools is enabled.
+ */
+VisibleSettingsList GetVisibleSettingsList(CompanyID slot)
+{
+	VisibleSettingsList visible_settings;
+	ScriptConfig *config_list = GetConfig(slot);
+
+	for (const auto &item : *config_list->GetConfigList()) {
+		bool no_hide = !item.flags.Test(ScriptConfigFlag::Developer);
+		if (no_hide || _settings_client.gui.ai_developer_tools) {
+			visible_settings.push_back(&item);
+		}
+	}
+
+	return visible_settings;
+}
+
+/**
+ * Check whether a script, be it AI or GS, is considered dead in this slot.
+ * @note Also returns true for AI slots which are currently occupied
+ *       by Human Companies or when the AI didn't start.
+ * @note Also returns true when no GS was set up.
+ * @param slot The slot that is checked.
+ * @return true if the slot that is checked is dead.
+ */
+bool IsConsideredDead(CompanyID slot)
+{
+	if (slot == OWNER_DEITY) {
+		return Game::GetInstance() == nullptr || Game::GetInstance()->IsDead();
+	} else {
+		return !Company::IsValidAiID(slot) || Company::Get(slot)->ai_instance == nullptr || Company::Get(slot)->ai_instance->IsDead();
+	}
 }
 
 /**
@@ -122,16 +158,25 @@ struct ScriptListWindow : public Window {
 			case WID_SCRL_LIST: {
 				/* Draw a list of all available Scripts. */
 				Rect tr = r.Shrink(WidgetDimensions::scaled.matrix);
+				Dimension rai = GetSpriteSize(SPR_SCRIPT_RANDOM);
+
+				bool rtl = _current_text_dir == TD_RTL;
+				Rect rai_rect = tr.WithWidth(rai.width, rtl);
+				Rect text_rect = tr.Indent(rai.width + WidgetDimensions::scaled.hsep_normal, rtl);
+
 				/* First AI in the list is hardcoded to random */
 				if (this->vscroll->IsVisible(0)) {
-					DrawString(tr, this->slot == OWNER_DEITY ? STR_AI_CONFIG_NONE : STR_AI_CONFIG_RANDOM_AI, this->selected == -1 ? TC_WHITE : TC_ORANGE);
+					DrawString(text_rect.left, text_rect.right, tr.top, this->slot == OWNER_DEITY ? STR_AI_CONFIG_NONE : STR_AI_CONFIG_RANDOM_AI, this->selected == -1 ? TC_WHITE : TC_ORANGE);
 					tr.top += this->line_height;
 				}
 				int i = 0;
 				for (const auto &item : *this->info_list) {
 					i++;
 					if (this->vscroll->IsVisible(i)) {
-						DrawString(tr, this->show_all ? GetString(STR_AI_CONFIG_NAME_VERSION, item.second->GetName(), item.second->GetVersion()) : item.second->GetName(), (this->selected == i - 1) ? TC_WHITE : TC_ORANGE);
+						if (this->slot != OWNER_DEITY && static_cast<AIInfo *>(item.second)->UseAsRandomAI()) {
+							DrawSprite(SPR_SCRIPT_RANDOM, PAL_NONE, rai_rect.left, tr.top);
+						}
+						DrawString(text_rect.left, text_rect.right, tr.top, this->show_all ? GetString(STR_AI_CONFIG_NAME_VERSION, item.second->GetName(), item.second->GetVersion()) : item.second->GetName(), (this->selected == i - 1) ? TC_WHITE : TC_ORANGE);
 						tr.top += this->line_height;
 					}
 				}
@@ -167,6 +212,7 @@ struct ScriptListWindow : public Window {
 	 */
 	void ChangeScript()
 	{
+		if (_game_mode == GM_NORMAL && ((this->slot == OWNER_DEITY && Game::GetInstance() != nullptr) || Company::IsValidAiID(this->slot))) return;
 		if (this->selected == -1) {
 			GetConfig(this->slot)->Change(std::nullopt);
 		} else {
@@ -187,9 +233,8 @@ struct ScriptListWindow : public Window {
 			}
 		}
 		InvalidateWindowData(WC_GAME_OPTIONS, this->slot == OWNER_DEITY ? WN_GAME_OPTIONS_GS : WN_GAME_OPTIONS_AI);
-		InvalidateWindowClassesData(WC_SCRIPT_SETTINGS);
+		InvalidateWindowData(WC_SCRIPT_SETTINGS, this->slot);
 		InvalidateWindowClassesData(WC_SCRIPT_DEBUG, -1);
-		CloseWindowByClass(WC_QUERY_STRING);
 		InvalidateWindowClassesData(WC_TEXTFILE);
 	}
 
@@ -229,7 +274,7 @@ struct ScriptListWindow : public Window {
 	 */
 	void OnInvalidateData([[maybe_unused]] int data = 0, [[maybe_unused]] bool gui_scope = true) override
 	{
-		if (_game_mode == GM_NORMAL && Company::IsValidID(this->slot)) {
+		if (_game_mode == GM_NORMAL && Company::IsValidAiID(this->slot)) {
 			this->Close();
 			return;
 		}
@@ -295,7 +340,6 @@ struct ScriptSettingsWindow : public Window {
 	int clicked_row = 0; ///< The clicked row of settings.
 	int line_height = 0; ///< Height of a row in the matrix widget.
 	Scrollbar *vscroll = nullptr; ///< Cache of the vertical scrollbar.
-	typedef std::vector<const ScriptConfigItem *> VisibleSettingsList; ///< typdef for a vector of script settings
 	VisibleSettingsList visible_settings{}; ///< List of visible AI settings
 
 	/**
@@ -309,6 +353,8 @@ struct ScriptSettingsWindow : public Window {
 		this->vscroll = this->GetScrollbar(WID_SCRS_SCROLLBAR);
 		this->FinishInitNested(this->slot);  // Initializes 'this->line_height' as side effect.
 
+		this->SetWidgetDisabledState(WID_SCRS_RESET, _game_mode == GM_EDITOR && !IsConsideredDead(this->slot));
+
 		this->OnInvalidateData();
 	}
 
@@ -320,13 +366,7 @@ struct ScriptSettingsWindow : public Window {
 	void RebuildVisibleSettings()
 	{
 		this->visible_settings.clear();
-
-		for (const auto &item : *this->script_config->GetConfigList()) {
-			bool no_hide = !item.flags.Test(ScriptConfigFlag::Developer);
-			if (no_hide || _settings_client.gui.ai_developer_tools) {
-				this->visible_settings.push_back(&item);
-			}
-		}
+		this->visible_settings = GetVisibleSettingsList(this->slot);
 
 		this->vscroll->SetCount(this->visible_settings.size());
 	}
@@ -335,7 +375,11 @@ struct ScriptSettingsWindow : public Window {
 	{
 		if (widget != WID_SCRS_CAPTION) return this->Window::GetWidgetString(widget, stringid);
 
-		return GetString((this->slot == OWNER_DEITY) ? STR_AI_SETTINGS_CAPTION_GAMESCRIPT : STR_AI_SETTINGS_CAPTION_AI);
+		assert(GetConfig(this->slot)->GetInfo() != nullptr);
+		std::string name = GetConfig(this->slot)->GetInfo()->GetName();
+
+		if (this->slot == OWNER_DEITY) return GetString(STR_AI_SETTINGS_CAPTION_GAMESCRIPT, name);
+		return GetString(STR_AI_SETTINGS_CAPTION_AI, name, STR_FORMAT_COMPANY_NUM, this->slot + 1);
 	}
 
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
@@ -477,7 +521,7 @@ struct ScriptSettingsWindow : public Window {
 			}
 
 			case WID_SCRS_RESET:
-				this->script_config->ResetEditableSettings(_game_mode == GM_MENU || ((this->slot != OWNER_DEITY) && !Company::IsValidID(this->slot)));
+				this->script_config->ResetEditableSettings(_game_mode != GM_NORMAL || IsConsideredDead(this->slot));
 				this->SetDirty();
 				break;
 		}
@@ -538,17 +582,17 @@ struct ScriptSettingsWindow : public Window {
 private:
 	bool IsEditableItem(const ScriptConfigItem &config_item) const
 	{
-		return _game_mode == GM_MENU
-			|| _game_mode == GM_EDITOR
-			|| ((this->slot != OWNER_DEITY) && !Company::IsValidID(this->slot))
-			|| config_item.flags.Test(ScriptConfigFlag::InGame)
-			|| _settings_client.gui.ai_developer_tools;
+		if (_game_mode != GM_NORMAL) return true;
+
+		if (IsConsideredDead(this->slot)) return true;
+
+		return config_item.flags.Test(ScriptConfigFlag::InGame);
 	}
 
 	void SetValue(int value)
 	{
 		const ScriptConfigItem &config_item = *this->visible_settings[this->clicked_row];
-		if (_game_mode == GM_NORMAL && ((this->slot == OWNER_DEITY) || Company::IsValidID(this->slot)) && !config_item.flags.Test(ScriptConfigFlag::InGame)) return;
+		if (!this->IsEditableItem(config_item)) return;
 		this->script_config->SetSetting(config_item.name, value);
 		this->SetDirty();
 	}
@@ -587,8 +631,7 @@ static WindowDesc _script_settings_desc(
  */
 void ShowScriptSettingsWindow(CompanyID slot)
 {
-	CloseWindowByClass(WC_SCRIPT_LIST);
-	CloseWindowByClass(WC_SCRIPT_SETTINGS);
+	CloseWindowById(WC_SCRIPT_SETTINGS, slot);
 	new ScriptSettingsWindow(_script_settings_desc, slot);
 }
 
@@ -691,19 +734,6 @@ struct ScriptDebugWindow : public Window {
 	{
 		if (this->filter.script_debug_company == OWNER_DEITY) return Game::GetInstance()->GetLogData();
 		return Company::Get(this->filter.script_debug_company)->ai_instance->GetLogData();
-	}
-
-	/**
-	 * Check whether the currently selected AI/GS is dead.
-	 * @return true if dead.
-	 */
-	bool IsDead() const
-	{
-		if (this->filter.script_debug_company == OWNER_DEITY) {
-			GameInstance *game = Game::GetInstance();
-			return game == nullptr || game->IsDead();
-		}
-		return !Company::IsValidAiID(this->filter.script_debug_company) || Company::Get(this->filter.script_debug_company)->ai_instance->IsDead();
 	}
 
 	/**
@@ -989,9 +1019,6 @@ struct ScriptDebugWindow : public Window {
 
 		this->highlight_row = -1; // The highlight of one Script make little sense for another Script.
 
-		/* Close AI settings window to prevent confusion */
-		CloseWindowByClass(WC_SCRIPT_SETTINGS);
-
 		this->InvalidateData(-1);
 
 		this->autoscroll = true;
@@ -1036,7 +1063,7 @@ struct ScriptDebugWindow : public Window {
 
 			case WID_SCRD_CONTINUE_BTN:
 				/* Unpause current AI / game script and mark the corresponding script button dirty. */
-				if (!this->IsDead()) {
+				if (!IsConsideredDead(this->filter.script_debug_company)) {
 					if (this->filter.script_debug_company == OWNER_DEITY) {
 						Game::Unpause();
 					} else {
@@ -1099,7 +1126,7 @@ struct ScriptDebugWindow : public Window {
 				this->break_string_filter.AddLine(log.back().text);
 				if (this->break_string_filter.GetState()) {
 					/* Pause execution of script. */
-					if (!this->IsDead()) {
+					if (!IsConsideredDead(this->filter.script_debug_company)) {
 						if (this->filter.script_debug_company == OWNER_DEITY) {
 							Game::Pause();
 						} else {
@@ -1140,7 +1167,7 @@ struct ScriptDebugWindow : public Window {
 		this->SetWidgetLoweredState(WID_SCRD_MATCH_CASE_BTN, this->filter.case_sensitive_break_check);
 
 		this->SetWidgetDisabledState(WID_SCRD_SETTINGS, this->filter.script_debug_company == CompanyID::Invalid() ||
-			GetConfig(this->filter.script_debug_company)->GetConfigList()->empty());
+			GetVisibleSettingsList(this->filter.script_debug_company).empty());
 		extern CompanyID _local_company;
 		this->SetWidgetDisabledState(WID_SCRD_RELOAD_TOGGLE,
 				this->filter.script_debug_company == CompanyID::Invalid() ||
