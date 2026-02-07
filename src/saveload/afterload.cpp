@@ -1986,7 +1986,6 @@ bool AfterLoadGame()
 	}
 
 	if (IsSavegameVersionBefore(SLV_62)) {
-		GroupStatistics::UpdateAfterLoad(); // Ensure statistics pool is initialised before trying to delete vehicles
 		/* Remove all trams from savegames without tram support.
 		 * There would be trams without tram track under causing crashes sooner or later. */
 		for (RoadVehicle *v : RoadVehicle::Iterate()) {
@@ -3427,11 +3426,10 @@ bool AfterLoadGame()
 	 * starting a new company. */
 	StartScripts();
 
-	/* If Load Scenario / New (Scenario) Game is used,
-	 *  a company does not exist yet. So create one here.
-	 * 1 exception: network-games. Those can have 0 companies
-	 *   But this exception is not true for non-dedicated network servers! */
-	if (!_networking || (_networking && _network_server && !_network_dedicated)) {
+	/* If Load Scenario / New (Scenario) Game is used, a company does not exist yet.
+	 * Create one here whenever start_spectator is disabled.
+	 * 1 exception: dedicated network servers. Those can have 0 companies. */
+	if ((!_settings_client.gui.start_spectator && !_networking) || (_networking && _network_server && !_network_dedicated)) {
 		CompanyID first_human_company = GetFirstPlayableCompanyID();
 		if (!Company::IsValidID(first_human_company)) {
 			Company *c = DoStartupNewCompany(false, first_human_company);
@@ -3462,7 +3460,6 @@ void ReloadNewGRFData()
 	AfterLoadVehiclesPhase1(false);
 	AfterLoadVehiclesPhase2(false);
 	StartupEngines();
-	GroupStatistics::UpdateAfterLoad();
 	/* update station graphics */
 	AfterLoadStations();
 	/* Update company statistics. */

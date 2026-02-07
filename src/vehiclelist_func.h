@@ -16,31 +16,49 @@
 /**
  * Find vehicles matching an order.
  * This can be used, e.g. to find all vehicles that stop at a particular station.
- * @param veh_pred Vehicle selection predicate. This is called only for the first vehicle using the order list.
+ * @param company_pred Company selection predicate.
+ * @param veh_pred VehicleType selection predicate.
  * @param ord_pred Order selection predicate.
- * @param veh_func Called for each vehicle that matches both vehicle and order predicates.
+ * @param veh_func Called for each vehicle that matches company, vehicle type and order predicates.
  **/
-template <class VehiclePredicate, class OrderPredicate, class VehicleFunc>
-void FindVehiclesWithOrder(VehiclePredicate veh_pred, OrderPredicate ord_pred, VehicleFunc veh_func)
+template <class CompanyPredicate, class VehiclePredicate, class OrderPredicate, class VehicleFunc>
+void FindVehiclesWithOrder(CompanyPredicate company_pred, VehiclePredicate veh_pred, OrderPredicate ord_pred, VehicleFunc veh_func)
 {
-	for (const OrderList *orderlist : OrderList::Iterate()) {
+	for (const Company *c : Company::Iterate()) {
+		if (!company_pred(c)) continue;
 
-		/* We assume all vehicles sharing an order list match the condition. */
-		Vehicle *v = orderlist->GetFirstSharedVehicle();
-		if (!veh_pred(v)) continue;
+		for (VehicleType type = VEH_BEGIN; type < VEH_COMPANY_END; type++) {
+			if (!veh_pred(type)) continue;
 
-		/* Vehicle is a candidate, search for a matching order. */
-		for (const Order &order : orderlist->GetOrders()) {
+			/* We assume all vehicles in the order lists are the first in a shared chain. */
+			for (const Vehicle *v : c->order_lists[type]) {
 
-			if (!ord_pred(&order)) continue;
+				/* Vehicle is a candidate, search for a matching order. */
+				for (const Order &order : v->Orders()) {
+					if (!ord_pred(&order)) continue;
 
-			/* An order matches, we can add all shared vehicles to the list. */
-			for (; v != nullptr; v = v->NextShared()) {
-				veh_func(v);
+					/* An order matches, we can add all shared vehicles to the list. */
+					for (; v != nullptr; v = v->NextShared()) {
+						veh_func(v);
+					}
+					break;
+				}
 			}
-			break;
 		}
 	}
+}
+
+/**
+ * Find vehicles matching an order.
+ * This can be used, e.g. to find all vehicles that stop at a particular station.
+ * @param company_pred Company selection predicate.
+ * @param ord_pred Order selection predicate.
+ * @param veh_func Called for each vehicle that matches company and order predicates.
+ **/
+template <class CompanyPredicate, class OrderPredicate, class VehicleFunc>
+void FindVehiclesWithOrder(CompanyPredicate company_pred, OrderPredicate ord_pred, VehicleFunc veh_func)
+{
+	FindVehiclesWithOrder(company_pred, [](VehicleType) { return true; }, ord_pred, veh_func);
 }
 
 #endif /* VEHICLELIST_FUNC_H */
