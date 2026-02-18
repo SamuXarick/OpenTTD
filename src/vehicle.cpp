@@ -1403,7 +1403,10 @@ bool Vehicle::HandleBreakdown()
 			[[fallthrough]];
 		case 1:
 			/* Aircraft breakdowns end only when arriving at the airport */
-			if (this->type == VEH_AIRCRAFT) return false;
+			if (this->type == VEH_AIRCRAFT) {
+				MaybeExplodeAircraft(Aircraft::From(this));
+				return false;
+			}
 
 			/* For trains this function is called twice per tick, so decrease v->breakdown_delay at half the rate */
 			if ((this->tick_counter & (this->type == VEH_TRAIN ? 3 : 1)) == 0) {

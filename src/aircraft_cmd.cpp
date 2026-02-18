@@ -81,7 +81,7 @@ static bool AirportSetBlocks(Aircraft *v, const AirportFTA *current_pos, const A
 static bool AirportHasBlock(Aircraft *v, const AirportFTA *current_pos, const AirportFTAClass *apc);
 static bool AirportFindFreeTerminal(Aircraft *v, const AirportFTAClass *apc);
 static bool AirportFindFreeHelipad(Aircraft *v, const AirportFTAClass *apc);
-static void CrashAirplane(Aircraft *v);
+static void CrashAirplane(Aircraft *v, bool out_of_fuel);
 
 static const SpriteID _aircraft_sprite[] = {
 	0x0EB5, 0x0EBD, 0x0EC5, 0x0ECD,
@@ -1187,7 +1187,7 @@ static bool HandleCrashedAircraft(Aircraft *v)
 {
 	v->crashed_counter += 3;
 
-	Station *st = GetTargetAirportIfValid(v);
+	Station *st = v->state == FLYING ? nullptr : GetTargetAirportIfValid(v);
 
 	/* make aircraft crash down to the ground */
 	if (v->crashed_counter < 500 && st == nullptr && ((v->crashed_counter % 3) == 0)) {
@@ -1303,7 +1303,7 @@ void HandleMissingAircraftOrders(Aircraft *v)
 		CommandCost ret = Command<Commands::SendVehicleToDepot>::Do(DoCommandFlag::Execute, v->index, DepotCommandFlag{}, {});
 		cur_company.Restore();
 
-		if (ret.Failed()) CrashAirplane(v);
+		if (ret.Failed()) CrashAirplane(v, true);
 	} else if (!v->current_order.IsType(OT_GOTO_DEPOT)) {
 		v->current_order.Free();
 	}
@@ -1342,8 +1342,9 @@ uint Aircraft::Crash(bool flooded)
 /**
  * Bring the aircraft in a crashed state, create the explosion animation, and create a news item about the crash.
  * @param v Aircraft that crashed.
+ * @param out_of_fuel Whether the aircraft ran out of fuel
  */
-static void CrashAirplane(Aircraft *v)
+static void CrashAirplane(Aircraft *v, bool out_of_fuel)
 {
 	CreateEffectVehicleRel(v, 4, 4, 8, EV_EXPLOSION_LARGE);
 
@@ -1351,7 +1352,7 @@ static void CrashAirplane(Aircraft *v)
 
 	v->cargo.Truncate();
 	v->Next()->cargo.Truncate();
-	const Station *st = GetTargetAirportIfValid(v);
+	const Station *st = out_of_fuel ? nullptr : GetTargetAirportIfValid(v);
 	TileIndex vt = TileVirtXY(v->x_pos, v->y_pos);
 
 	EncodedString headline;
@@ -1402,7 +1403,31 @@ static void MaybeCrashAirplane(Aircraft *v)
 		if (ge.HasData()) ge.GetData().cargo.Truncate();
 	}
 
-	CrashAirplane(v);
+	CrashAirplane(v, false);
+}
+
+void MaybeExplodeAircraft(Aircraft *v)
+{
+	/* Can't explode outside the map */
+	TileIndex vt = TileVirtXY(v->x_pos, v->y_pos);
+	if (!IsValidTile(vt)) return;
+
+	if (!_settings_game.difficulty.disasters) return;
+	if (_settings_game.vehicle.plane_crashes == 0) return;
+	if (!v->vehstatus.Test(VehState::AircraftBroken)) return;
+	if (v->state != FLYING) return;
+	if (v->cur_speed > SPEED_LIMIT_BROKEN) return;
+
+	auto age = v->age - v->max_age;
+	if (age < TimerGameCalendar::DateAtStartOfYear(TimerGameCalendar::Year{0})) return;
+
+	uint32_t factor = Clamp(3 - _settings_game.vehicle.plane_crashes, 1, 2);
+	uint32_t lshift = std::min(TimerGameCalendar::DateToYear(age).base() / factor, 30 - factor);
+	uint32_t prob = (1 << factor) << lshift;
+
+	if (GB(Random(), 0, 28) > prob) return;
+
+	CrashAirplane(v, true);
 }
 
 /**

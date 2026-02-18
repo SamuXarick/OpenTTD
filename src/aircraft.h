@@ -140,5 +140,6 @@ void GetRotorImage(const Aircraft *v, EngineImageType image_type, VehicleSpriteS
 
 Station *GetTargetAirportIfValid(const Aircraft *v);
 void HandleMissingAircraftOrders(Aircraft *v);
+void MaybeExplodeAircraft(Aircraft *v);
 
 #endif /* AIRCRAFT_H */
