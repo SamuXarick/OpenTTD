@@ -1091,7 +1091,7 @@ STR_GAME_OPTIONS_GUI_SCALE_BEVELS_TOOLTIP                       :Activer pour me
 
 STR_GAME_OPTIONS_GUI_FONT_SPRITE                                :Utiliser la police d'écriture par défaut
 STR_GAME_OPTIONS_GUI_FONT_SPRITE_TOOLTIP                        :Activer si vous préférez utiliser la police traditionnelle à taille fixe
-STR_GAME_OPTIONS_GUI_FONT_AA                                    :Polices d'écriture supportant l'anti-crénelage
+STR_GAME_OPTIONS_GUI_FONT_AA                                    :Anti-crénelage sur les polices d'écriture
 STR_GAME_OPTIONS_GUI_FONT_AA_TOOLTIP                            :Activer pour appliquer l'anti-crénelage sur les polices d'écriture redimensionnables
 
 STR_GAME_OPTIONS_GUI_SCALE_MARK                                 :{DECIMAL}x
