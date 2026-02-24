@@ -2592,7 +2592,7 @@ STR_NETWORK_CHAT_OSKTITLE                                       :{BLACK}Enter te
 STR_NETWORK_ERROR_NOTAVAILABLE                                  :No network devices found
 STR_NETWORK_ERROR_NOCONNECTION                                  :Connection to the server timed out or was refused
 STR_NETWORK_ERROR_NEWGRF_MISMATCH                               :Could not connect due to NewGRF mismatch
-STR_NETWORK_ERROR_DESYNC                                        :Network-Game synchronisation failed
+STR_NETWORK_ERROR_DESYNC                                        :Network-Game synchronization failed
 STR_NETWORK_ERROR_LOSTCONNECTION                                :Network-Game connection lost
 STR_NETWORK_ERROR_SAVEGAMEERROR                                 :Could not load savegame
 STR_NETWORK_ERROR_SERVER_START                                  :Could not start the server
@@ -3689,7 +3689,7 @@ STR_NEWGRF_LIST_COMPATIBLE                                      :{YELLOW}Found c
 STR_NEWGRF_LIST_MISSING                                         :{RED}Missing files
 
 # NewGRF 'it's broken' warnings
-STR_NEWGRF_BROKEN                                               :Behaviour of NewGRF '{0:STRING}' is likely to cause desyncs and/or crashes
+STR_NEWGRF_BROKEN                                               :Behavior of NewGRF '{0:STRING}' is likely to cause desyncs and/or crashes
 STR_NEWGRF_BROKEN_POWERED_WAGON                                 :It changed powered-wagon state for '{1:ENGINE}' when not inside a depot
 STR_NEWGRF_BROKEN_VEHICLE_LENGTH                                :It changed vehicle length for '{1:ENGINE}' when not inside a depot
 STR_NEWGRF_BROKEN_CAPACITY                                      :It changed vehicle capacity for '{1:ENGINE}' when not inside a depot or refitting
@@ -5141,7 +5141,6 @@ STR_ERROR_CAN_T_GENERATE_TOWN                                   :Can't build any
 STR_ERROR_CAN_T_RENAME_TOWN                                     :Can't rename town...
 STR_ERROR_CAN_T_FOUND_TOWN_HERE                                 :Can't found town here...
 STR_ERROR_CAN_T_EXPAND_TOWN                                     :Can't expand town...
-STR_ERROR_TOO_CLOSE_TO_EDGE_OF_MAP_SUB                          :too close to edge of map
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_TOWN                             :too close to another town
 STR_ERROR_TOO_MANY_TOWNS                                        :too many towns
 STR_ERROR_NO_SPACE_FOR_TOWN                                     :there is no more space on the map

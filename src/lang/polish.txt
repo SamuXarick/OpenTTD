@@ -1184,7 +1184,7 @@ STR_SMALLMAP_LEGENDA_FOREST                                     :{G=m}{TINY_FONT
 STR_SMALLMAP_LEGENDA_FOREST.d                                   :{TINY_FONT}{BLACK}Lasu
 STR_SMALLMAP_LEGENDA_RAILROAD_STATION                           :{TINY_FONT}{BLACK}Stacja kolejowa
 STR_SMALLMAP_LEGENDA_TRUCK_LOADING_BAY                          :{TINY_FONT}{BLACK}Stacja ciężarówek
-STR_SMALLMAP_LEGENDA_BUS_STATION                                :{TINY_FONT}{BLACK}Przystanek
+STR_SMALLMAP_LEGENDA_BUS_STATION                                :{TINY_FONT}{BLACK}Przystanek autobusowy
 STR_SMALLMAP_LEGENDA_AIRPORT_HELIPORT                           :{TINY_FONT}{BLACK}Lotnisko
 STR_SMALLMAP_LEGENDA_DOCK                                       :{TINY_FONT}{BLACK}Port
 STR_SMALLMAP_LEGENDA_ROUGH_LAND                                 :{TINY_FONT}{BLACK}Wyboisty teren
@@ -2042,8 +2042,8 @@ STR_CONFIG_SETTING_HEIGHTMAP_ROTATION_CLOCKWISE                 :Zgodnie ze wsk.
 
 STR_CONFIG_SETTING_SE_FLAT_WORLD_HEIGHT                         :Wysokość jaką dostaje płaska mapa: {STRING}
 ###length 2
-STR_CONFIG_SETTING_EDGES_NOT_EMPTY                              :Przynajmniej jedno pole na północnej krawędzi nie jest puste
-STR_CONFIG_SETTING_EDGES_NOT_WATER                              :{WHITE}Jedno lub więcej pól na krawędzi nie jest wodą
+STR_CONFIG_SETTING_EDGES_NOT_EMPTY                              :Co najmniej jedno pole przy północnej krawędzi nie jest puste
+STR_CONFIG_SETTING_EDGES_NOT_WATER                              :Co najmniej jedno pole przy krawędzi nie jest wodą
 
 STR_CONFIG_SETTING_STATION_SPREAD                               :Maksymalna rozpiętość stacji: {STRING}
 STR_CONFIG_SETTING_STATION_SPREAD_HELPTEXT                      :Maksymalny obszar na jakim mogą znajdować się poszczególne elementy stacji. Pamiętaj, że wysoka wartość spowalnia grę
@@ -2593,7 +2593,7 @@ STR_CONFIG_SETTING_QUERY_CAPTION                                :{WHITE}Zmiana w
 STR_CONFIG_ERROR                                                :Błąd w pliku konfiguracyjnym...
 STR_CONFIG_ERROR_ARRAY                                          :błąd w tablicy „{STRING}”
 STR_CONFIG_ERROR_INVALID_VALUE                                  :{WHITE}... nieprawidłowa wartość „{STRING}” dla „{STRING}”
-STR_CONFIG_ERROR_TRAILING_CHARACTERS                            :{WHITE}... zbędne znaki na końcu ustawienia „{STRING}”
+STR_CONFIG_ERROR_TRAILING_CHARACTERS                            :zbędne znaki na końcu ustawienia „{STRING}”
 STR_CONFIG_ERROR_DUPLICATE_GRFID                                :ignorowanie NewGRF-a „{STRING}”: identyfikator NewGRF zduplikowany z „{STRING}”
 STR_CONFIG_ERROR_INVALID_GRF                                    :pominięcie nieprawidłowych NewGRF-ów „{STRING}”: {STRING}
 STR_CONFIG_ERROR_INVALID_GRF_NOT_FOUND                          :nie znaleziono
@@ -3376,7 +3376,7 @@ STR_BUILD_DEPOT_TRAM_ORIENTATION_SELECT_TOOLTIP                 :{BLACK}Wybierz 
 # Road vehicle station construction window
 STR_STATION_BUILD_BUS_ORIENTATION                               :{WHITE}Ukierunkowanie przystanku
 STR_STATION_BUILD_BUS_ORIENTATION_TOOLTIP                       :{BLACK}Wybierz ukierunkowanie przystanku
-STR_STATION_BUILD_TRUCK_ORIENTATION                             :{WHITE}Ukierunkowanie stacji załadunku ciężarówek
+STR_STATION_BUILD_TRUCK_ORIENTATION                             :{WHITE}Ukierunkowanie stacji ciężarówek
 STR_STATION_BUILD_TRUCK_ORIENTATION_TOOLTIP                     :{BLACK}Wybierz ukierunkowanie stacji ciężarówek
 STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION                    :{WHITE}Ukierunkowanie przystanku tramwajowego
 STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION_TOOLTIP            :{BLACK}Wybierz ukierunkowanie przystanku tramwajowego
@@ -3633,7 +3633,7 @@ STR_LAI_STATION_DESCRIPTION_RAILROAD_STATION                    :Stacja kolejowa
 STR_LAI_STATION_DESCRIPTION_AIRCRAFT_HANGAR                     :Hangar
 STR_LAI_STATION_DESCRIPTION_AIRPORT                             :Lotnisko
 STR_LAI_STATION_DESCRIPTION_TRUCK_LOADING_AREA                  :Stacja ciężarówek
-STR_LAI_STATION_DESCRIPTION_BUS_STATION                         :Przystanek
+STR_LAI_STATION_DESCRIPTION_BUS_STATION                         :Przystanek autobusowy
 STR_LAI_STATION_DESCRIPTION_SHIP_DOCK                           :Port
 STR_LAI_STATION_DESCRIPTION_BUOY                                :Boja
 STR_LAI_STATION_DESCRIPTION_WAYPOINT                            :Posterunek
@@ -5326,7 +5326,7 @@ STR_AI_GAME_SCRIPT                                              :{BLACK}Game Scr
 STR_AI_GAME_SCRIPT_TOOLTIP                                      :{BLACK}Sprawdź log tego Game Script. Użyj Ctrl, aby otworzyć w nowym oknie
 
 STR_ERROR_AI_NO_AI_FOUND                                        :Nie znaleziono SI do wczytania.{}SI jest nieaktywne i nic nie robi.{}Możesz pobrać kilka SI z przeglądarki „Dodatków Online”
-STR_ERROR_AI_PLEASE_REPORT_CRASH                                :{WHITE}Jeden z uruchomionych skryptów przestał działać. Prosimy o zgłoszenie tego autorowi skryptu dołączając zrzut obrazu okna debugowania SI / GameScript
+STR_ERROR_AI_PLEASE_REPORT_CRASH                                :Jeden z uruchomionych skryptów przestał działać. Prosimy o zgłoszenie tego autorowi skryptu dołączając zrzut obrazu okna debugowania SI / GameScript
 STR_ERROR_AI_DEBUG_SERVER_ONLY                                  :{YELLOW}Okno debugowania SI / Game Script jest dostępne tylko dla serwera
 
 # AI configuration window
@@ -5475,7 +5475,7 @@ STR_ERROR_OFF_EDGE_OF_MAP                                       :{WHITE}Poza kra
 STR_ERROR_TOO_CLOSE_TO_EDGE_OF_MAP                              :zbyt blisko krawędzi mapy
 STR_ERROR_NOT_ENOUGH_CASH_REQUIRES_CURRENCY                     :za mało pieniędzy - wymagane {CURRENCY_LONG}
 STR_ERROR_FLAT_LAND_REQUIRED                                    :wymagany płaski teren
-STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION                        :{WHITE}Teren pochylony w złym kierunku
+STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION                        :teren pochylony w złym kierunku
 STR_ERROR_CAN_T_DO_THIS                                         :{WHITE}Nie można tego zrobić...
 STR_ERROR_BUILDING_MUST_BE_DEMOLISHED                           :należy najpierw zburzyć budynek
 STR_ERROR_BUILDING_IS_PROTECTED                                 :budynek jest chroniony
@@ -5512,7 +5512,7 @@ STR_ERROR_MUST_DEMOLISH_RIVER_FIRST                             :{WHITE}Należy 
 STR_ERROR_CAN_T_CHANGE_COMPANY_NAME                             :Nie można zmienić nazwy firmy...
 STR_ERROR_CAN_T_CHANGE_PRESIDENT                                :Nie można zmienić nazwiska prezesa...
 
-STR_ERROR_MAXIMUM_PERMITTED_LOAN                                :{WHITE}... maksymalna dozwolona pożyczka wynosi {CURRENCY_LONG}
+STR_ERROR_MAXIMUM_PERMITTED_LOAN                                :maksymalna dozwolona pożyczka wynosi {CURRENCY_LONG}
 STR_ERROR_CAN_T_BORROW_ANY_MORE_MONEY                           :Nie można pożyczyć więcej pieniędzy...
 STR_ERROR_LOAN_ALREADY_REPAID                                   :{WHITE}... pożyczka już jest spłacona
 STR_ERROR_CURRENCY_REQUIRED                                     :{WHITE}...{CURRENCY_LONG} wymagane
@@ -5527,11 +5527,10 @@ STR_ERROR_CAN_T_GENERATE_TOWN                                   :Nie można zbud
 STR_ERROR_CAN_T_RENAME_TOWN                                     :{WHITE}Nie można zmienić nazwy miasta...
 STR_ERROR_CAN_T_FOUND_TOWN_HERE                                 :Nie można tutaj zbudować miasta...
 STR_ERROR_CAN_T_EXPAND_TOWN                                     :{WHITE}Nie można rozszerzyć miasta...
-STR_ERROR_TOO_CLOSE_TO_EDGE_OF_MAP_SUB                          :zbyt blisko krawędzi mapy
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_TOWN                             :zbyt blisko innego miasta
 STR_ERROR_TOO_MANY_TOWNS                                        :{WHITE}... zbyt wiele miast
-STR_ERROR_NO_SPACE_FOR_TOWN                                     :{WHITE}... nie ma więcej miejsca na mapie
-STR_ERROR_ROAD_WORKS_IN_PROGRESS                                :{WHITE}Trwają roboty drogowe
+STR_ERROR_NO_SPACE_FOR_TOWN                                     :nie ma więcej miejsca na mapie
+STR_ERROR_ROAD_WORKS_IN_PROGRESS                                :trwają roboty drogowe
 STR_ERROR_TOWN_CAN_T_DELETE                                     :{WHITE}Nie można usunąć tego miasta...{}{}Stacja lub zajezdnia przynależy do tego miasta lub obszar miasta nie może być usunięty
 STR_ERROR_STATUE_NO_SUITABLE_PLACE                              :w centrum tego miasta nie ma odpowiedniego miejsca na pomnik
 STR_ERROR_CAN_T_BUILD_HOUSE                                     :Nie można postawić budynku...
@@ -5542,7 +5541,7 @@ STR_ERROR_CAN_T_GENERATE_INDUSTRIES                             :Nie można wyge
 STR_ERROR_CAN_T_BUILD_HERE                                      :Nie można tutaj zbudować: {STRING}...
 STR_ERROR_CAN_T_CONSTRUCT_THIS_INDUSTRY                         :Nie można tutaj zbudować przedsiębiorstwa tego typu...
 STR_ERROR_CAN_T_PROSPECT_INDUSTRY                               :{WHITE}Nie można znaleźć przedsiębiorstwa...
-STR_ERROR_INDUSTRY_TOO_CLOSE                                    :{WHITE}... zbyt blisko innego przedsiębiorstwa
+STR_ERROR_INDUSTRY_TOO_CLOSE                                    :zbyt blisko innego przedsiębiorstwa
 STR_ERROR_MUST_FOUND_TOWN_FIRST                                 :{WHITE}... należy najpierw wybudować miasto
 STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN                             :{WHITE}... dozwolone jedno na miasto
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_TOWNS_WITH_POPULATION_OF_1200    :można zbudować jedynie w miastach o populacji przynajmniej 1200
@@ -5564,7 +5563,7 @@ STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :zmień parametr
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :Nie można tutaj zbudować stacji...
 STR_ERROR_CAN_T_BUILD_BUS_STATION                               :Nie można zbudować przystanku autobusowego...
-STR_ERROR_CAN_T_BUILD_TRUCK_STATION                             :{WHITE}Nie można zbudować stacji ciężarówek...
+STR_ERROR_CAN_T_BUILD_TRUCK_STATION                             :Nie można zbudować stacji załadunku ciężarówek...
 STR_ERROR_CAN_T_BUILD_PASSENGER_TRAM_STATION                    :Nie można zbudować przystanku tramwajowego...
 STR_ERROR_CAN_T_BUILD_CARGO_TRAM_STATION                        :Nie można zbudować tramwajowej stacji załadunkowej...
 STR_ERROR_CAN_T_BUILD_DOCK_HERE                                 :Nie można tutaj zbudować portu...
@@ -5577,14 +5576,14 @@ STR_ERROR_STATION_DISALLOWED_LENGTH                             :nieobsługiwana
 STR_ERROR_TOO_MANY_STATIONS_LOADING                             :{WHITE}Za dużo stacji
 STR_ERROR_TOO_MANY_STATION_SPECS                                :{WHITE}Za dużo części stacji kolejowej
 STR_ERROR_TOO_MANY_BUS_STOPS                                    :zbyt wiele przystanków autobusowych
-STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :{WHITE}Zbyt wiele stacji załadunku ciężarówek
+STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :zbyt wiele stacji ciężarówek
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :zbyt blisko innego portu
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_AIRPORT                          :zbyt blisko innego lotniska
 STR_ERROR_CAN_T_RENAME_STATION                                  :{WHITE}Nie można zmienić nazwy stacji...
 STR_ERROR_CAN_T_MOVE_STATION_NAME                               :Nie można przenieść nazwy stacji...
 STR_ERROR_DRIVE_THROUGH_ON_TOWN_ROAD                            :droga należąca do miasta
 STR_ERROR_DRIVE_THROUGH_DIRECTION                               :{WHITE}... droga jest zorientowana w złym kierunku
-STR_ERROR_DRIVE_THROUGH_CORNER                                  :{WHITE}... przystanki przelotowe nie mogą mieć zakrętów
+STR_ERROR_DRIVE_THROUGH_CORNER                                  :przystanki przelotowe nie mogą mieć zakrętów
 STR_ERROR_DRIVE_THROUGH_JUNCTION                                :{WHITE}... przystanki przelotowe nie mogą mieć skrzyżowań
 
 # Station destruction related errors
@@ -5599,14 +5598,14 @@ STR_ERROR_THERE_IS_NO_STATION                                   :{WHITE}...brak 
 
 STR_ERROR_MUST_DEMOLISH_RAILROAD                                :{WHITE}Należy najpierw usunąć stację kolejową
 STR_ERROR_MUST_DEMOLISH_BUS_STATION_FIRST                       :należy najpierw usunąć przystanek autobusowy
-STR_ERROR_MUST_DEMOLISH_TRUCK_STATION_FIRST                     :należy najpierw usunąć stację załadunku ciężarówek
+STR_ERROR_MUST_DEMOLISH_TRUCK_STATION_FIRST                     :należy najpierw usunąć stację ciężarówek
 STR_ERROR_MUST_DEMOLISH_PASSENGER_TRAM_STATION_FIRST            :{WHITE}Najpierw musisz zburzyć przystanek tramwajowy
 STR_ERROR_MUST_DEMOLISH_CARGO_TRAM_STATION_FIRST                :{WHITE}Najpierw musisz zburzyć tramwajową stację załadunkową
 STR_ERROR_MUST_DEMOLISH_DOCK_FIRST                              :{WHITE}Należy najpierw usunąć port
 STR_ERROR_MUST_DEMOLISH_AIRPORT_FIRST                           :należy najpierw usunąć lotnisko
 
 # Waypoint related errors
-STR_ERROR_WAYPOINT_ADJOINS_MORE_THAN_ONE_EXISTING               :{WHITE}Przylega do więcej niż jednego istniejącego posterunku
+STR_ERROR_WAYPOINT_ADJOINS_MORE_THAN_ONE_EXISTING               :przylega do więcej niż jednego istniejącego posterunku
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_WAYPOINT                         :zbyt blisko innego posterunku
 
 STR_ERROR_CAN_T_BUILD_RAIL_WAYPOINT                             :Nie można tutaj zbudować posterunku...
@@ -5623,7 +5622,7 @@ STR_ERROR_BUOY_IN_THE_WAY                                       :boja na drodze
 STR_ERROR_BUOY_IS_IN_USE                                        :boja w użyciu przez inna firmę!
 
 # Depot related errors
-STR_ERROR_CAN_T_BUILD_TRAIN_DEPOT                               :{WHITE}Nie można tutaj zbudować warsztatów kolejowych...
+STR_ERROR_CAN_T_BUILD_TRAIN_DEPOT                               :Nie można tutaj zbudować warsztatów kolejowych...
 STR_ERROR_CAN_T_BUILD_ROAD_DEPOT                                :Nie można tutaj zbudować zajezdni...
 STR_ERROR_CAN_T_BUILD_TRAM_DEPOT                                :Nie można tutaj zbudować zajezdni tramwajowej...
 STR_ERROR_CAN_T_BUILD_SHIP_DEPOT                                :Nie można tutaj zbudować stoczni...
@@ -5637,7 +5636,7 @@ STR_ERROR_AIRCRAFT_MUST_BE_STOPPED_INSIDE_HANGAR                :musi być zatrz
 
 STR_ERROR_TRAINS_CAN_ONLY_BE_ALTERED_INSIDE_A_DEPOT             :pociąg może być modyfikowany tylko, gdy jest zatrzymany w hali warsztatów
 STR_ERROR_TRAIN_TOO_LONG                                        :pociąg jest zbyt długi
-STR_ERROR_CAN_T_REVERSE_DIRECTION_RAIL_VEHICLE                  :{WHITE}Nie można zawrócić pociągu...
+STR_ERROR_CAN_T_REVERSE_DIRECTION_RAIL_VEHICLE                  :Nie można zawrócić pociągu...
 STR_ERROR_CAN_T_REVERSE_DIRECTION_RAIL_VEHICLE_MULTIPLE_UNITS   :{WHITE}... składa się z wielu jednostek
 STR_ERROR_INCOMPATIBLE_RAIL_TYPES                               :niezgodne typy torów
 
@@ -5697,7 +5696,7 @@ STR_ERROR_NO_SUITABLE_TRAMWAY                                   :brak odpowiedni
 # Waterway construction errors
 STR_ERROR_CAN_T_BUILD_CANALS                                    :Nie można tutaj zbudować kanału...
 STR_ERROR_CAN_T_BUILD_LOCKS                                     :Nie można tutaj zbudować śluzy...
-STR_ERROR_CAN_T_PLACE_RIVERS                                    :{WHITE}Nie można tutaj umieścić rzeki...
+STR_ERROR_CAN_T_PLACE_RIVERS                                    :Nie można tutaj umieścić rzeki...
 STR_ERROR_MUST_BE_BUILT_ON_WATER                                :{WHITE}... można zbudować tylko na wodzie
 STR_ERROR_CAN_T_BUILD_ON_WATER                                  :nie można zbudować na wodzie
 STR_ERROR_CAN_T_BUILD_ON_SEA                                    :nie można zbudować na otwartym morzu
@@ -5731,10 +5730,10 @@ STR_ERROR_BRIDGE_TOO_LOW_FOR_ROAD_WAYPOINT                      :most jest o {HE
 STR_ERROR_BRIDGE_TOO_LOW_FOR_LOCK                               :most jest o {HEIGHT} za niski dla śluzy
 
 # Tunnel related errors
-STR_ERROR_CAN_T_BUILD_TUNNEL_HERE                               :{WHITE}Nie można tutaj zbudować tunelu...
+STR_ERROR_CAN_T_BUILD_TUNNEL_HERE                               :Nie można tutaj zbudować tunelu...
 STR_ERROR_SITE_UNSUITABLE_FOR_TUNNEL                            :{WHITE}Nieodpowiednie miejsce na wejście tunelu
 STR_ERROR_MUST_DEMOLISH_TUNNEL_FIRST                            :{WHITE}Należy najpierw usunąć tunel
-STR_ERROR_ANOTHER_TUNNEL_IN_THE_WAY                             :{WHITE}Inny tunel na drodze
+STR_ERROR_ANOTHER_TUNNEL_IN_THE_WAY                             :inny tunel na drodze
 STR_ERROR_TUNNEL_THROUGH_MAP_BORDER                             :{WHITE}Koniec tunelu poza mapą
 STR_ERROR_UNABLE_TO_EXCAVATE_LAND                               :nie można wydrążyć drugiego końca tunelu
 STR_ERROR_TUNNEL_TOO_LONG                                       :{WHITE}... tunel jest za długi
@@ -5767,7 +5766,7 @@ STR_ERROR_SHIP_IN_THE_WAY                                       :statek na drodz
 STR_ERROR_AIRCRAFT_IN_THE_WAY                                   :samolot na drodze
 
 ###length VEHICLE_TYPES
-STR_ERROR_RAIL_VEHICLE_NOT_AVAILABLE                            :{WHITE}Pojazd jest niedostępny
+STR_ERROR_RAIL_VEHICLE_NOT_AVAILABLE                            :pojazd jest niedostępny
 STR_ERROR_ROAD_VEHICLE_NOT_AVAILABLE                            :{WHITE}Pojazd jest niedostępny
 STR_ERROR_SHIP_NOT_AVAILABLE                                    :{WHITE}Statek jest niedostępny
 STR_ERROR_AIRCRAFT_NOT_AVAILABLE                                :samolot jest niedostępny
@@ -5861,7 +5860,7 @@ STR_ERROR_CAN_T_MODIFY_THIS_ORDER                               :{WHITE}Nie moż
 STR_ERROR_CAN_T_MOVE_THIS_ORDER                                 :Nie można przenieść tego polecenia...
 STR_ERROR_CAN_T_SKIP_ORDER                                      :Nie można pominąć obecnego polecenia...
 STR_ERROR_CAN_T_SKIP_TO_ORDER                                   :Nie można przejść do wybranego polecenia...
-STR_ERROR_CAN_T_COPY_SHARE_ORDER                                :{WHITE}... pojazd nie może jechać do wszystkich stacji
+STR_ERROR_CAN_T_COPY_SHARE_ORDER                                :pojazd nie może jechać do wszystkich stacji
 STR_ERROR_CAN_T_ADD_ORDER                                       :pojazd nie może jechać do tej stacji
 STR_ERROR_CAN_T_ADD_ORDER_SHARED                                :pojazd współdzielący to polecenie nie może jechać do tej stacji
 STR_ERROR_CAN_T_COPY_ORDER_VEHICLE_LIST                         :nie wszystkie pojazdy mają takie same polecenia
@@ -5876,16 +5875,16 @@ STR_ERROR_AIRCRAFT_NOT_ENOUGH_RANGE                             :samolot ma niew
 # Extra messages which go on the third line of errors, explaining why orders failed
 STR_ERROR_NO_RAIL_STATION                                       :Brak stacji kolejowej
 STR_ERROR_NO_BUS_STATION                                        :Brak przystanku autobusowego
-STR_ERROR_NO_TRUCK_STATION                                      :{WHITE}Brak stacji dla ciężarówek
+STR_ERROR_NO_TRUCK_STATION                                      :Brak stacji ciężarówek
 STR_ERROR_NO_DOCK                                               :Brak portu
 STR_ERROR_NO_AIRPORT                                            :Brak lotniska/lądowiska
-STR_ERROR_NO_STOP_COMPATIBLE_ROAD_TYPE                          :{WHITE}Brak przystanków na odpowiednim typie drogi
-STR_ERROR_NO_STOP_COMPATIBLE_TRAM_TYPE                          :{WHITE}Brak odpowiednich przystanków dla tego typu tramwajów
-STR_ERROR_NO_STOP_ARTICULATED_VEHICLE                           :{WHITE}Brak przystanków przeznaczonych dla pojazdów przegubowych.{}Pojazdy przegubowe wymagają przystanku przelotowego, a nie zatokowego
-STR_ERROR_AIRPORT_NO_PLANES                                     :{WHITE}Ten samolot nie może wylądować na tym lądowisku
-STR_ERROR_AIRPORT_NO_HELICOPTERS                                :{WHITE}Ten helikopter nie może wylądować na tym lotnisku
-STR_ERROR_NO_RAIL_WAYPOINT                                      :{WHITE}Brak posterunków kolejowych
-STR_ERROR_NO_ROAD_WAYPOINT                                      :{WHITE}Brak posterunków drogowych
+STR_ERROR_NO_STOP_COMPATIBLE_ROAD_TYPE                          :Brak przystanków na odpowiednim typie drogi
+STR_ERROR_NO_STOP_COMPATIBLE_TRAM_TYPE                          :Brak odpowiednich przystanków dla tego typu tramwajów
+STR_ERROR_NO_STOP_ARTICULATED_VEHICLE                           :Brak przystanków przeznaczonych dla pojazdów przegubowych.{}Pojazdy przegubowe wymagają przystanku przelotowego, a nie zatokowego
+STR_ERROR_AIRPORT_NO_PLANES                                     :Ten samolot nie może wylądować na tym lądowisku
+STR_ERROR_AIRPORT_NO_HELICOPTERS                                :Ten helikopter nie może wylądować na tym lotnisku
+STR_ERROR_NO_RAIL_WAYPOINT                                      :Brak posterunku kolejowego
+STR_ERROR_NO_ROAD_WAYPOINT                                      :Brak posterunku drogowego
 STR_ERROR_NO_BUOY                                               :Brak boi
 
 # Timetable related errors
@@ -5897,7 +5896,7 @@ STR_ERROR_TIMETABLE_NOT_STARTED                                 :rozkład jazdy 
 
 # Sign related errors
 STR_ERROR_TOO_MANY_SIGNS                                        :zbyt wiele napisów
-STR_ERROR_CAN_T_PLACE_SIGN_HERE                                 :{WHITE}Nie można umieścić tutaj napisu...
+STR_ERROR_CAN_T_PLACE_SIGN_HERE                                 :Nie można tutaj umieścić napisu...
 STR_ERROR_CAN_T_CHANGE_SIGN_NAME                                :{WHITE}Nie można zmienić nazwy napisu...
 STR_ERROR_CAN_T_DELETE_SIGN                                     :Nie można usunąć napisu...
 
