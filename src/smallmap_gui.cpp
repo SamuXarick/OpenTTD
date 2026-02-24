@@ -738,7 +738,7 @@ protected:
 	}};
 
 	/** Update the whole map on a regular interval. */
-	const IntervalTimer<TimerWindow> refresh_interval = {std::chrono::milliseconds(930), [this](auto) {
+	const IntervalTimer<TimerWindow> refresh_interval = {std::chrono::milliseconds(Clamp(1000 / _settings_client.gui.refresh_rate, 1, 930)), [this](auto) {
 		ForceRefresh();
 	}};
 
