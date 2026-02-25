@@ -1522,7 +1522,7 @@ STR_GAME_OPTIONS_SOCIAL_PLUGIN_STATE_INVALID_SIGNATURE          :{RED}Nieprawid�
 STR_BASESET_STATUS                                              :{STRING} {RED}({NUM} brakując{P y e ych}/uszkodzon{P y e ych} plik{P "" i ów})
 
 STR_ERROR_RESOLUTION_LIST_FAILED                                :Nie udało się pobrać listy wspieranych rozdzielczości
-STR_ERROR_FULLSCREEN_FAILED                                     :{WHITE}Uruchomienie trybu pełnoekranowego nie powiodło się
+STR_ERROR_FULLSCREEN_FAILED                                     :Uruchomienie trybu pełnoekranowego nie powiodło się
 
 # Custom currency window
 
@@ -2592,7 +2592,7 @@ STR_CONFIG_SETTING_QUERY_CAPTION                                :{WHITE}Zmiana w
 # Config errors
 STR_CONFIG_ERROR                                                :Błąd w pliku konfiguracyjnym...
 STR_CONFIG_ERROR_ARRAY                                          :błąd w tablicy „{STRING}”
-STR_CONFIG_ERROR_INVALID_VALUE                                  :{WHITE}... nieprawidłowa wartość „{STRING}” dla „{STRING}”
+STR_CONFIG_ERROR_INVALID_VALUE                                  :nieprawidłowa wartość „{STRING}” dla „{STRING}”
 STR_CONFIG_ERROR_TRAILING_CHARACTERS                            :zbędne znaki na końcu ustawienia „{STRING}”
 STR_CONFIG_ERROR_DUPLICATE_GRFID                                :ignorowanie NewGRF-a „{STRING}”: identyfikator NewGRF zduplikowany z „{STRING}”
 STR_CONFIG_ERROR_INVALID_GRF                                    :pominięcie nieprawidłowych NewGRF-ów „{STRING}”: {STRING}
@@ -2603,12 +2603,12 @@ STR_CONFIG_ERROR_INVALID_GRF_INCOMPATIBLE                       :niezgodne z tą
 STR_CONFIG_ERROR_INVALID_GRF_UNKNOWN                            :nieznany
 STR_CONFIG_ERROR_INVALID_SAVEGAME_COMPRESSION_LEVEL             :poziom kompresji „{STRING}” jest niepoprawny
 STR_CONFIG_ERROR_INVALID_SAVEGAME_COMPRESSION_ALGORITHM         :format zapisu gry „{STRING}” jest niedostępny. Powracanie do „{STRING}”
-STR_CONFIG_ERROR_INVALID_BASE_GRAPHICS_NOT_FOUND                :{WHITE}... ignoruję zestaw Base Graphics „{STRING}”: nie odnaleziono
-STR_CONFIG_ERROR_INVALID_BASE_SOUNDS_NOT_FOUND                  :{WHITE}... ignoruję zestaw Base Sounds „{STRING}”: nie odnaleziono
-STR_CONFIG_ERROR_INVALID_BASE_MUSIC_NOT_FOUND                   :{WHITE}... ignoruję zestaw Base Music „{STRING}”: nie odnaleziono
+STR_CONFIG_ERROR_INVALID_BASE_GRAPHICS_NOT_FOUND                :ignorowanie podstawowego zestawu grafik „{STRING}”: nie odnaleziono
+STR_CONFIG_ERROR_INVALID_BASE_SOUNDS_NOT_FOUND                  :ignorowanie podstawowego zestawu dźwięków „{STRING}”: nie odnaleziono
+STR_CONFIG_ERROR_INVALID_BASE_MUSIC_NOT_FOUND                   :ignorowanie podstawowego zestawu muzyki „{STRING}”: nie odnaleziono
 
 # Video initalization errors
-STR_VIDEO_DRIVER_ERROR                                          :{WHITE}Błąd ustawień obrazu...
+STR_VIDEO_DRIVER_ERROR                                          :Błąd w ustawieniach obrazu...
 STR_VIDEO_DRIVER_ERROR_NO_HARDWARE_ACCELERATION                 :nie znaleziono kompatybilnego procesora graficznego. Przyspieszenie sprzętowe wyłączone.
 STR_VIDEO_DRIVER_ERROR_HARDWARE_ACCELERATION_CRASH              :sterownik GPU spowodował awarię gry. Wyłączono przyspieszenie sprzętowe
 
@@ -2975,15 +2975,15 @@ STR_NETWORK_ERROR_NEWGRF_MISMATCH                               :{WHITE}Nie moż
 STR_NETWORK_ERROR_DESYNC                                        :{WHITE}Błąd synchronizacji gry sieciowej.
 STR_NETWORK_ERROR_LOSTCONNECTION                                :{WHITE}Utracono połączenie z grą sieciową.
 STR_NETWORK_ERROR_SAVEGAMEERROR                                 :{WHITE}Nie można wczytać zapisanej gry z serwera.
-STR_NETWORK_ERROR_SERVER_START                                  :{WHITE}Nie można uruchomić serwera
-STR_NETWORK_ERROR_SERVER_ERROR                                  :{WHITE}Błąd protokołu, połączenie zostało przerwane
+STR_NETWORK_ERROR_SERVER_START                                  :Nie można uruchomić serwera
+STR_NETWORK_ERROR_SERVER_ERROR                                  :Wykryto błąd protokołu i połączenie zostało zakończone
 STR_NETWORK_ERROR_BAD_PLAYER_NAME                               :Twoja nazwa gracza nie została ustawiona. Nazwę można ustawić w górnej części okna Gra Wieloosobowa
 STR_NETWORK_ERROR_BAD_SERVER_NAME                               :Nazwa twojego serwera nie została ustawiona. Nazwę można ustawić w górnej części okna Gra Wieloosobowa
 STR_NETWORK_ERROR_WRONG_REVISION                                :{WHITE}Wersja gry nie zgadza się z wersją gry na serwerze
 STR_NETWORK_ERROR_WRONG_PASSWORD                                :Złe hasło
 STR_NETWORK_ERROR_NOT_ON_ALLOW_LIST                             :Nie ma cię na liście dopuszczonych klientów
-STR_NETWORK_ERROR_SERVER_FULL                                   :{WHITE}Serwer jest pełny
-STR_NETWORK_ERROR_SERVER_BANNED                                 :{WHITE}Masz zabroniony dostęp do tego serwera
+STR_NETWORK_ERROR_SERVER_FULL                                   :Serwer jest pełny
+STR_NETWORK_ERROR_SERVER_BANNED                                 :Masz zakaz dostępu do tego serwera
 STR_NETWORK_ERROR_KICKED                                        :{WHITE}Wyrzucono cię z rozgrywki
 STR_NETWORK_ERROR_KICK_MESSAGE                                  :{WHITE}Powód: {STRING}
 STR_NETWORK_ERROR_CHEATER                                       :{WHITE}Ułatwienia są niedozwolone na tym serwerze
@@ -3906,7 +3906,7 @@ STR_TOWN_DATA_ERROR_JSON_FORMATTED_INCORRECTLY                  :nieprawidłowo 
 STR_TOWN_DATA_ERROR_TOWN_FORMATTED_INCORRECTLY                  :{WHITE}Nieprawidłowo sformatowane dane miasta {STRING}
 STR_TOWN_DATA_ERROR_BAD_COORDINATE                              :{WHITE}Nieprawidłowo sformatowane współrzędne miasta {STRING}, muszą wynosić od 0 do 1 jako ułamek całkowitego wymiaru mapy wysokości
 
-STR_TOWN_DATA_ERROR_FAILED_TO_FOUND_TOWN                        :{WHITE}Nie znaleziono prawidłowej lokalizacji dla {NUM} miast{P a "" ""}. Zamiast tego w dany{P m ch ch} miejsc{P u ach ach} utworzono napis{P "" y y}
+STR_TOWN_DATA_ERROR_FAILED_TO_FOUND_TOWN                        :Nie znaleziono prawidłowej lokalizacji dla {NUM} miast{P a "" ""}. Zamiast tego w dany{P m ch ch} miejsc{P u ach ach} utworzono napis{P "" y y}
 
 # NewGRF settings
 STR_NEWGRF_SETTINGS_CAPTION                                     :{WHITE}Ustawienia NewGRF
@@ -4078,7 +4078,7 @@ STR_BROKEN_VEHICLE_LENGTH                                       :Pociąg „{VEH
 STR_NEWGRF_BUGGY                                                :NewGRF „{0:STRING}” dostarcza niepoprawne dane
 STR_NEWGRF_BUGGY_ARTICULATED_CARGO                              :{WHITE}Informacje o ładunku/przebudowie „{1:ENGINE}” różnią się od listy zakupów po zbudowaniu. Może to spowodować, że automatyczne odnowienie/zamiana nie wykona się poprawnie
 STR_NEWGRF_BUGGY_ENDLESS_PRODUCTION_CALLBACK                    :„{1:STRING}” spowodował nieskończoną pętlę w wywołaniu zwrotnym produkcji
-STR_NEWGRF_BUGGY_UNKNOWN_CALLBACK_RESULT                        :{WHITE}Wywołanie zwrotne {1:HEX} zwróciło nieznany/błędny wynik {2:HEX}
+STR_NEWGRF_BUGGY_UNKNOWN_CALLBACK_RESULT                        :Wywołanie zwrotne {1:HEX} zwróciło nieznany/błędny wynik {2:HEX}
 STR_NEWGRF_BUGGY_INVALID_CARGO_PRODUCTION_CALLBACK              :„{1:STRING}” zwrócił niewłaściwy typ ładunku w wywołaniu zwrotnym produkcji w {2:HEX}
 
 # 'User removed essential NewGRFs'-placeholders for stuff without specs
@@ -5423,11 +5423,11 @@ STR_MESSAGE_ESTIMATED_INCOME                                    :{WHITE}Szacowan
 
 # Saveload messages
 STR_ERROR_SAVE_STILL_IN_PROGRESS                                :{WHITE}Zapisywanie trwa,{}proszę zaczekać do zakończenia!
-STR_ERROR_AUTOSAVE_FAILED                                       :{WHITE}Błąd automatycznego zapisu gry
+STR_ERROR_AUTOSAVE_FAILED                                       :Błąd automatycznego zapisu gry
 STR_ERROR_UNABLE_TO_READ_DRIVE                                  :{BLACK}Nie można odczytać napędu
-STR_ERROR_GAME_SAVE_FAILED                                      :{WHITE}Nie można zapisać gry...
+STR_ERROR_GAME_SAVE_FAILED                                      :Nie można zapisać gry...
 STR_ERROR_UNABLE_TO_DELETE_FILE                                 :Nie można usunąć pliku
-STR_ERROR_GAME_LOAD_FAILED                                      :{WHITE}Nie można wczytać gry...
+STR_ERROR_GAME_LOAD_FAILED                                      :Nie można wczytać gry...
 STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR                   :Błąd wewnętrzny: {STRING}
 STR_GAME_SAVELOAD_ERROR_BROKEN_SAVEGAME                         :Zepsuta zapisana gra - {STRING}
 STR_GAME_SAVELOAD_ERROR_TOO_NEW_SAVEGAME                        :Zapis został stworzony w nowszej wersji gry
@@ -5439,16 +5439,16 @@ STR_GAME_SAVELOAD_NOT_AVAILABLE                                 :<not available>
 STR_WARNING_LOADGAME_REMOVED_TRAMS                              :{WHITE}Gra została zapisana w wersji nie obsługującej tramwajów. Wszystkie tramwaje zostały usunięte
 
 # Map generation messages
-STR_ERROR_COULD_NOT_CREATE_TOWN                                 :{WHITE}Generowanie mapy anulowane...{}{}... brak odpowiednich miejsc dla miast
+STR_ERROR_COULD_NOT_CREATE_TOWN                                 :Generowanie mapy anulowane...{}{}... brak odpowiednich miejsc dla miast
 STR_ERROR_NO_TOWN_IN_SCENARIO                                   :{WHITE}... nie ma żadnego miasta w scenariuszu
 
-STR_ERROR_PNGMAP                                                :{WHITE}Nie można wczytać krajobrazu z PNG...
+STR_ERROR_PNGMAP                                                :Nie można wczytać krajobrazu z PNG...
 STR_ERROR_PNGMAP_FILE_NOT_FOUND                                 :{WHITE}... nie znaleziono pliku
 STR_ERROR_PNGMAP_IMAGE_TYPE                                     :{WHITE}... nie można konwertować typu obrazu. Wymagany 8- lub 24-bitowy PNG
 STR_ERROR_PNGMAP_MISC                                           :{WHITE}... coś poszło nie tak (prawdopodobnie zepsuty plik)
 
-STR_ERROR_BMPMAP                                                :{WHITE}Nie można wczytać krajobrazu z BMP...
-STR_ERROR_BMPMAP_IMAGE_TYPE                                     :{WHITE}... nie można skonwertować tego typu obrazu
+STR_ERROR_BMPMAP                                                :Nie można wczytać krajobrazu z BMP...
+STR_ERROR_BMPMAP_IMAGE_TYPE                                     :nie można przekonwertować obrazu
 
 STR_ERROR_HEIGHTMAP_TOO_LARGE                                   :{WHITE}... obraz jest za duży
 
@@ -5480,7 +5480,7 @@ STR_ERROR_CAN_T_DO_THIS                                         :{WHITE}Nie moż
 STR_ERROR_BUILDING_MUST_BE_DEMOLISHED                           :należy najpierw zburzyć budynek
 STR_ERROR_BUILDING_IS_PROTECTED                                 :budynek jest chroniony
 STR_ERROR_CAN_T_CLEAR_THIS_AREA                                 :{WHITE}Nie można wyczyścić terenu...
-STR_ERROR_SITE_UNSUITABLE                                       :{WHITE}... nieodpowiednie miejsce
+STR_ERROR_SITE_UNSUITABLE                                       :nieodpowiednie miejsce
 STR_ERROR_ALREADY_BUILT                                         :już zbudowano
 STR_ERROR_OWNED_BY                                              :{WHITE}... własność {STRING.d}
 STR_ERROR_AREA_IS_OWNED_BY_ANOTHER                              :teren jest własnością innej firmy
@@ -5488,24 +5488,24 @@ STR_ERROR_TERRAFORM_LIMIT_REACHED                               :{WHITE}... osi�
 STR_ERROR_CLEARING_LIMIT_REACHED                                :{WHITE}... osiągnięto limit czyszczenia pól
 STR_ERROR_TREE_PLANT_LIMIT_REACHED                              :{WHITE}... wykorzystano limit sadzenia drzew
 STR_ERROR_NAME_MUST_BE_UNIQUE                                   :nazwa nie może się powtarzać
-STR_ERROR_GENERIC_OBJECT_IN_THE_WAY                             :{WHITE}{STRING} na drodze
+STR_ERROR_GENERIC_OBJECT_IN_THE_WAY                             :{STRING} na drodze
 STR_ERROR_NOT_ALLOWED_WHILE_PAUSED                              :niedozwolone w trakcie pauzy
 
 # Local authority errors
 STR_ERROR_LOCAL_AUTHORITY_REFUSES_TO_ALLOW_THIS                 :{WHITE}Lokalne władze miasta {TOWN} nie pozwalają na to
 STR_ERROR_LOCAL_AUTHORITY_REFUSES_AIRPORT                       :{WHITE}Lokalne władze miasta {TOWN} nie pozwalają na budowę kolejnego lotniska w tym mieście
 STR_ERROR_LOCAL_AUTHORITY_REFUSES_NOISE                         :{WHITE}Lokalne władze miasta {TOWN} odmawiają zgody na lotnisko ze względu na poziom hałasu
-STR_ERROR_BRIBE_FAILED                                          :{WHITE}Twoja próba przekupstwa została wykryta przez miejscowych śledczych
+STR_ERROR_BRIBE_FAILED                                          :Twoja próba przekupstwa została wykryta przez miejscowych śledczych
 
 # Levelling errors
 STR_ERROR_CAN_T_RAISE_LAND_HERE                                 :{WHITE}Nie można tutaj podnieść terenu...
 STR_ERROR_CAN_T_LOWER_LAND_HERE                                 :{WHITE}Nie można tutaj obniżyć terenu...
 STR_ERROR_CAN_T_LEVEL_LAND_HERE                                 :Nie można tutaj wyrównać terenu...
-STR_ERROR_EXCAVATION_WOULD_DAMAGE                               :{WHITE}Wykop zniszczyłby tunel
+STR_ERROR_EXCAVATION_WOULD_DAMAGE                               :wykop zniszczyłby tunel
 STR_ERROR_ALREADY_AT_SEA_LEVEL                                  :już na poziomie morza
-STR_ERROR_TOO_HIGH                                              :{WHITE}... zbyt wysoko
+STR_ERROR_TOO_HIGH                                              :zbyt wysoko
 STR_ERROR_ALREADY_LEVELLED                                      :już wyrównany
-STR_ERROR_BRIDGE_TOO_HIGH_AFTER_LOWER_LAND                      :{WHITE}Most nad nim byłby zbyt wysoki.
+STR_ERROR_BRIDGE_TOO_HIGH_AFTER_LOWER_LAND                      :most nad nim byłby zbyt wysoko.
 STR_ERROR_MUST_DEMOLISH_RIVER_FIRST                             :{WHITE}Należy najpierw usunąć rzekę
 
 # Company related errors
@@ -5514,21 +5514,21 @@ STR_ERROR_CAN_T_CHANGE_PRESIDENT                                :Nie można zmie
 
 STR_ERROR_MAXIMUM_PERMITTED_LOAN                                :maksymalna dozwolona pożyczka wynosi {CURRENCY_LONG}
 STR_ERROR_CAN_T_BORROW_ANY_MORE_MONEY                           :Nie można pożyczyć więcej pieniędzy...
-STR_ERROR_LOAN_ALREADY_REPAID                                   :{WHITE}... pożyczka już jest spłacona
+STR_ERROR_LOAN_ALREADY_REPAID                                   :pożyczka już jest spłacona
 STR_ERROR_CURRENCY_REQUIRED                                     :{WHITE}...{CURRENCY_LONG} wymagane
 STR_ERROR_CAN_T_REPAY_LOAN                                      :{WHITE}Nie można zwrócić pożyczki...
 STR_ERROR_INSUFFICIENT_FUNDS                                    :{WHITE}Nie możesz wydać pieniędzy, które są pożyczone z banku...
-STR_ERROR_CAN_T_GIVE_MONEY                                      :{WHITE}Nie możesz przekazać pieniędzy tej firmie...
+STR_ERROR_CAN_T_GIVE_MONEY                                      :Nie możesz przekazać pieniędzy tej firmie...
 STR_ERROR_CAN_T_BUY_COMPANY                                     :Nie można kupić firmy...
 STR_ERROR_CAN_T_BUILD_COMPANY_HEADQUARTERS                      :Nie można zbudować siedziby firmy...
 
 # Town related errors
 STR_ERROR_CAN_T_GENERATE_TOWN                                   :Nie można zbudować żadnego miasta...
-STR_ERROR_CAN_T_RENAME_TOWN                                     :{WHITE}Nie można zmienić nazwy miasta...
+STR_ERROR_CAN_T_RENAME_TOWN                                     :Nie można zmienić nazwy miasta...
 STR_ERROR_CAN_T_FOUND_TOWN_HERE                                 :Nie można tutaj zbudować miasta...
 STR_ERROR_CAN_T_EXPAND_TOWN                                     :{WHITE}Nie można rozszerzyć miasta...
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_TOWN                             :zbyt blisko innego miasta
-STR_ERROR_TOO_MANY_TOWNS                                        :{WHITE}... zbyt wiele miast
+STR_ERROR_TOO_MANY_TOWNS                                        :zbyt wiele miast
 STR_ERROR_NO_SPACE_FOR_TOWN                                     :nie ma więcej miejsca na mapie
 STR_ERROR_ROAD_WORKS_IN_PROGRESS                                :trwają roboty drogowe
 STR_ERROR_TOWN_CAN_T_DELETE                                     :{WHITE}Nie można usunąć tego miasta...{}{}Stacja lub zajezdnia przynależy do tego miasta lub obszar miasta nie może być usunięty
@@ -5543,15 +5543,15 @@ STR_ERROR_CAN_T_CONSTRUCT_THIS_INDUSTRY                         :Nie można tuta
 STR_ERROR_CAN_T_PROSPECT_INDUSTRY                               :{WHITE}Nie można znaleźć przedsiębiorstwa...
 STR_ERROR_INDUSTRY_TOO_CLOSE                                    :zbyt blisko innego przedsiębiorstwa
 STR_ERROR_MUST_FOUND_TOWN_FIRST                                 :{WHITE}... należy najpierw wybudować miasto
-STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN                             :{WHITE}... dozwolone jedno na miasto
+STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN                             :dozwolone jedno na miasto
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_TOWNS_WITH_POPULATION_OF_1200    :można zbudować jedynie w miastach o populacji przynajmniej 1200
-STR_ERROR_CAN_ONLY_BE_BUILT_IN_RAINFOREST                       :{WHITE}... można zbudować tylko na obszarach lasów deszczowych
+STR_ERROR_CAN_ONLY_BE_BUILT_IN_RAINFOREST                       :można zbudować tylko na obszarach lasów deszczowych
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_DESERT                           :można zbudować tylko na obszarach pustynnych
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_TOWNS                            :można zbudować tylko w mieście (zastępując domy)
 STR_ERROR_CAN_ONLY_BE_BUILT_NEAR_TOWN_CENTER                    :można zbudować tylko w pobliżu centrum miasta
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_LOW_AREAS                        :{WHITE}... może być budowane tylko na niskich terenach
 STR_ERROR_CAN_ONLY_BE_POSITIONED                                :{WHITE}... może być usytuowane tylko blisko krawędzi mapy
-STR_ERROR_FOREST_CAN_ONLY_BE_PLANTED                            :{WHITE}... las może być posadzony tylko powyżej linii śniegu
+STR_ERROR_FOREST_CAN_ONLY_BE_PLANTED                            :las może być posadzony tylko powyżej linii śniegu
 STR_ERROR_CAN_ONLY_BE_BUILT_ABOVE_SNOW_LINE                     :można zbudować tylko powyżej linii śniegu
 STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :można zbudować tylko poniżej linii śniegu
 
@@ -5573,18 +5573,18 @@ STR_ERROR_ADJOINS_MORE_THAN_ONE_EXISTING                        :przylega do wi�
 STR_ERROR_STATION_TOO_SPREAD_OUT                                :stacja zbyt rozległa
 STR_ERROR_STATION_DISALLOWED_NUMBER_TRACKS                      :nieobsługiwana liczba torów
 STR_ERROR_STATION_DISALLOWED_LENGTH                             :nieobsługiwana długość
-STR_ERROR_TOO_MANY_STATIONS_LOADING                             :{WHITE}Za dużo stacji
+STR_ERROR_TOO_MANY_STATIONS_LOADING                             :za dużo stacji
 STR_ERROR_TOO_MANY_STATION_SPECS                                :{WHITE}Za dużo części stacji kolejowej
 STR_ERROR_TOO_MANY_BUS_STOPS                                    :zbyt wiele przystanków autobusowych
 STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :zbyt wiele stacji ciężarówek
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :zbyt blisko innego portu
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_AIRPORT                          :zbyt blisko innego lotniska
-STR_ERROR_CAN_T_RENAME_STATION                                  :{WHITE}Nie można zmienić nazwy stacji...
+STR_ERROR_CAN_T_RENAME_STATION                                  :Nie można zmienić nazwy stacji...
 STR_ERROR_CAN_T_MOVE_STATION_NAME                               :Nie można przenieść nazwy stacji...
 STR_ERROR_DRIVE_THROUGH_ON_TOWN_ROAD                            :droga należąca do miasta
-STR_ERROR_DRIVE_THROUGH_DIRECTION                               :{WHITE}... droga jest zorientowana w złym kierunku
+STR_ERROR_DRIVE_THROUGH_DIRECTION                               :droga jest zorientowana w złym kierunku
 STR_ERROR_DRIVE_THROUGH_CORNER                                  :przystanki przelotowe nie mogą mieć zakrętów
-STR_ERROR_DRIVE_THROUGH_JUNCTION                                :{WHITE}... przystanki przelotowe nie mogą mieć skrzyżowań
+STR_ERROR_DRIVE_THROUGH_JUNCTION                                :przystanki przelotowe nie mogą mieć skrzyżowań
 
 # Station destruction related errors
 STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :Nie można usunąć części stacji...
@@ -5666,14 +5666,14 @@ STR_ERROR_IMPOSSIBLE_TRACK_COMBINATION                          :{WHITE}Niemożl
 STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :{WHITE}Należy najpierw usunąć sygnalizację
 STR_ERROR_NO_SUITABLE_RAILROAD_TRACK                            :brak odpowiednich torów kolejowych
 STR_ERROR_MUST_REMOVE_RAILROAD_TRACK                            :należy najpierw usunąć tory
-STR_ERROR_CROSSING_ON_ONEWAY_ROAD                               :{WHITE}Droga jest jednokierunkowa lub zablokowana
-STR_ERROR_CROSSING_DISALLOWED_RAIL                              :{WHITE}Przejazd kolejowy nie dozwolony dla tego typu torów
-STR_ERROR_CROSSING_DISALLOWED_ROAD                              :{WHITE}Przejazdy kolejowe nie są dozwolone dla tego typu drogi
+STR_ERROR_CROSSING_ON_ONEWAY_ROAD                               :droga jest jednokierunkowa lub zablokowana
+STR_ERROR_CROSSING_DISALLOWED_RAIL                              :przejazdy kolejowe nie są dozwolone dla tego typu torów
+STR_ERROR_CROSSING_DISALLOWED_ROAD                              :przejazdy kolejowe nie są dozwolone dla tego typu drogi
 STR_ERROR_CAN_T_BUILD_SIGNALS_HERE                              :Nie można tutaj postawić sygnałów...
 STR_ERROR_CAN_T_BUILD_RAILROAD_TRACK                            :Nie można tutaj zbudować torów...
 STR_ERROR_CAN_T_REMOVE_RAILROAD_TRACK                           :Nie można stąd usunąć torów...
 STR_ERROR_CAN_T_REMOVE_SIGNALS_FROM                             :Nie można stąd usunąć sygnałów...
-STR_ERROR_SIGNAL_CAN_T_CONVERT_SIGNALS_HERE                     :{WHITE}Nie można tutaj zmienić sygnałów...
+STR_ERROR_SIGNAL_CAN_T_CONVERT_SIGNALS_HERE                     :Nie można tutaj zmienić sygnałów...
 STR_ERROR_THERE_IS_NO_RAILROAD_TRACK                            :{WHITE}... brak torów kolejowych
 STR_ERROR_THERE_ARE_NO_SIGNALS                                  :{WHITE}... brak sygnałów
 
@@ -5697,7 +5697,7 @@ STR_ERROR_NO_SUITABLE_TRAMWAY                                   :brak odpowiedni
 STR_ERROR_CAN_T_BUILD_CANALS                                    :Nie można tutaj zbudować kanału...
 STR_ERROR_CAN_T_BUILD_LOCKS                                     :Nie można tutaj zbudować śluzy...
 STR_ERROR_CAN_T_PLACE_RIVERS                                    :Nie można tutaj umieścić rzeki...
-STR_ERROR_MUST_BE_BUILT_ON_WATER                                :{WHITE}... można zbudować tylko na wodzie
+STR_ERROR_MUST_BE_BUILT_ON_WATER                                :można zbudować tylko na wodzie
 STR_ERROR_CAN_T_BUILD_ON_WATER                                  :nie można zbudować na wodzie
 STR_ERROR_CAN_T_BUILD_ON_SEA                                    :nie można zbudować na otwartym morzu
 STR_ERROR_CAN_T_BUILD_ON_CANAL                                  :nie można zbudować na kanale
@@ -5708,19 +5708,19 @@ STR_ERROR_CAN_T_BUILD_AQUEDUCT_HERE                             :Nie można tuta
 # Tree related errors
 STR_ERROR_TREE_ALREADY_HERE                                     :{WHITE}... drzewo już tu jest
 STR_ERROR_TREE_WRONG_TERRAIN_FOR_TREE_TYPE                      :{WHITE}... niewłaściwy teren pod drzewo
-STR_ERROR_CAN_T_PLANT_TREE_HERE                                 :{WHITE}Nie można posadzić drzewa...
+STR_ERROR_CAN_T_PLANT_TREE_HERE                                 :Nie można posadzić tutaj drzewa...
 
 # Bridge related errors
 STR_ERROR_CAN_T_BUILD_BRIDGE_HERE                               :Nie można tutaj zbudować mostu...
 STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST                            :należy najpierw usunąć most
 STR_ERROR_CAN_T_START_AND_END_ON                                :{WHITE}Nie można zaczynać i kończyć w tym samym miejscu
-STR_ERROR_BRIDGEHEADS_NOT_SAME_HEIGHT                           :{WHITE}Początki mostu nie są na tej samej wysokości
-STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN                            :{WHITE}Most jest za nisko dla tego terenu
-STR_ERROR_BRIDGE_TOO_HIGH_FOR_TERRAIN                           :{WHITE}Most jest zbyt wysoki dla tego terenu.
+STR_ERROR_BRIDGEHEADS_NOT_SAME_HEIGHT                           :końce mostu byłyby na innej wysokości
+STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN                            :most byłby zbyt nisko dla tego terenu
+STR_ERROR_BRIDGE_TOO_HIGH_FOR_TERRAIN                           :most byłby zbyt wysoko dla tego terenu.
 STR_ERROR_START_AND_END_MUST_BE_IN                              :początek i koniec muszą być w jednej linii
 STR_ERROR_ENDS_OF_BRIDGE_MUST_BOTH                              :{WHITE}... końce mostu muszą znajdować się na lądzie
-STR_ERROR_BRIDGE_TOO_LONG                                       :{WHITE}... za długi most
-STR_ERROR_BRIDGE_THROUGH_MAP_BORDER                             :most skończył by się poza mapą
+STR_ERROR_BRIDGE_TOO_LONG                                       :zbyt długi most
+STR_ERROR_BRIDGE_THROUGH_MAP_BORDER                             :most kończyłby się poza mapą
 STR_ERROR_BRIDGE_TOO_LOW_FOR_STATION                            :most jest o {HEIGHT} za niski dla stacji
 STR_ERROR_BRIDGE_TOO_LOW_FOR_ROADSTOP                           :most jest o {HEIGHT} za niski dla przystanku
 STR_ERROR_BRIDGE_TOO_LOW_FOR_DOCK                               :most jest o {HEIGHT} za niski dla portu
@@ -5731,7 +5731,7 @@ STR_ERROR_BRIDGE_TOO_LOW_FOR_LOCK                               :most jest o {HE
 
 # Tunnel related errors
 STR_ERROR_CAN_T_BUILD_TUNNEL_HERE                               :Nie można tutaj zbudować tunelu...
-STR_ERROR_SITE_UNSUITABLE_FOR_TUNNEL                            :{WHITE}Nieodpowiednie miejsce na wejście tunelu
+STR_ERROR_SITE_UNSUITABLE_FOR_TUNNEL                            :nieodpowiednie miejsce na wyjście tunelu
 STR_ERROR_MUST_DEMOLISH_TUNNEL_FIRST                            :{WHITE}Należy najpierw usunąć tunel
 STR_ERROR_ANOTHER_TUNNEL_IN_THE_WAY                             :inny tunel na drodze
 STR_ERROR_TUNNEL_THROUGH_MAP_BORDER                             :{WHITE}Koniec tunelu poza mapą
@@ -5744,8 +5744,8 @@ STR_ERROR_CAN_T_BUILD_OBJECT                                    :Nie można zbud
 STR_ERROR_OBJECT_IN_THE_WAY                                     :{WHITE}Obiekt na drodze
 STR_ERROR_COMPANY_HEADQUARTERS_IN                               :siedziba firmy na drodze
 STR_ERROR_CAN_T_PURCHASE_THIS_LAND                              :Nie można nabyć tego terenu...
-STR_ERROR_YOU_ALREADY_OWN_IT                                    :{WHITE}... to już jest twoje!
-STR_ERROR_BUILD_OBJECT_LIMIT_REACHED                            :{WHITE}... osiągnięto limit budowy obiektów
+STR_ERROR_YOU_ALREADY_OWN_IT                                    :już to posiadasz!
+STR_ERROR_BUILD_OBJECT_LIMIT_REACHED                            :osiągnięto limit budowy obiektów
 
 # Group related errors
 STR_ERROR_GROUP_CAN_T_CREATE                                    :Nie można utworzyć grupy...
@@ -5761,7 +5761,7 @@ STR_ERROR_GROUP_CAN_T_ADD_SHARED_VEHICLE                        :Nie można doda
 
 ###length VEHICLE_TYPES
 STR_ERROR_TRAIN_IN_THE_WAY                                      :{WHITE}Pociąg na drodze
-STR_ERROR_ROAD_VEHICLE_IN_THE_WAY                               :{WHITE}Pojazd na drodze
+STR_ERROR_ROAD_VEHICLE_IN_THE_WAY                               :pojazd na drodze
 STR_ERROR_SHIP_IN_THE_WAY                                       :statek na drodze
 STR_ERROR_AIRCRAFT_IN_THE_WAY                                   :samolot na drodze
 
@@ -5772,15 +5772,15 @@ STR_ERROR_SHIP_NOT_AVAILABLE                                    :{WHITE}Statek j
 STR_ERROR_AIRCRAFT_NOT_AVAILABLE                                :samolot jest niedostępny
 
 ###length VEHICLE_TYPES
-STR_ERROR_CAN_T_REFIT_TRAIN                                     :{WHITE}Nie można przebudować pociągu...
-STR_ERROR_CAN_T_REFIT_ROAD_VEHICLE                              :{WHITE}Nie można przebudować pojazdu...
-STR_ERROR_CAN_T_REFIT_SHIP                                      :{WHITE}Nie można przebudować statku...
-STR_ERROR_CAN_T_REFIT_AIRCRAFT                                  :{WHITE}Nie można przebudować samolotu...
+STR_ERROR_CAN_T_REFIT_TRAIN                                     :Nie można przebudować pociągu...
+STR_ERROR_CAN_T_REFIT_ROAD_VEHICLE                              :Nie można przebudować pojazdu...
+STR_ERROR_CAN_T_REFIT_SHIP                                      :Nie można przebudować statku...
+STR_ERROR_CAN_T_REFIT_AIRCRAFT                                  :Nie można przebudować samolotu...
 
 ###length VEHICLE_TYPES
 STR_ERROR_CAN_T_RENAME_TRAIN                                    :Nie można zmienić nazwy pociągu...
 STR_ERROR_CAN_T_RENAME_ROAD_VEHICLE                             :Nie można zmienić nazwy pojazdu...
-STR_ERROR_CAN_T_RENAME_SHIP                                     :{WHITE}Nie można zmienić nazwy statku...
+STR_ERROR_CAN_T_RENAME_SHIP                                     :Nie można zmienić nazwy statku...
 STR_ERROR_CAN_T_RENAME_AIRCRAFT                                 :Nie można zmienić nazwy samolotu...
 
 ###length VEHICLE_TYPES
@@ -5834,11 +5834,11 @@ STR_ERROR_CAN_T_CLONE_VEHICLE_LIST                              :nie wszystkie p
 
 STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL                          :Żadne pojazdy nie będą dostępne
 STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL_EXPLANATION              :Zmień konfigurację swoich NewGRF-ów
-STR_ERROR_NO_VEHICLES_AVAILABLE_YET                             :{WHITE}Obecnie żaden pojazd nie jest dostępny
-STR_ERROR_NO_VEHICLES_AVAILABLE_YET_EXPLANATION                 :{WHITE}Zacznij grę po {DATE_SHORT} albo użyj zestawu NewGRF, który zawiera wczesne pojazdy
+STR_ERROR_NO_VEHICLES_AVAILABLE_YET                             :Obecnie żaden pojazd nie jest dostępny
+STR_ERROR_NO_VEHICLES_AVAILABLE_YET_EXPLANATION                 :Zacznij grę po {DATE_SHORT} albo użyj zestawu NewGRF, który zawiera starsze pojazdy
 
 STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_AT_ALL                    :Brak dostępnych typów dróg miejskich
-STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_AT_ALL_EXPLANATION        :{WHITE}Zmień konfigurację NewGRF
+STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_AT_ALL_EXPLANATION        :Zmień konfigurację NewGRF
 STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_YET                       :{WHITE}Brak jeszcze dostępnych typów dróg miejskich
 STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_YET_EXPLANATION           :{WHITE}Rozpocznij nową grę po {DATE_SHORT} roku lub użyj NewGRF, który umożliwia wczesne budowanie dróg miejskich
 
@@ -5856,7 +5856,7 @@ STR_ERROR_NO_MORE_SPACE_FOR_ORDERS                              :brak miejsca na
 STR_ERROR_TOO_MANY_ORDERS                                       :zbyt wiele poleceń
 STR_ERROR_CAN_T_INSERT_NEW_ORDER                                :Nie można dodać nowego polecenia...
 STR_ERROR_CAN_T_DELETE_THIS_ORDER                               :Nie można usunąć tego polecenia...
-STR_ERROR_CAN_T_MODIFY_THIS_ORDER                               :{WHITE}Nie można zmodyfikować tego polecenia...
+STR_ERROR_CAN_T_MODIFY_THIS_ORDER                               :Nie można zmodyfikować tego polecenia...
 STR_ERROR_CAN_T_MOVE_THIS_ORDER                                 :Nie można przenieść tego polecenia...
 STR_ERROR_CAN_T_SKIP_ORDER                                      :Nie można pominąć obecnego polecenia...
 STR_ERROR_CAN_T_SKIP_TO_ORDER                                   :Nie można przejść do wybranego polecenia...
@@ -5897,7 +5897,7 @@ STR_ERROR_TIMETABLE_NOT_STARTED                                 :rozkład jazdy 
 # Sign related errors
 STR_ERROR_TOO_MANY_SIGNS                                        :zbyt wiele napisów
 STR_ERROR_CAN_T_PLACE_SIGN_HERE                                 :Nie można tutaj umieścić napisu...
-STR_ERROR_CAN_T_CHANGE_SIGN_NAME                                :{WHITE}Nie można zmienić nazwy napisu...
+STR_ERROR_CAN_T_CHANGE_SIGN_NAME                                :Nie można zmienić napisu...
 STR_ERROR_CAN_T_DELETE_SIGN                                     :Nie można usunąć napisu...
 
 # Translatable comment for OpenTTD's desktop shortcut

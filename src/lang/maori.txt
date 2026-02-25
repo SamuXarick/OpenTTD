@@ -2630,7 +2630,7 @@ STR_NETWORK_ERROR_CLIENT_WRONG_REVISION                         :whakaputanga h�
 STR_NETWORK_ERROR_CLIENT_NAME_IN_USE                            :whakamahi kētia te ingoa
 STR_NETWORK_ERROR_CLIENT_WRONG_PASSWORD                         :kupuhuna hē
 STR_NETWORK_ERROR_CLIENT_NOT_ON_ALLOW_LIST                      :kāore i roto i te rārangi whakaae
-STR_NETWORK_ERROR_CLIENT_NO_AUTHENTICATION_METHOD_AVAILABLE     :kāore i te wātea tētahi noa iho o ngā ara motuhēhēnga i tonoa
+STR_NETWORK_ERROR_CLIENT_NO_AUTHENTICATION_METHOD_AVAILABLE     :kāore i te wātea tētahi noa iho o ngā ara motuhēhēnga kua tonoa
 STR_NETWORK_ERROR_CLIENT_COMPANY_MISMATCH                       :umanga hē i te DoCommand
 STR_NETWORK_ERROR_CLIENT_KICKED                                 :whanaia atu e te tūmau
 STR_NETWORK_ERROR_CLIENT_CHEATER                                :i tarai ki te tinihanga

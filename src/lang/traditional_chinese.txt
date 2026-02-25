@@ -1403,7 +1403,7 @@ STR_CONFIG_SETTING_FORBID_90_DEG                                :禁止列車及
 STR_CONFIG_SETTING_FORBID_90_DEG_HELPTEXT                       :列車於縱向路軌與橫向路軌交接之處轉向稱為「直角轉向」；列車於其他的路軌配置上轉向稱為「45度轉向」。如啟用此設定，所有列車皆不會進行直角轉向
 
 STR_CONFIG_SETTING_DISTANT_JOIN_STATIONS                        :允許將不相鄰的車站與附近的車站結合：{STRING}
-STR_CONFIG_SETTING_DISTANT_JOIN_STATIONS_HELPTEXT               :允許以「CTRL 鍵 + 點選」的方式，加入與現有部份不相連接的車站部件
+STR_CONFIG_SETTING_DISTANT_JOIN_STATIONS_HELPTEXT               :允許以「CTRL 鍵 + 點選」的方式，加入與現有部份不相連接的車站附屬建築物
 
 STR_CONFIG_SETTING_INFLATION                                    :通貨膨脹：{STRING}
 STR_CONFIG_SETTING_INFLATION_HELPTEXT                           :啟用通貨膨脹，而且成本的增長會稍為比收入的增長快。
@@ -2973,7 +2973,7 @@ STR_ROAD_TOOLBAR_TOOLTIP_CONVERT_TRAM_TO_WAYPOINT               :{BLACK}設立�
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_BUS_STATION                      :{BLACK}興建公車站。按住 <Ctrl> 可興建相鄰車站，按住 <Shift> 可預估興建的費用
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_PASSENGER_TRAM_STATION           :{BLACK}興建載客電車站。按住 <Ctrl> 可興建相鄰車站，按住 <Shift> 可顯示預估的興建費用
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRUCK_LOADING_BAY                :{BLACK}興建貨運站。按住 <Ctrl> 點選可興建相鄰車站。按住 <Shift> 則可顯示預估成本
-STR_ROAD_TOOLBAR_TOOLTIP_BUILD_CARGO_TRAM_STATION               :{BLACK}興建載貨電車站。按住 <Ctrl> 可興建相鄰車站。按住 <Shift> 可顯示預估興建的費用
+STR_ROAD_TOOLBAR_TOOLTIP_BUILD_CARGO_TRAM_STATION               :{BLACK}興建貨運電車站。按住 <Ctrl> 可興建相鄰車站。按住 <Shift> 可顯示預估興建的費用
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_ONE_WAY_ROAD                    :{BLACK}切換單行道／雙向道
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_ROAD_BRIDGE                      :{BLACK}興建道路橋樑。按住 <Shift> 點選可顯示預估費用
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRAMWAY_BRIDGE                   :{BLACK}架設電車橋樑。按住 <Shift> 可顯示預估的建造費用
@@ -3000,8 +3000,8 @@ STR_STATION_BUILD_TRUCK_ORIENTATION                             :{WHITE}貨運�
 STR_STATION_BUILD_TRUCK_ORIENTATION_TOOLTIP                     :{BLACK}選擇貨運站方向
 STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION                    :{WHITE}載客電車站方向
 STR_STATION_BUILD_PASSENGER_TRAM_ORIENTATION_TOOLTIP            :{BLACK}選擇載客電車方向
-STR_STATION_BUILD_CARGO_TRAM_ORIENTATION                        :{WHITE}載貨電車站方向
-STR_STATION_BUILD_CARGO_TRAM_ORIENTATION_TOOLTIP                :{BLACK}選擇載貨電車方向
+STR_STATION_BUILD_CARGO_TRAM_ORIENTATION                        :{WHITE}貨運電車站方向
+STR_STATION_BUILD_CARGO_TRAM_ORIENTATION_TOOLTIP                :{BLACK}選擇貨運電車方向
 
 # Waterways toolbar (last two for SE only)
 STR_WATERWAYS_TOOLBAR_CAPTION                                   :{WHITE}興建水道
@@ -4638,7 +4638,7 @@ STR_VEHICLE_DETAILS_CARGO_FROM                                  :{LTBLUE}{CARGO_
 STR_VEHICLE_DETAILS_CARGO_FROM_MULT                             :{LTBLUE}{CARGO_LONG} 來自 {STATION} (x{NUM})
 
 STR_VEHICLE_DETAIL_TAB_CARGO                                    :{BLACK}貨物
-STR_VEHICLE_DETAILS_TRAIN_CARGO_TOOLTIP                         :{BLACK}顯示載貨詳細資料
+STR_VEHICLE_DETAILS_TRAIN_CARGO_TOOLTIP                         :{BLACK}顯示運載貨物詳細資料
 STR_VEHICLE_DETAIL_TAB_INFORMATION                              :{BLACK}資訊
 STR_VEHICLE_DETAILS_TRAIN_INFORMATION_TOOLTIP                   :{BLACK}顯示車輛詳細資料
 STR_VEHICLE_DETAIL_TAB_CAPACITIES                               :{BLACK}容量
@@ -5183,12 +5183,12 @@ STR_ERROR_CAN_T_BUILD_CARGO_TRAM_STATION                        :無法興建貨
 STR_ERROR_CAN_T_BUILD_DOCK_HERE                                 :無法在此興建碼頭……
 STR_ERROR_CAN_T_BUILD_AIRPORT_HERE                              :無法在此興建機場……
 
-STR_ERROR_ADJOINS_MORE_THAN_ONE_EXISTING                        :鄰接多個現有車站／貨運站
+STR_ERROR_ADJOINS_MORE_THAN_ONE_EXISTING                        :鄰接多個現有車站或貨運站
 STR_ERROR_STATION_TOO_SPREAD_OUT                                :車站範圍太大
 STR_ERROR_STATION_DISALLOWED_NUMBER_TRACKS                      :軌道數量不正確
 STR_ERROR_STATION_DISALLOWED_LENGTH                             :月台長度不正確
-STR_ERROR_TOO_MANY_STATIONS_LOADING                             :太多車站／貨運站
-STR_ERROR_TOO_MANY_STATION_SPECS                                :太多鐵道車站部件
+STR_ERROR_TOO_MANY_STATIONS_LOADING                             :太多車站或貨運站
+STR_ERROR_TOO_MANY_STATION_SPECS                                :太多鐵道車站附屬建築物
 STR_ERROR_TOO_MANY_BUS_STOPS                                    :太多公車站
 STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :太多貨運站
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :太接近另一個碼頭
@@ -5201,9 +5201,9 @@ STR_ERROR_DRIVE_THROUGH_CORNER                                  :路邊車站不
 STR_ERROR_DRIVE_THROUGH_JUNCTION                                :路邊車站不能建在岔路口處
 
 # Station destruction related errors
-STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :無法移除車站部件……
+STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :無法移除車站附屬建築物……
 STR_ERROR_MUST_REMOVE_RAILWAY_STATION_FIRST                     :必須先拆毀鐵道車站
-STR_ERROR_CAN_T_REMOVE_BUS_STATION                              :無法移除公車站……
+STR_ERROR_CAN_T_REMOVE_BUS_STATION                              :無法拆毀公車站……
 STR_ERROR_CAN_T_REMOVE_TRUCK_STATION                            :無法拆毀貨運站……
 STR_ERROR_CAN_T_REMOVE_PASSENGER_TRAM_STATION                   :無法拆毀客運電車站……
 STR_ERROR_CAN_T_REMOVE_CARGO_TRAM_STATION                       :無法拆毀貨運電車站……
@@ -5286,7 +5286,7 @@ STR_ERROR_CROSSING_DISALLOWED_ROAD                              :這種道路不
 STR_ERROR_CAN_T_BUILD_SIGNALS_HERE                              :無法在此興建號誌……
 STR_ERROR_CAN_T_BUILD_RAILROAD_TRACK                            :無法在此鋪設鐵道……
 STR_ERROR_CAN_T_REMOVE_RAILROAD_TRACK                           :無法拆毀此處的鐵道……
-STR_ERROR_CAN_T_REMOVE_SIGNALS_FROM                             :無法移除此處的號誌……
+STR_ERROR_CAN_T_REMOVE_SIGNALS_FROM                             :無法拆毀此處的號誌……
 STR_ERROR_SIGNAL_CAN_T_CONVERT_SIGNALS_HERE                     :無法轉換這裡的號誌……
 STR_ERROR_THERE_IS_NO_RAILROAD_TRACK                            :這裡沒有鐵道
 STR_ERROR_THERE_ARE_NO_SIGNALS                                  :這裡沒有號誌
