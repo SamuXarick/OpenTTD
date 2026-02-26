@@ -36,6 +36,7 @@
 #include "framerate_type.h"
 #include "roadveh_cmd.h"
 #include "road_cmd.h"
+#include "train.h"
 #include "newgrf_roadstop.h"
 
 #include "table/strings.h"
@@ -581,7 +582,11 @@ static bool RoadVehCheckTrainCrash(RoadVehicle *v)
 		if (!IsLevelCrossingTile(tile)) continue;
 
 		if (HasVehicleNearTileXY(v->x_pos, v->y_pos, 4, [&u](const Vehicle *t) {
-				return t->type == VEH_TRAIN && abs(t->z_pos - u->z_pos) <= 6;
+				if (t->type == VEH_TRAIN && abs(t->z_pos - u->z_pos) <= 6) {
+					TrainRoadVehicleCrashBreakdown(t);
+					return true;
+				}
+				return false;
 			})) {
 			RoadVehCrash(v);
 			return true;

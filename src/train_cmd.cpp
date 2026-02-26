@@ -4266,3 +4266,34 @@ uint16_t Train::GetMaxWeight() const
 
 	return weight;
 }
+
+/**
+ * Cause an immediate breakdown on the train upon colliding with a road vehicle.
+ * Excerpt of conditions and results copied from CheckVehicleBreakdown.
+ * @param t Vehicle pertaining to a train.
+ */
+void TrainRoadVehicleCrashBreakdown(const Vehicle *t)
+{
+	assert(t->type == VEH_TRAIN);
+	assert(IsLevelCrossingTile(t->tile));
+
+	/* Vehicles in the menu don't break down. */
+	if (_game_mode == GM_MENU) return;
+
+	/* Are breakdowns allowed? */
+	if (_settings_game.difficulty.vehicle_breakdowns == VehicleBreakdowns::None) return;
+
+	Vehicle *v = t->First();
+
+	/* The vehicle is already broken down. */
+	if (v->breakdown_ctr != 0) return;
+	/* The vehicle is stopped or going very slow. */
+	if (v->cur_speed < 5) return;
+	/* The vehicle has been manually stopped. */
+	if (v->vehstatus.Test(VehState::Stopped)) return;
+
+	uint32_t r = Random();
+	v->breakdown_ctr = GB(r, 16, 6) + 0x3F;
+	v->breakdown_delay = GB(r, 24, 7) + 0x80;
+	v->breakdown_chance = 0;
+}
