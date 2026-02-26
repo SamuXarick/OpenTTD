@@ -1368,7 +1368,7 @@ STR_CONFIG_SETTING_MAP_HEIGHT_LIMIT_AUTO                        :（自動）
 STR_CONFIG_SETTING_TOO_HIGH_MOUNTAIN                            :您不能把地圖的最大高度限制設成此值。至少有一座山比這個高度更高
 
 STR_CONFIG_SETTING_AUTOSLOPE                                    :允許在建築物或軌道底下改變地形斜度 (autoslope)：{STRING}
-STR_CONFIG_SETTING_AUTOSLOPE_HELPTEXT                           :可以在建築物或軌道底下改變地形而不需移除它們。
+STR_CONFIG_SETTING_AUTOSLOPE_HELPTEXT                           :可以在建築物或軌道底下改變地形而不需移除它們
 
 STR_CONFIG_SETTING_CATCHMENT                                    :容許更真實的服務範圍設定：{STRING}
 STR_CONFIG_SETTING_CATCHMENT_HELPTEXT                           :使車站和機場的服務範圍根據其種類和大小而改變。
@@ -1377,7 +1377,7 @@ STR_CONFIG_SETTING_SERVE_NEUTRAL_INDUSTRIES                     :公司車站可
 STR_CONFIG_SETTING_SERVE_NEUTRAL_INDUSTRIES_HELPTEXT            :啟用後，公司車站可以為附近附設車站的工業（如鑽油平台）提供服務。停用後，這些工業只能由其附設的車站提供服務，並且附設車站不會提供除了該工業設施以外的任何服務
 
 STR_CONFIG_SETTING_EXTRADYNAMITE                                :允許移除更多市鎮擁有的道路、橋樑及隧道：{STRING}
-STR_CONFIG_SETTING_EXTRADYNAMITE_HELPTEXT                       :使玩家更容易地移除市鎮擁有的基礎建設和建築物。
+STR_CONFIG_SETTING_EXTRADYNAMITE_HELPTEXT                       :使玩家更容易地移除市鎮擁有的基礎建設和建築物
 
 STR_CONFIG_SETTING_TRAIN_LENGTH                                 :列車長度上限：{STRING}
 STR_CONFIG_SETTING_TRAIN_LENGTH_HELPTEXT                        :設定列車長度的上限。
@@ -2979,7 +2979,7 @@ STR_ROAD_TOOLBAR_TOOLTIP_BUILD_ROAD_BRIDGE                      :{BLACK}興建�
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRAMWAY_BRIDGE                   :{BLACK}架設電車橋樑。按住 <Shift> 可顯示預估的建造費用
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_ROAD_TUNNEL                      :{BLACK}挖掘道路隧道。按住 <Shift> 點選可顯示預估的建造費用
 STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRAMWAY_TUNNEL                   :{BLACK}挖掘電車隧道。按住 <Shift> 可顯示預估的建造費用
-STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_ROAD           :{BLACK}切換鋪設／移除公路
+STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_ROAD           :{BLACK}切換鋪設或移除公路
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_TRAMWAYS       :{BLACK}切換鋪設電車軌
 STR_ROAD_TOOLBAR_TOOLTIP_CONVERT_ROAD                           :{BLACK}轉換或升級道路類型。按住 <Shift> 點選則可顯示預估成本
 STR_ROAD_TOOLBAR_TOOLTIP_CONVERT_TRAM                           :{BLACK}轉換或升級電車軌道類型。按住 <Shift> 點選則可顯示預估成本
@@ -3541,15 +3541,15 @@ STR_NEWGRF_SETTINGS_PRESET_SAVE_TOOLTIP                         :{BLACK}儲存�
 STR_NEWGRF_SETTINGS_PRESET_DELETE                               :{BLACK}刪除設定值
 STR_NEWGRF_SETTINGS_PRESET_DELETE_TOOLTIP                       :{BLACK}刪除目前所選的設定值
 STR_NEWGRF_SETTINGS_ADD                                         :{BLACK}新增
-STR_NEWGRF_SETTINGS_ADD_FILE_TOOLTIP                            :{BLACK}將選定的 NewGRF 加入目前設定
+STR_NEWGRF_SETTINGS_ADD_FILE_TOOLTIP                            :{BLACK}將選擇的 NewGRF 檔案加入目前設定
 STR_NEWGRF_SETTINGS_RESCAN_FILES                                :{BLACK}重新掃描檔案
 STR_NEWGRF_SETTINGS_RESCAN_FILES_TOOLTIP                        :{BLACK}更新可用的 NewGRF 檔案清單
 STR_NEWGRF_SETTINGS_REMOVE                                      :{BLACK}移除
-STR_NEWGRF_SETTINGS_REMOVE_TOOLTIP                              :{BLACK}從清單移除選定的 NewGRF 檔
+STR_NEWGRF_SETTINGS_REMOVE_TOOLTIP                              :{BLACK}從清單移除所選擇的 NewGRF 檔案
 STR_NEWGRF_SETTINGS_MOVEUP                                      :{BLACK}上移
-STR_NEWGRF_SETTINGS_MOVEUP_TOOLTIP                              :{BLACK}將選定的 NewGRF 檔往清單上方移動
+STR_NEWGRF_SETTINGS_MOVEUP_TOOLTIP                              :{BLACK}將選擇的 NewGRF 檔案往清單上方移動
 STR_NEWGRF_SETTINGS_MOVEDOWN                                    :{BLACK}下移
-STR_NEWGRF_SETTINGS_MOVEDOWN_TOOLTIP                            :{BLACK}將選定的 NewGRF 檔往清單下方移動
+STR_NEWGRF_SETTINGS_MOVEDOWN_TOOLTIP                            :{BLACK}將選擇的 NewGRF 檔案往清單下方移動
 STR_NEWGRF_SETTINGS_UPGRADE                                     :{BLACK}更新
 STR_NEWGRF_SETTINGS_UPGRADE_TOOLTIP                             :{BLACK}為您已經安裝的新版本更新NewGRF檔案
 STR_NEWGRF_SETTINGS_FILE_TOOLTIP                                :{BLACK}已安裝的 NewGRF 檔案列表。
@@ -5145,7 +5145,7 @@ STR_ERROR_TOO_CLOSE_TO_ANOTHER_TOWN                             :太接近另一
 STR_ERROR_TOO_MANY_TOWNS                                        :已有太多市鎮
 STR_ERROR_NO_SPACE_FOR_TOWN                                     :地圖沒有足夠空間
 STR_ERROR_ROAD_WORKS_IN_PROGRESS                                :道路施工中
-STR_ERROR_TOWN_CAN_T_DELETE                                     :無法刪除該市鎮……{}{}市鎮範圍內還有車站或機廠或無法移除的區塊
+STR_ERROR_TOWN_CAN_T_DELETE                                     :無法刪除該市鎮……{}{}市鎮範圍內還有車站、機廠或無法移除的區塊
 STR_ERROR_STATUE_NO_SUITABLE_PLACE                              :市中心沒有適合的空間建造雕像
 STR_ERROR_CAN_T_BUILD_HOUSE                                     :無法興建房屋……
 
@@ -5201,7 +5201,7 @@ STR_ERROR_DRIVE_THROUGH_CORNER                                  :路邊車站不
 STR_ERROR_DRIVE_THROUGH_JUNCTION                                :路邊車站不能建在岔路口處
 
 # Station destruction related errors
-STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :無法移除車站附屬建築物……
+STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :無法拆毀車站附屬建築物……
 STR_ERROR_MUST_REMOVE_RAILWAY_STATION_FIRST                     :必須先拆毀鐵道車站
 STR_ERROR_CAN_T_REMOVE_BUS_STATION                              :無法拆毀公車站……
 STR_ERROR_CAN_T_REMOVE_TRUCK_STATION                            :無法拆毀貨運站……
@@ -5277,7 +5277,7 @@ STR_ERROR_AUTOREPLACE_INCOMPATIBLE_REFIT                        :新車輛無法
 
 # Rail construction errors
 STR_ERROR_IMPOSSIBLE_TRACK_COMBINATION                          :不合理的軌道組合
-STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :必須先移除號誌
+STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :必須先拆毀號誌
 STR_ERROR_NO_SUITABLE_RAILROAD_TRACK                            :沒有適合的軌道
 STR_ERROR_MUST_REMOVE_RAILROAD_TRACK                            :必須先拆毀鐵道
 STR_ERROR_CROSSING_ON_ONEWAY_ROAD                               :道路是單行道或已封閉

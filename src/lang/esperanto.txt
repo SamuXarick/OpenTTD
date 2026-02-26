@@ -374,7 +374,7 @@ STR_TOOLTIP_CATCHMENT                                           :{BLACK}Ŝaltu m
 STR_TOOLTIP_CLOSE_WINDOW                                        :{BLACK}Fermu fenestron
 STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS                              :{BLACK}Fenestra titolo - tiru por movi la fenestron
 STR_TOOLTIP_SHADE                                               :{BLACK}Minimumigi fenestron - montri nur la titolbreton
-STR_TOOLTIP_DEBUG                                               :{BLACK}Montru sencimigajn informojn por NewGRF-oj
+STR_TOOLTIP_DEBUG                                               :{BLACK}Montri sencimigajn informojn por NewGRF-oj
 STR_TOOLTIP_DEFSIZE                                             :{BLACK}Aligrandigu la fenestron al la defaŭlta grandeco. Stir+Klaku por konservi la nunan grandecon kiel defaŭltan. Duoble Stir+Klaku por restarigi konservitan defaŭlton
 STR_TOOLTIP_STICKY                                              :{BLACK}Marki, ke la fenestro ne fermiĝu per la klavo 'fermi ĉiujn fenestrojn'. Konservi kiel defaŭlta stato per Stir-klavo + alklako.
 STR_TOOLTIP_RESIZE                                              :{BLACK}Klaku kaj tiru por reformi la fenestron
@@ -385,10 +385,10 @@ STR_TOOLTIP_DEMOLISH_BUILDINGS_ETC                              :{BLACK}Detruu k
 
 # Show engines button
 ###length VEHICLE_TYPES
-STR_SHOW_HIDDEN_ENGINES_VEHICLE_TRAIN                           :{BLACK}Montru kaŝitajn
-STR_SHOW_HIDDEN_ENGINES_VEHICLE_ROAD_VEHICLE                    :{BLACK}Montru kaŝitajn
-STR_SHOW_HIDDEN_ENGINES_VEHICLE_SHIP                            :{BLACK}Montru kaŝitajn
-STR_SHOW_HIDDEN_ENGINES_VEHICLE_AIRCRAFT                        :{BLACK}Montru kaŝitajn
+STR_SHOW_HIDDEN_ENGINES_VEHICLE_TRAIN                           :{BLACK}Montri kaŝitajn
+STR_SHOW_HIDDEN_ENGINES_VEHICLE_ROAD_VEHICLE                    :{BLACK}Montri kaŝitajn
+STR_SHOW_HIDDEN_ENGINES_VEHICLE_SHIP                            :{BLACK}Montri kaŝitajn
+STR_SHOW_HIDDEN_ENGINES_VEHICLE_AIRCRAFT                        :{BLACK}Montri kaŝitajn
 
 ###length VEHICLE_TYPES
 STR_SHOW_HIDDEN_ENGINES_VEHICLE_TRAIN_TOOLTIP                   :{BLACK}Post aktivigo de tiu ĉi butono, kaŝitaj vagonaroj ankaŭ estos montrataj
@@ -523,9 +523,9 @@ STR_SCENEDIT_TOOLBAR_PLACE_OBJECT_TOOLTIP                       :{BLACK}Metu obj
 # Scenario editor file menu
 ###length 7
 STR_SCENEDIT_FILE_MENU_SAVE_SCENARIO                            :Konservi scenaron
-STR_SCENEDIT_FILE_MENU_LOAD_SCENARIO                            :Ŝarĝu scenaron
+STR_SCENEDIT_FILE_MENU_LOAD_SCENARIO                            :Ŝarĝi scenaron
 STR_SCENEDIT_FILE_MENU_SAVE_HEIGHTMAP                           :Konservi altecmapon
-STR_SCENEDIT_FILE_MENU_LOAD_HEIGHTMAP                           :Ŝarĝu altecmapon
+STR_SCENEDIT_FILE_MENU_LOAD_HEIGHTMAP                           :Ŝarĝi altecmapon
 STR_SCENEDIT_FILE_MENU_QUIT_EDITOR                              :Forlasi scenarkreilon
 STR_SCENEDIT_FILE_MENU_SEPARATOR                                :
 STR_SCENEDIT_FILE_MENU_QUIT                                     :Forlasi
@@ -548,7 +548,7 @@ STR_SETTINGS_MENU_STATION_NAMES_BUS                             :Bushaltejoj
 STR_SETTINGS_MENU_STATION_NAMES_SHIP                            :Ŝipdokoj
 STR_SETTINGS_MENU_STATION_NAMES_PLANE                           :Flughavenoj
 STR_SETTINGS_MENU_STATION_NAMES_GHOST                           :Fantomaj stacioj
-STR_SETTINGS_MENU_WAYPOINTS_DISPLAYED                           :Montru nomojn de vojpunktoj
+STR_SETTINGS_MENU_WAYPOINTS_DISPLAYED                           :Montri nomojn de vojpunktoj
 STR_SETTINGS_MENU_SIGNS_DISPLAYED                               :Ŝildoj montriĝas
 STR_SETTINGS_MENU_SHOW_COMPETITOR_SIGNS                         :Konkurantaj ŝildoj kaj nomoj estas montrataj
 STR_SETTINGS_MENU_FULL_ANIMATION                                :Plena animado
@@ -628,7 +628,7 @@ STR_ABOUT_MENU_HELP                                             :Helpo & manlibr
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Baskuligi Konzolon
 STR_ABOUT_MENU_AI_DEBUG                                         :AI/Ludoskripta sencimigo
 STR_ABOUT_MENU_SCREENSHOT                                       :Ekranfoto
-STR_ABOUT_MENU_SHOW_FRAMERATE                                   :Montru bildrapidon
+STR_ABOUT_MENU_SHOW_FRAMERATE                                   :Montri bildrapidon
 STR_ABOUT_MENU_ABOUT_OPENTTD                                    :Pri 'OpenTTD'
 STR_ABOUT_MENU_SPRITE_ALIGNER                                   :Bildeto-liniigilo
 STR_ABOUT_MENU_TOGGLE_BOUNDING_BOXES                            :Montri/ne montri limigujo
@@ -697,8 +697,8 @@ STR_MONTH_NOV                                                   :Novembro
 STR_MONTH_DEC                                                   :Decembro
 
 # Graph window
-STR_GRAPH_KEY_BUTTON                                            :{BLACK}Ŝlosilo
-STR_GRAPH_KEY_TOOLTIP                                           :{BLACK}Montru ŝlosilon por diagramoj
+STR_GRAPH_KEY_BUTTON                                            :{BLACK}Etikedoj
+STR_GRAPH_KEY_TOOLTIP                                           :{BLACK}Montri etikedaron por diagramoj
 STR_GRAPH_X_LABEL_MONTH                                         :{TINY_FONT}{STRING}
 STR_GRAPH_X_LABEL_MONTH_YEAR                                    :{TINY_FONT}{STRING}{}{NUM}
 STR_GRAPH_Y_LABEL                                               :{TINY_FONT}{STRING}
@@ -727,8 +727,8 @@ STR_GRAPH_CARGO_PAYMENT_RATES_SECONDS                           :{TINY_FONT}{BLA
 STR_GRAPH_CARGO_PAYMENT_RATES_TITLE                             :{TINY_FONT}{BLACK}Pago por liveri 10 unuojn (aŭ 10,000 litrojn) da ŝarĝo trans 20 kvadratoj
 STR_GRAPH_CARGO_ENABLE_ALL                                      :{TINY_FONT}{BLACK}Ĉiuj
 STR_GRAPH_CARGO_DISABLE_ALL                                     :{TINY_FONT}{BLACK}Neniuj
-STR_GRAPH_CARGO_TOOLTIP_ENABLE_ALL                              :{BLACK}Montru ĉiuj ŝarĝojn en la diagramo de ŝarĝaj pagaj procentoj
-STR_GRAPH_CARGO_TOOLTIP_DISABLE_ALL                             :{BLACK}Ne montru ŝarĝojn en la diagramo
+STR_GRAPH_CARGO_TOOLTIP_ENABLE_ALL                              :{BLACK}Montri ĉiujn ŝarĝojn en la diagramo
+STR_GRAPH_CARGO_TOOLTIP_DISABLE_ALL                             :{BLACK}Ne montri ŝarĝojn en la diagramo
 STR_GRAPH_CARGO_PAYMENT_TOGGLE_CARGO                            :{BLACK}Baskulu diagramon de tiu ŝarĝotipo
 STR_GRAPH_CARGO_PAYMENT_CARGO                                   :{TINY_FONT}{BLACK}{STRING}
 
@@ -745,7 +745,7 @@ STR_GRAPH_TOWN_RANGE_TRANSPORTED                                :Transportita
 STR_GRAPH_PERFORMANCE_DETAIL_TOOLTIP                            :{BLACK}Montri detalaj rendimentpritaksoj
 
 # Graph key window
-STR_GRAPH_KEY_CAPTION                                           :{WHITE}Ŝlosilo por kompanidiagramoj
+STR_GRAPH_KEY_CAPTION                                           :{WHITE}Etikedaro de kompanidiagramoj
 STR_GRAPH_KEY_COMPANY_SELECTION_TOOLTIP                         :{BLACK}Baskulu ĉi tiu kompanio en la diagramo
 
 # Company league window
@@ -827,7 +827,7 @@ STR_MUSIC_TOOLTIP_SELECT_EZY_STREET_STYLE                       :{BLACK}Elektu p
 STR_MUSIC_TOOLTIP_SELECT_CUSTOM_1_USER_DEFINED                  :{BLACK}Elektu la unuan propran programon
 STR_MUSIC_TOOLTIP_SELECT_CUSTOM_2_USER_DEFINED                  :{BLACK}Elektu la duan propran programon
 STR_MUSIC_TOOLTIP_TOGGLE_PROGRAM_SHUFFLE                        :{BLACK}Miksu/ne miksu
-STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}Montru muziker-elektan fenestron
+STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}Montri muziker-elektan fenestron
 
 # Playlist window
 STR_PLAYLIST_MUSIC_SELECTION_SETNAME                            :{WHITE}Muzikprogramo - '{STRING}'
@@ -868,13 +868,13 @@ STR_SMALLMAP_TYPE_ROUTES                                        :Vojiroj
 STR_SMALLMAP_TYPE_VEGETATION                                    :Verdaĵoj
 STR_SMALLMAP_TYPE_OWNERS                                        :Posedantoj
 
-STR_SMALLMAP_TOOLTIP_SHOW_LAND_CONTOURS_ON_MAP                  :{BLACK}Montru landkonturojn sur la mapo
-STR_SMALLMAP_TOOLTIP_SHOW_VEHICLES_ON_MAP                       :{BLACK}Montru veturilojn sur la mapo
-STR_SMALLMAP_TOOLTIP_SHOW_INDUSTRIES_ON_MAP                     :{BLACK}Montru industriojn sur la mapo
-STR_SMALLMAP_TOOLTIP_SHOW_LINK_STATS_ON_MAP                     :{BLACK} Montru Ŝarĝfluon en mapo
-STR_SMALLMAP_TOOLTIP_SHOW_TRANSPORT_ROUTES_ON                   :{BLACK}Montru transportstratojn sur la mapo
-STR_SMALLMAP_TOOLTIP_SHOW_VEGETATION_ON_MAP                     :{BLACK}Montru verdaĵojn sur la mapo
-STR_SMALLMAP_TOOLTIP_SHOW_LAND_OWNERS_ON_MAP                    :{BLACK}Montru landposedantojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_LAND_CONTOURS_ON_MAP                  :{BLACK}Montri landkonturojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_VEHICLES_ON_MAP                       :{BLACK}Montri veturilojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_INDUSTRIES_ON_MAP                     :{BLACK}Montri entreprenojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_LINK_STATS_ON_MAP                     :{BLACK}Montri ŝarĝfluon sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_TRANSPORT_ROUTES_ON                   :{BLACK}Montri transportvojojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_VEGETATION_ON_MAP                     :{BLACK}Montri verdaĵojn sur la mapo
+STR_SMALLMAP_TOOLTIP_SHOW_LAND_OWNERS_ON_MAP                    :{BLACK}Montri landposedantojn sur la mapo
 STR_SMALLMAP_TOOLTIP_INDUSTRY_SELECTION                         :{BLACK}Klaku sur tipo de entrepreno por baskuli montradon. Stir+Klako malŝaltas ĉiujn tipojn, krom la elektita. La dua Stir+Klako ŝaltas ĉiujn tipojn
 STR_SMALLMAP_TOOLTIP_COMPANY_SELECTION                          :{BLACK}Klaku sur kompanion ŝalti montranta ĝia posedaĵoj. Stir+Klaku malaktivas ĉiujn kompaniojn escepte la elekta. Stir+Klaku sur ĝi aktivi ĉiujn la kompaniojn
 STR_SMALLMAP_TOOLTIP_CARGO_SELECTION                            :{BLACK}Klaku sur ŝarĝo por baskuli ties havaĵon. Stir+Klako malŝaltas ĉiujn ŝarĝojn, krom la elektita. La dua Stir+Klako ŝaltas ĉiujn ŝarĝojn
@@ -917,19 +917,19 @@ STR_SMALLMAP_COMPANY                                            :{TINY_FONT}{COM
 STR_SMALLMAP_TOWN                                               :{TINY_FONT}{WHITE}{TOWN}
 STR_SMALLMAP_DISABLE_ALL                                        :{BLACK}Neniuj
 STR_SMALLMAP_ENABLE_ALL                                         :{BLACK}Ĉiuj
-STR_SMALLMAP_SHOW_HEIGHT                                        :{BLACK}Montru altecon
+STR_SMALLMAP_SHOW_HEIGHT                                        :{BLACK}Montri altecon
 STR_SMALLMAP_SHOW_INDUSTRY_NAMES                                :{BLACK}Montri nomojn de entreprenoj
 STR_SMALLMAP_TOOLTIP_DISABLE_ALL_INDUSTRIES                     :{BLACK}Ne montri industriojn sur la mapo.
 STR_SMALLMAP_TOOLTIP_ENABLE_ALL_INDUSTRIES                      :{BLACK}Montri ĉiujn industriojn sur la mapo.
 STR_SMALLMAP_TOOLTIP_SHOW_HEIGHT                                :{BLACK}Ŝaltu montro de altecmapo
 STR_SMALLMAP_TOOLTIP_SHOW_INDUSTRY_NAMES                        :{BLACK}Baskuli montradon de nomoj de entreprenoj
-STR_SMALLMAP_TOOLTIP_DISABLE_ALL_COMPANIES                      :{BLACK}Montru ne kompanian posedaĵon en la mapo
-STR_SMALLMAP_TOOLTIP_ENABLE_ALL_COMPANIES                       :{BLACK}Montru ĉiujn kompanian posedaĵon en la mapo
-STR_SMALLMAP_TOOLTIP_DISABLE_ALL_CARGOS                         :{BLACK}Montru neniajn ŝarĝojn sur la mapo
-STR_SMALLMAP_TOOLTIP_ENABLE_ALL_CARGOS                          :{BLACK}Montru ĉiujn ŝarĝojn sur la mapo
+STR_SMALLMAP_TOOLTIP_DISABLE_ALL_COMPANIES                      :{BLACK}Montri neniajn kompaniajn posedaĵojn en la mapo
+STR_SMALLMAP_TOOLTIP_ENABLE_ALL_COMPANIES                       :{BLACK}Montri ĉiujn kompaniajn posedaĵojn sur la mapo
+STR_SMALLMAP_TOOLTIP_DISABLE_ALL_CARGOS                         :{BLACK}Montri neniajn ŝarĝojn sur la mapo
+STR_SMALLMAP_TOOLTIP_ENABLE_ALL_CARGOS                          :{BLACK}Montri ĉiujn ŝarĝojn sur la mapo
 
 # Status bar messages
-STR_STATUSBAR_TOOLTIP_SHOW_LAST_NEWS                            :{BLACK}Montru lastan mesaĝon aŭ novaĵon
+STR_STATUSBAR_TOOLTIP_SHOW_LAST_NEWS                            :{BLACK}Montri la lastan mesaĝon aŭ novaĵon
 STR_STATUSBAR_COMPANY_NAME                                      :{SILVER}- -  {COMPANY}  - -
 STR_STATUSBAR_PAUSED                                            :{YELLOW}* *  PAŬZO  *  *
 STR_STATUSBAR_PAUSED_LINK_GRAPH                                 :{ORANGE}* * PAŬZAS (atendas ĝisdatigon de la ligografeo) * *
@@ -1188,12 +1188,12 @@ STR_GAME_OPTIONS_PARTICIPATE_SURVEY                             :Partopreni aŭt
 STR_GAME_OPTIONS_PARTICIPATE_SURVEY_TOOLTIP                     :Kiam tiu ĉi agordo estas aktiva, OpenTTD sendos sondaĵon je forlaso de ludo
 STR_GAME_OPTIONS_PARTICIPATE_SURVEY_LINK                        :Pri sondado kaj privateco
 STR_GAME_OPTIONS_PARTICIPATE_SURVEY_LINK_TOOLTIP                :Tio ĉi malfermos retumilon kun pli da informoj pri la aŭtomata sondado
-STR_GAME_OPTIONS_PARTICIPATE_SURVEY_PREVIEW                     :Antaŭmontru sondaĵrezulton
-STR_GAME_OPTIONS_PARTICIPATE_SURVEY_PREVIEW_TOOLTIP             :Montru la sondaĵrezulton de la kuranta ludo
+STR_GAME_OPTIONS_PARTICIPATE_SURVEY_PREVIEW                     :Antaŭmontri sondaĵrezulton
+STR_GAME_OPTIONS_PARTICIPATE_SURVEY_PREVIEW_TOOLTIP             :Montri la sondaĵrezulton de la kuranta ludo
 
 STR_GAME_OPTIONS_DISPLAY                                        :Ekrano
 
-STR_GAME_OPTIONS_REFRESH_RATE                                   :Montru aktualigoftecon
+STR_GAME_OPTIONS_REFRESH_RATE                                   :Montri aktualigoftecon
 STR_GAME_OPTIONS_REFRESH_RATE_TOOLTIP                           :Elektu ekranan aktualigoftecon
 STR_GAME_OPTIONS_REFRESH_RATE_ITEM                              :{NUM}Hz
 STR_GAME_OPTIONS_REFRESH_RATE_WARNING                           :{WHITE}Aktualigoftecoj pli altaj ol 60Hz povas kaŭzi malrapidiĝon.
@@ -1261,26 +1261,26 @@ STR_CURRENCY_CHANGE_PARAMETER                                   :{BLACK}Ŝanĝi 
 STR_NONE                                                        :Nenio
 STR_FUNDING_ONLY                                                :Funduso sola
 STR_MINIMAL                                                     :Malgrandeto
-STR_NUM_VERY_LOW                                                :Tre Malalte
+STR_NUM_VERY_LOW                                                :Tre malalte
 STR_NUM_LOW                                                     :Malalte
 STR_NUM_NORMAL                                                  :Normale
 STR_NUM_HIGH                                                    :Alte
-STR_NUM_CUSTOM                                                  :Ŝanĝitaj
+STR_NUM_CUSTOM                                                  :Propra
 STR_NUM_CUSTOM_NUMBER                                           :Alia ({NUM})
 
 STR_VARIETY_NONE                                                :Neniu
-STR_VARIETY_VERY_LOW                                            :Tre Malalta
+STR_VARIETY_VERY_LOW                                            :Tre malalta
 STR_VARIETY_LOW                                                 :Malalta
 STR_VARIETY_MEDIUM                                              :Meza
 STR_VARIETY_HIGH                                                :Alta
-STR_VARIETY_VERY_HIGH                                           :Tre Alta
+STR_VARIETY_VERY_HIGH                                           :Tre alta
 
 ###length 5
-STR_AI_SPEED_VERY_SLOW                                          :Tre Malrapide
+STR_AI_SPEED_VERY_SLOW                                          :Tre malrapide
 STR_AI_SPEED_SLOW                                               :Malrapide
 STR_AI_SPEED_MEDIUM                                             :Meze
 STR_AI_SPEED_FAST                                               :Rapide
-STR_AI_SPEED_VERY_FAST                                          :Tre Rapide
+STR_AI_SPEED_VERY_FAST                                          :Tre rapide
 
 ###length 6
 STR_SEA_LEVEL_VERY_LOW                                          :Tre Malalte
@@ -1293,7 +1293,7 @@ STR_SEA_LEVEL_CUSTOM_PERCENTAGE                                 :Alia ({NUM}%)
 ###length 4
 STR_RIVERS_NONE                                                 :Neniom
 STR_RIVERS_FEW                                                  :Malmultaj
-STR_RIVERS_MODERATE                                             :Iom da
+STR_RIVERS_MODERATE                                             :Mezmultaj
 STR_RIVERS_LOT                                                  :Multaj
 
 ###length 3
@@ -1314,10 +1314,10 @@ STR_CLIMATE_SUB_TROPICAL_LANDSCAPE                              :Tropikeca landa
 STR_CLIMATE_TOYLAND_LANDSCAPE                                   :Ludolandaspekto
 
 ###length 7
-STR_TERRAIN_TYPE_VERY_FLAT                                      :Tre Ebene
-STR_TERRAIN_TYPE_FLAT                                           :Ebene
-STR_TERRAIN_TYPE_HILLY                                          :Montete
-STR_TERRAIN_TYPE_MOUNTAINOUS                                    :Monte
+STR_TERRAIN_TYPE_VERY_FLAT                                      :Tre ebena
+STR_TERRAIN_TYPE_FLAT                                           :Ebena
+STR_TERRAIN_TYPE_HILLY                                          :Monteta
+STR_TERRAIN_TYPE_MOUNTAINOUS                                    :Monta
 STR_TERRAIN_TYPE_ALPINIST                                       :Alpeca
 STR_TERRAIN_TYPE_CUSTOM                                         :Specifa alteco
 STR_TERRAIN_TYPE_CUSTOM_VALUE                                   :Specifa alteco ({NUM})
@@ -1367,9 +1367,9 @@ STR_CONFIG_SETTING_TYPE_DROPDOWN_COMPANY_INGAME                 :Kompaniaj agord
 
 STR_CONFIG_SETTINGS_NONE                                        :{WHITE}- Neniu -
 ###length 3
-STR_CONFIG_SETTING_CATEGORY_HIDES                               :Montru ĉiujn serĉrezultojn ŝanĝante{}{SILVER}Kategorion {BLACK}al {WHITE}{STRING}
-STR_CONFIG_SETTING_TYPE_HIDES                                   :Montru ĉiujn serĉrezultojn ŝanĝante{}{SILVER}Tipon {BLACK}al {WHITE}Ĉiuj agordoj
-STR_CONFIG_SETTING_CATEGORY_AND_TYPE_HIDES                      :Montru ĉiujn serĉrezultojn ŝanĝante{}{SILVER}Kategorion {BLACK}al {WHITE}{STRING}{BLACK}kaj {SILVER}Tipon {BLACK}al {WHITE}Ĉiuj agordoj
+STR_CONFIG_SETTING_CATEGORY_HIDES                               :Por vidi ĉiujn serĉrezultojn, elektu{}{PUSH_COLOUR}{SILVER}kategorion {POP_COLOUR} {WHITE}"{STRING}"
+STR_CONFIG_SETTING_TYPE_HIDES                                   :Por vidi ĉiujn serĉrezultojn, elektu{}{PUSH_COLOUR}{SILVER}tipon {POP_COLOUR} {WHITE}"Ĉiuj agordoj"
+STR_CONFIG_SETTING_CATEGORY_AND_TYPE_HIDES                      :Por vidi ĉiujn serĉrezultojn, elektu{}{PUSH_COLOUR}{SILVER}kategorion {POP_COLOUR} {PUSH_COLOUR}{WHITE}"{STRING}" {POP_COLOUR}kaj {PUSH_COLOUR}{SILVER}tipon {POP_COLOUR} {WHITE}"Ĉiuj agordoj"
 
 ###length 3
 STR_CONFIG_SETTING_OFF                                          :Malaktiva
@@ -1528,8 +1528,8 @@ STR_CONFIG_SETTING_SIGNALSIDE_DRIVING_SIDE                      :En la strata st
 STR_CONFIG_SETTING_SIGNALSIDE_RIGHT                             :Dekstre
 
 ###length 2
-STR_CONFIG_SETTING_SHOWFINANCES                                 :Montru financan fenestron fine de la jaro: {STRING}
-STR_CONFIG_SETTING_SHOWFINANCES_PERIOD                          :Montru financan fenestron fine de la periodo: {STRING}
+STR_CONFIG_SETTING_SHOWFINANCES                                 :Montri financan fenestron fine de la jaro: {STRING}
+STR_CONFIG_SETTING_SHOWFINANCES_PERIOD                          :Montri financan fenestron fine de la periodo: {STRING}
 
 ###length 2
 STR_CONFIG_SETTING_SHOWFINANCES_HELPTEXT                        :Kiam tiu ĉi agordo estas aktiva, la financa fenestro aperas je la fino de ĉiu jaro por ebligi facilan inspektadon de la financa stato de la kompanio
@@ -1607,8 +1607,8 @@ STR_CONFIG_SETTING_COMPANY_STARTING_COLOUR_SECONDARY_HELPTEXT   :Elektu duan kom
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS                        :Flughavenoj neniam antikviĝas: {STRING}
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS_HELPTEXT               :Se tiu ĉi agordo estas aktiva, ĉiuj tipoj de flughavenoj restos konstrueblaj por ĉiam post ekhaveblo
 
-STR_CONFIG_SETTING_WARN_LOST_VEHICLE                            :Avertu se veturilo estas perdita: {STRING}
-STR_CONFIG_SETTING_WARN_LOST_VEHICLE_HELPTEXT                   :Montru mesaĝojn pri veturiloj kiuj ne povas trovi vojon al sia celpunkto
+STR_CONFIG_SETTING_WARN_LOST_VEHICLE                            :Averti, se veturilo estas perdita: {STRING}
+STR_CONFIG_SETTING_WARN_LOST_VEHICLE_HELPTEXT                   :Montri mesaĝojn pri veturiloj, kiuj ne povas trovi vojon al sia celpunkto
 
 STR_CONFIG_SETTING_ORDER_REVIEW                                 :Revui veturilajn ordonojn: {STRING}
 STR_CONFIG_SETTING_ORDER_REVIEW_HELPTEXT                        :Kiam tiu ĉi agordo estas aktiva, ordonoj de veturiloj estos regule kontrolataj, kaj iuj evidentaj problemoj estos anoncataj per novaĵmesaĝo post detektiĝo
@@ -1622,8 +1622,8 @@ STR_CONFIG_SETTING_WARN_INCOME_LESS                             :Avertu se gajno
 STR_CONFIG_SETTING_WARN_INCOME_LESS_HELPTEXT                    :Kiam tiu ĉi agordo estas aktiva, aperas anonco kiam iu veturilo ne faris profiton dum jaro
 STR_CONFIG_SETTING_WARN_INCOME_LESS_HELPTEXT_PERIOD             :Kiam tiu ĉi agordo estas aktiva, aperas anonco kiam iu veturilo ne faris profiton dum periodo
 
-STR_CONFIG_SETTING_WARN_OLD_VEHICLE                             :Avertu, se veturilo iĝas malnova: {STRING}
-STR_CONFIG_SETTING_WARN_OLD_VEHICLE_HELPTEXT                    :Kiam tiu ĉi agordo estas aktiva, aperas anonco kiam iu veturilo iĝas malnova
+STR_CONFIG_SETTING_WARN_OLD_VEHICLE                             :Averti, se veturilo iĝas malnova: {STRING}
+STR_CONFIG_SETTING_WARN_OLD_VEHICLE_HELPTEXT                    :Kiam tiu ĉi agordo estas aktiva, aperas anonco, kiam iu veturilo iĝas malnova
 
 STR_CONFIG_SETTING_NEVER_EXPIRE_VEHICLES                        :Veturiloj neniam eluziĝas: {STRING}
 STR_CONFIG_SETTING_NEVER_EXPIRE_VEHICLES_HELPTEXT               :Se tiu ĉi agordo estas aktiva, ĉiuj modeloj de veturiloj restos aĉeteblaj por ĉiam post ekhaveblo
@@ -1670,15 +1670,15 @@ STR_CONFIG_SETTING_HOVER_DELAY_VALUE                            :Ŝvebu dum {COM
 ###setting-zero-is-special
 STR_CONFIG_SETTING_HOVER_DELAY_DISABLED                         :Dekstra klako
 
-STR_CONFIG_SETTING_POPULATION_IN_LABEL                          :Montru loĝantaron en urbnomindikilo: {STRING}
-STR_CONFIG_SETTING_POPULATION_IN_LABEL_HELPTEXT                 :Montru loĝantaron de urboj en ties etikedoj sur la mapo
+STR_CONFIG_SETTING_POPULATION_IN_LABEL                          :Montri loĝantaron en urbnomindikilo: {STRING}
+STR_CONFIG_SETTING_POPULATION_IN_LABEL_HELPTEXT                 :Montri loĝantaron de urboj en ties etikedoj sur la mapo
 
 STR_CONFIG_SETTING_GRAPH_LINE_THICKNESS                         :Larĝeco de linioj en diagramoj: {STRING}
 STR_CONFIG_SETTING_GRAPH_LINE_THICKNESS_HELPTEXT                :Larĝeco de la linio en la diagramoj. Mallarĝa linio estas pli precize legebla, larĝa linio estas pli facile videbla kaj koloroj pli facile distingeblas.
 
-STR_CONFIG_SETTING_SHOW_NEWGRF_NAME                             :Montru la nomon de la NewGRF en la veturilkonstrua fenestro: {STRING}
+STR_CONFIG_SETTING_SHOW_NEWGRF_NAME                             :Montri la nomon de la NewGRF en la veturilkonstrua fenestro: {STRING}
 STR_CONFIG_SETTING_SHOW_NEWGRF_NAME_HELPTEXT                    :Aldonu linion en la veturilkonstrua fenestro, kiu indikas de kiu NewGRF venas la elektita veturilo
-STR_CONFIG_SETTING_SHOW_CARGO_IN_LISTS                          :Montru, kiujn ŝarĝojn la veturiloj povas porti, en la listofenestroj: {STRING}
+STR_CONFIG_SETTING_SHOW_CARGO_IN_LISTS                          :Montri, kiujn ŝarĝojn la veturiloj povas porti, en la listofenestroj: {STRING}
 STR_CONFIG_SETTING_SHOW_CARGO_IN_LISTS_HELPTEXT                 :Se ŝaltita, la transporteblaj ŝarĝoj de veturilo estos montrita super ĝi en veturilo-listoj
 
 STR_CONFIG_SETTING_LANDSCAPE                                    :Landaspekto: {STRING}
@@ -1711,12 +1711,12 @@ STR_CONFIG_SETTING_DESERT_COVERAGE_HELPTEXT                     :Elektu la proks
 STR_CONFIG_SETTING_DESERT_COVERAGE_VALUE                        :{NUM}%
 
 STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN                         :Nereguleco de tereno: {STRING}
-STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_HELPTEXT                :Elektu la formon kaj nombron da montetoj. Glataj pejzaĝoj havas pli malmultajn, pli larĝajn montetojn, dum malglataj pejzaĝoj havas pli multe, malgrandajn montetojn.
+STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_HELPTEXT                :Elektu la formon kaj nombron da montetoj. Glataj pejzaĝoj havas pli malmultajn, pli larĝajn montetojn, dum malglataj pejzaĝoj havas pli multajn kaj malgrandajn montetojn.
 ###length 4
-STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_VERY_SMOOTH             :Tre Regule
-STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_SMOOTH                  :Regule
-STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_ROUGH                   :Neregule
-STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_VERY_ROUGH              :Malregule
+STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_VERY_SMOOTH             :Tre glata
+STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_SMOOTH                  :Glata
+STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_ROUGH                   :Ne glata
+STR_CONFIG_SETTING_ROUGHNESS_OF_TERRAIN_VERY_ROUGH              :Malglata
 
 STR_CONFIG_SETTING_AVERAGE_HEIGHT                               :Meznombra alteco: {STRING}
 STR_CONFIG_SETTING_AVERAGE_HEIGHT_HELPTEXT                      :Elekti meznombran altecon de lando. 'Aŭtomata' uzas la defaŭlton laŭ de elektita landaspekto: 'Malaltaĵoj' por sub-tropika, 'Norma' por modera kaj ludlanda, 'Altebenaĵoj' por sub-arktika.
@@ -1795,10 +1795,10 @@ STR_CONFIG_SETTING_SMOOTH_SCROLLING_HELPTEXT                    :Regu kiel la ĉ
 STR_CONFIG_SETTING_TOOLBAR_DROPDOWN_AUTOSELECT                  :Tradicia konduto de ilobretaj menuoj: {STRING}
 STR_CONFIG_SETTING_TOOLBAR_DROPDOWN_AUTOSELECT_HELPTEXT         :Elektu, kiel funkcias menuoj de ilobretoj. Se malaktiva, menuoj daŭros malfermita, ĝis elemento estas elektita. Se aktiva, la defaŭlta elemento aktiviĝos, post la musbutono estas depremita.
 
-STR_CONFIG_SETTING_MEASURE_TOOLTIP                              :Montru mezuran konsilbalonon ĉe uzo de konstruiloj: {STRING}
-STR_CONFIG_SETTING_MEASURE_TOOLTIP_HELPTEXT                     :Montru kahel-distancojn kaj altec-diferencojn dum mustrenado por konstruado
+STR_CONFIG_SETTING_MEASURE_TOOLTIP                              :Montri mezuran konsilbalonon ĉe uzo de konstruiloj: {STRING}
+STR_CONFIG_SETTING_MEASURE_TOOLTIP_HELPTEXT                     :Montri kahel-distancojn kaj altec-diferencojn dum mustrenado por konstruado
 
-STR_CONFIG_SETTING_LIVERIES                                     :Montru veturiltipe specifajn livreojn: {STRING}
+STR_CONFIG_SETTING_LIVERIES                                     :Montri veturil-tipe specifajn livreojn: {STRING}
 STR_CONFIG_SETTING_LIVERIES_HELPTEXT                            :Kontrolu uzadon de livreojn por specifaj tipoj de veturiloj (kontraŭe de kompanio-specifaj)
 ###length 3
 STR_CONFIG_SETTING_LIVERIES_NONE                                :Neniu
@@ -1880,8 +1880,8 @@ STR_CONFIG_SETTING_TIMETABLE_MODE_DAYS                          :Tagoj
 STR_CONFIG_SETTING_TIMETABLE_MODE_SECONDS                       :Sekundoj
 STR_CONFIG_SETTING_TIMETABLE_MODE_TICKS                         :Tempopulsoj
 
-STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE             :Montru alvenojn kaj forirojn sur horaroj: {STRING}
-STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE_HELPTEXT    :Montru antaŭvidatajn alven- kaj forir-tempojn en horaroj
+STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE             :Montri alvenojn kaj forirojn sur horaroj: {STRING}
+STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE_HELPTEXT    :Montri antaŭvidatajn alven- kaj forir-tempojn en horaroj
 
 STR_CONFIG_SETTING_QUICKGOTO                                    :Rapidkreo de veturilordonoj: {STRING}
 STR_CONFIG_SETTING_QUICKGOTO_HELPTEXT                           :Antaŭelekti la kursoron "iri al" dum malfermado de ordona fenestro
@@ -1893,7 +1893,7 @@ STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE_FIRST                      :Unue havebla
 STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE_LAST                       :Laste havebla
 STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE_MOST_USED                  :Pli uzata
 
-STR_CONFIG_SETTING_SHOW_TRACK_RESERVATION                       :Montru rezervitajn trakojn: {STRING}
+STR_CONFIG_SETTING_SHOW_TRACK_RESERVATION                       :Montri rezervitajn trakojn: {STRING}
 STR_CONFIG_SETTING_SHOW_TRACK_RESERVATION_HELPTEXT              :Donu alian koloron al rezervitaj trakoj por helpi je problemoj pri vagonaroj kiuj rifuzas eniri voj-bazitajn blokojn
 
 STR_CONFIG_SETTING_PERSISTENT_BUILDINGTOOLS                     :Lasu aktivaj la konstruilojn post uzado: {STRING}
@@ -2002,52 +2002,52 @@ STR_CONFIG_SETTING_DISABLE_ELRAILS                              :Malŝaltu elekt
 STR_CONFIG_SETTING_DISABLE_ELRAILS_HELPTEXT                     :Se tiu ĉi agordo estas aktiva, ne necesas elektrigi relojn por ke elektraj lokomotivoj povu veturi sur ili
 
 STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OWN               :Unua veturilo atingas propran stacion: {STRING}
-STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OWN_HELPTEXT      :Montru gazetan anoncon kiam alvenas la unua veturilo ĉe nova stacio de la ludanto
+STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OWN_HELPTEXT      :Montri gazetan anoncon kiam alvenas la unua veturilo ĉe nova stacio de la ludanto
 
 STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OTHER             :Unua veturilo atingas konkurantan stacion: {STRING}
-STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OTHER_HELPTEXT    :Montru gazetan anoncon kiam alvenas la unua veturilo ĉe nova stacio de konkuranto
+STR_CONFIG_SETTING_NEWS_ARRIVAL_FIRST_VEHICLE_OTHER_HELPTEXT    :Montri gazetan anoncon kiam alvenas la unua veturilo ĉe nova stacio de konkuranto
 
 STR_CONFIG_SETTING_NEWS_ACCIDENTS_DISASTERS                     :Akcidentoj / katastrofoj: {STRING}
-STR_CONFIG_SETTING_NEWS_ACCIDENTS_DISASTERS_HELPTEXT            :Montru gazetan anoncon kiam okazas akcidentoj
+STR_CONFIG_SETTING_NEWS_ACCIDENTS_DISASTERS_HELPTEXT            :Montri gazetan anoncon kiam okazas akcidentoj aŭ katastrofoj
 
 STR_CONFIG_SETTING_NEWS_ACCIDENT_OTHER                          :Akcidentoj de veturiloj de konkurantoj: {STRING}
-STR_CONFIG_SETTING_NEWS_ACCIDENT_OTHER_HELPTEXT                 :Montru gazetajn anoncojn pri kraŝintaj veturiloj de konkurantoj
+STR_CONFIG_SETTING_NEWS_ACCIDENT_OTHER_HELPTEXT                 :Montri gazetajn anoncojn pri kraŝintaj veturiloj de konkurantoj
 
 STR_CONFIG_SETTING_NEWS_COMPANY_INFORMATION                     :Kompaniaj informoj: {STRING}
-STR_CONFIG_SETTING_NEWS_COMPANY_INFORMATION_HELPTEXT            :Montru gazetan anoncon kiam fondiĝas nova kompanio, aŭ kiam kompanio riskas bankrotiĝi
+STR_CONFIG_SETTING_NEWS_COMPANY_INFORMATION_HELPTEXT            :Montri gazetan anoncon kiam fondiĝas nova kompanio, aŭ kiam kompanio riskas bankroti
 
-STR_CONFIG_SETTING_NEWS_INDUSTRY_OPEN                           :Malfermiĝo de industrioj: {STRING}
-STR_CONFIG_SETTING_NEWS_INDUSTRY_OPEN_HELPTEXT                  :Montru gazetan anoncon kiam entrepreno malfermiĝas
+STR_CONFIG_SETTING_NEWS_INDUSTRY_OPEN                           :Malfermiĝo de entreprenoj: {STRING}
+STR_CONFIG_SETTING_NEWS_INDUSTRY_OPEN_HELPTEXT                  :Montri gazetan anoncon kiam entrepreno malfermiĝas
 
-STR_CONFIG_SETTING_NEWS_INDUSTRY_CLOSE                          :Fermiĝo de industrioj: {STRING}
-STR_CONFIG_SETTING_NEWS_INDUSTRY_CLOSE_HELPTEXT                 :Montru gazetan anoncon kiam entrepreno fermiĝas
+STR_CONFIG_SETTING_NEWS_INDUSTRY_CLOSE                          :Fermiĝo de entreprenoj: {STRING}
+STR_CONFIG_SETTING_NEWS_INDUSTRY_CLOSE_HELPTEXT                 :Montri gazetan anoncon kiam entrepreno fermiĝas
 
 STR_CONFIG_SETTING_NEWS_ECONOMY_CHANGES                         :Ekonomiaj ŝanĝoj: {STRING}
-STR_CONFIG_SETTING_NEWS_ECONOMY_CHANGES_HELPTEXT                :Montru gazetan anoncon pri tutmondaj ekonomiaj ŝanĝoj
+STR_CONFIG_SETTING_NEWS_ECONOMY_CHANGES_HELPTEXT                :Montri gazetan anoncon pri tutmondaj ekonomiaj ŝanĝoj
 
 STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_COMPANY                :Produktadŝanĝiĝoj de industrioj servataj de la kompanio: {STRING}
-STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_COMPANY_HELPTEXT       :Montru gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj servataj de la kompanio
+STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_COMPANY_HELPTEXT       :Montri gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj, servataj de via kompanio
 
 STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_OTHER                  :Produktadŝanĝiĝoj de industrioj servataj de konkuranto(j): {STRING}
-STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_OTHER_HELPTEXT         :Montru gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj servataj de konkurantoj
+STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_OTHER_HELPTEXT         :Montri gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj, servataj de konkurantoj
 
 STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_UNSERVED               :Aliaj industriaj produktadŝanĝiĝoj: {STRING}
-STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_UNSERVED_HELPTEXT      :Montru gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj ne servataj de la kompanio nek de konkurantoj
+STR_CONFIG_SETTING_NEWS_INDUSTRY_CHANGES_UNSERVED_HELPTEXT      :Montri gazetan anoncon kiam ŝanĝiĝas la produktadkvanto de entreprenoj, ne servataj nek de via kompanio, nek de konkurantoj
 
 STR_CONFIG_SETTING_NEWS_ADVICE                                  :Konsilo / informoj pri kompania veturilaro: {STRING}
-STR_CONFIG_SETTING_NEWS_ADVICE_HELPTEXT                         :Montru mesaĝojn pri veturiloj kiuj bezonas atenton
+STR_CONFIG_SETTING_NEWS_ADVICE_HELPTEXT                         :Montri mesaĝojn pri veturiloj, kiuj bezonas atenton
 
 STR_CONFIG_SETTING_NEWS_NEW_VEHICLES                            :Novaj veturiloj: {STRING}
-STR_CONFIG_SETTING_NEWS_NEW_VEHICLES_HELPTEXT                   :Montru gazetan anoncon kiam nova tipo de veturilo ekhaveblas
+STR_CONFIG_SETTING_NEWS_NEW_VEHICLES_HELPTEXT                   :Montri gazetan anoncon kiam nova tipo de veturilo ekhaveblas
 
 STR_CONFIG_SETTING_NEWS_CHANGES_ACCEPTANCE                      :Ŝarĝakceptado ŝanĝiĝas: {STRING}
-STR_CONFIG_SETTING_NEWS_CHANGES_ACCEPTANCE_HELPTEXT             :Montru mesaĝojn pri stacioj kiuj ŝanĝas akceptadon de iuj ŝarĝoj
+STR_CONFIG_SETTING_NEWS_CHANGES_ACCEPTANCE_HELPTEXT             :Montri mesaĝojn pri stacioj, kiuj ŝanĝas akceptadon de iuj ŝarĝoj
 
 STR_CONFIG_SETTING_NEWS_SUBSIDIES                               :Subvencioj: {STRING}
-STR_CONFIG_SETTING_NEWS_SUBSIDIES_HELPTEXT                      :Montru gazetan anoncon por eventoj rilataj al subvencioj
+STR_CONFIG_SETTING_NEWS_SUBSIDIES_HELPTEXT                      :Montri gazetan anoncon pri eventoj, rilataj al subvencioj
 
 STR_CONFIG_SETTING_NEWS_GENERAL_INFORMATION                     :Ĝeneralaj informoj: {STRING}
-STR_CONFIG_SETTING_NEWS_GENERAL_INFORMATION_HELPTEXT            :Montru gazetajn anoncojn pri ĝeneralaj eventoj, ekzemple aĉeto de ekskluzivaj rajtoj aŭ monprovizo por vojrekonstruado
+STR_CONFIG_SETTING_NEWS_GENERAL_INFORMATION_HELPTEXT            :Montri gazetajn anoncojn pri ĝeneralaj eventoj, ekzemple aĉeto de ekskluzivaj rajtoj aŭ monprovizo por vojrekonstruado
 ###length 3
 STR_CONFIG_SETTING_NEWS_MESSAGES_OFF                            :Ne
 STR_CONFIG_SETTING_NEWS_MESSAGES_SUMMARY                        :Resume
@@ -2091,7 +2091,7 @@ STR_CONFIG_SETTING_CYCLE_SIGNAL_TYPES_HELPTEXT                  :Elektu, inter k
 STR_CONFIG_SETTING_CYCLE_SIGNAL_GROUP                           :Nur elektita grupo
 STR_CONFIG_SETTING_CYCLE_SIGNAL_ALL                             :ĉiuj videblaj
 
-STR_CONFIG_SETTING_SIGNAL_GUI_MODE                              :Montru semaforajn tipojn: {STRING}
+STR_CONFIG_SETTING_SIGNAL_GUI_MODE                              :Montri semaforajn tipojn: {STRING}
 STR_CONFIG_SETTING_SIGNAL_GUI_MODE_HELPTEXT                     :Elektu kiuj tipoj de semaforoj montriĝas en la semafora ilbreto
 ###length 2
 STR_CONFIG_SETTING_SIGNAL_GUI_MODE_PATH                         :Nur vojrezervaj semaforoj
@@ -2226,7 +2226,7 @@ STR_CONFIG_SETTING_SHORT_PATH_SATURATION_HELPTEXT               :Ofte ekzistas p
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY                  :Rapidecunuoj (surtere): {STRING}
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_NAUTICAL         :Rapidecunuoj (surakve): {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_HELPTEXT         :Kiam ajn montriĝas rapideco en la uzantinterfaco, montru ĝin en la indikitaj unuoj
+STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_HELPTEXT         :Kiam ajn montriĝas rapideco en la uzantinterfaco, montri ĝin en la indikitaj unuoj
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_IMPERIAL         :Angla-usona sistemo (mejloj hore)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_METRIC           :Metra (km/h)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_SI               :SI-unuoj (m/s)
@@ -2235,35 +2235,35 @@ STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_GAMEUNITS_SECS   :Enludaj unuoj (
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_KNOTS            :Knotoj
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER                     :Unuoj de veturila povumo: {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER_HELPTEXT            :Kiam ajn montriĝas povumo de veturilo en la uzantinterfaco, montru ĝin en la indikitaj unuoj (ĉevalpovoj aŭ kilovatoj)
+STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER_HELPTEXT            :Kiam ajn montriĝas povumo de veturilo en la uzantinterfaco, montri ĝin en la indikitaj unuoj (ĉevalpovoj aŭ kilovatoj)
 ###length 3
 STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER_IMPERIAL            :Angla-usona sistemo (ĈP)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER_METRIC              :Metraj (ĈP)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_POWER_SI                  :SI-unuoj (kW)
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT                    :Pezunuoj: {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT_HELPTEXT           :Kiam ajn montriĝas pezo en la uzantinterfaco, montru ĝin en la indikitaj unuoj
+STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT_HELPTEXT           :Kiam ajn montriĝas pezo en la uzantinterfaco, montri ĝin en la indikitaj unuoj
 ###length 3
 STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT_IMPERIAL           :Angla-usona sistemo (angla/"mallonga" tuno)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT_METRIC             :Metraj (t/metra tuno)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_WEIGHT_SI                 :SI-unuoj (kg)
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME                    :Volumenaj unuoj: {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME_HELPTEXT           :Kiam ajn montriĝas volumeno en la uzantinterfaco, montru ĝin en la indikitaj unuoj
+STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME_HELPTEXT           :Kiam ajn montriĝas volumeno en la uzantinterfaco, montri ĝin en la indikitaj unuoj
 ###length 3
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME_IMPERIAL           :Angla-usona sistemo (galjonoj)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME_METRIC             :Metraj (l)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VOLUME_SI                 :SI-unuoj (m³)
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE                     :Unuoj por trakcia forto: {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE_HELPTEXT            :Kiam ajn montriĝas trakcia forto en la uzantinterfaco, montru ĝin en la indikitaj unuoj
+STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE_HELPTEXT            :Kiam ajn montriĝas trakcia forto en la uzantinterfaco, montri ĝin en la indikitaj unuoj
 ###length 3
 STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE_IMPERIAL            :Angla-usona sistemo (funto-forto, lbf)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE_METRIC              :Metraj (kgf)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_FORCE_SI                  :SI-unuoj (kN)
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT                    :Altecunuoj: {STRING}
-STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT_HELPTEXT           :Kiam ajn montriĝas alteco en la uzantinterfaco, montru ĝin en la indikitaj unuoj
+STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT_HELPTEXT           :Kiam ajn montriĝas alteco en la uzantinterfaco, montri ĝin en la indikitaj unuoj
 ###length 4
 STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT_IMPERIAL           :Angla-usona sistemo (futoj)
 STR_CONFIG_SETTING_LOCALISATION_UNITS_HEIGHT_METRIC             :Metra (m)
@@ -2372,8 +2372,8 @@ STR_QUIT_NO                                                     :{BLACK}Ne
 
 # Abandon game
 STR_ABANDON_GAME_CAPTION                                        :{WHITE}Foriri de la ludo
-STR_ABANDON_GAME_QUERY                                          :{YELLOW}Ĉu vi certas ke vi volas foriri?
-STR_ABANDON_SCENARIO_QUERY                                      :{YELLOW}Ĉu vi certas ke vi volas forlasi ĉi tiun scenaron?
+STR_ABANDON_GAME_QUERY                                          :{YELLOW}Ĉu vi certas, ke vi volas foriri?
+STR_ABANDON_SCENARIO_QUERY                                      :{YELLOW}Ĉu vi certas, ke vi volas forlasi ĉi tiun scenaron?
 
 # Help window
 STR_HELP_WINDOW_CAPTION                                         :{WHITE}Helpo & manlibroj
@@ -2406,15 +2406,15 @@ STR_CHEAT_STATION_RATING                                        :{LTBLUE}Fiksi t
 # Livery window
 STR_LIVERY_CAPTION                                              :{WHITE}{COMPANY} - kolorskemo
 
-STR_LIVERY_GENERAL_TOOLTIP                                      :{BLACK}Montru ĝeneralajn kolorskemojn
-STR_LIVERY_TRAIN_TOOLTIP                                        :{BLACK}Montru vagonarajn kolorskemojn
-STR_LIVERY_ROAD_VEHICLE_TOOLTIP                                 :{BLACK}Montru stratveturilajn kolorskemojn
-STR_LIVERY_SHIP_TOOLTIP                                         :{BLACK}Montru ŝipkolorajn skemojn
-STR_LIVERY_AIRCRAFT_TOOLTIP                                     :{BLACK}Montru aviadilajn kolorskemojn
-STR_LIVERY_TRAIN_GROUP_TOOLTIP                                  :{BLACK}Montru kolorojn de vagonaraj grupoj
-STR_LIVERY_ROAD_VEHICLE_GROUP_TOOLTIP                           :{BLACK}Montru kolorojn de stratveturilaj grupoj
-STR_LIVERY_SHIP_GROUP_TOOLTIP                                   :{BLACK}Montru kolorojn de ŝipaj grupoj
-STR_LIVERY_AIRCRAFT_GROUP_TOOLTIP                               :{BLACK}Montru kolorojn de aviadilaj grupoj
+STR_LIVERY_GENERAL_TOOLTIP                                      :{BLACK}Montri ĝeneralajn kolorskemojn
+STR_LIVERY_TRAIN_TOOLTIP                                        :{BLACK}Montri vagonarajn kolorskemojn
+STR_LIVERY_ROAD_VEHICLE_TOOLTIP                                 :{BLACK}Montri stratveturilajn kolorskemojn
+STR_LIVERY_SHIP_TOOLTIP                                         :{BLACK}Montri ŝipkolorajn skemojn
+STR_LIVERY_AIRCRAFT_TOOLTIP                                     :{BLACK}Montri aviadilajn kolorskemojn
+STR_LIVERY_TRAIN_GROUP_TOOLTIP                                  :{BLACK}Montri kolorojn de vagonaraj grupoj
+STR_LIVERY_ROAD_VEHICLE_GROUP_TOOLTIP                           :{BLACK}Montri kolorojn de stratveturilaj grupoj
+STR_LIVERY_SHIP_GROUP_TOOLTIP                                   :{BLACK}Montri kolorojn de ŝipaj grupoj
+STR_LIVERY_AIRCRAFT_GROUP_TOOLTIP                               :{BLACK}Montri kolorojn de aviadilaj grupoj
 STR_LIVERY_PRIMARY_TOOLTIP                                      :{BLACK}Elektu la unuan koloron por la elektita skemo. Stir+Klaku por aktivigi tiun koloron je ĉiuj skemoj
 STR_LIVERY_SECONDARY_TOOLTIP                                    :{BLACK}Elektu la duan koloron por la elektita skemo. Stir+Klaku por aktivigi tiun koloron je ĉiuj skemoj
 STR_LIVERY_PANEL_TOOLTIP                                        :{BLACK}Elektu la kolorskemon ŝanĝendan, aŭ plurajn per CTRL+click. Alklaku kvadraton por uzi/ne uzi skemon
@@ -2657,7 +2657,7 @@ STR_NETWORK_ASK_RELAY_YES_ALWAYS                                :{BLACK}Jes, ne 
 
 STR_NETWORK_ASK_SURVEY_CAPTION                                  :Partopreni aŭtomatan sondadon?
 STR_NETWORK_ASK_SURVEY_TEXT                                     :Ĉu vi volas partopreni la aŭtomatan sondadon?{}OpenTTD sendos sondaĵon post foriro el ludo.{}Vi povas ŝanĝi tion ĉi iam ajn sub "Ludaj agordoj".
-STR_NETWORK_ASK_SURVEY_PREVIEW                                  :Antaŭmontru sondaĵrezulton
+STR_NETWORK_ASK_SURVEY_PREVIEW                                  :Antaŭmontri sondaĵrezulton
 STR_NETWORK_ASK_SURVEY_LINK                                     :Pri sondado kaj privateco
 STR_NETWORK_ASK_SURVEY_NO                                       :Ne
 STR_NETWORK_ASK_SURVEY_YES                                      :Jes
@@ -3107,7 +3107,7 @@ STR_WATERWAYS_TOOLBAR_BUILD_DOCK_TOOLTIP                        :{BLACK}Konstrui
 STR_WATERWAYS_TOOLBAR_BUOY_TOOLTIP                              :{BLACK}Meti buon, kiu povas esti uzata kiel vojpunkto. Ankaŭ premu la majuskligan klavon por nur montri kostotakson
 STR_WATERWAYS_TOOLBAR_BUILD_AQUEDUCT_TOOLTIP                    :{BLACK}Konstrui akvodukton. Ankaŭ premu majuskligan klavon por nur montri kostotakson
 STR_WATERWAYS_TOOLBAR_CREATE_LAKE_TOOLTIP                       :{BLACK}Konstrui kanalon. Stir+Klaku ĉe marnivelo por inundi per marakvo
-STR_WATERWAYS_TOOLBAR_CREATE_RIVER_TOOLTIP                      :{BLACK}Metu riverojn. Stir+Klaku por elekti diagonale
+STR_WATERWAYS_TOOLBAR_CREATE_RIVER_TOOLTIP                      :{BLACK}Meti riverojn. Stir+Klaku por elekti diagonale
 
 # Ship depot construction window
 STR_DEPOT_BUILD_SHIP_CAPTION                                    :{WHITE}Direkto de la ŝipgaraĝo
@@ -3254,7 +3254,7 @@ STR_INDUSTRY_CARGOES_HOUSES                                     :{WHITE}Domoj
 STR_INDUSTRY_CARGOES_INDUSTRY_TOOLTIP                           :{BLACK}Alklaku la industrion por vidi ĝia provizanoj kaj klientoj
 STR_INDUSTRY_CARGOES_CARGO_TOOLTIP                              :{BLACK}{STRING}{}Alklaku la ŝarĝon por vidi ĝia provizantoj kaj klientoj
 STR_INDUSTRY_DISPLAY_CHAIN                                      :{BLACK}Industria ĉeno
-STR_INDUSTRY_DISPLAY_CHAIN_TOOLTIP                              :{BLACK}Montru ŝarĝoj provizantajn kaj akceptantajn industriojn
+STR_INDUSTRY_DISPLAY_CHAIN_TOOLTIP                              :{BLACK}Montri ŝarĝo-provizantajn kaj akceptantajn industriojn
 STR_INDUSTRY_CARGOES_NOTIFY_SMALLMAP                            :{BLACK}Sinsekvigu al karteto
 STR_INDUSTRY_CARGOES_NOTIFY_SMALLMAP_TOOLTIP                    :{BLACK}Ankaŭ elektu la montrajn industriojn je la karteto
 STR_INDUSTRY_CARGOES_SELECT_CARGO                               :{BLACK}Elekti ŝarĝon
@@ -3456,8 +3456,8 @@ STR_FRAMETIME_CAPTION_AI                                        :AI {NUM} {STRIN
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Konservi ludon
 STR_SAVELOAD_LOAD_CAPTION                                       :{WHITE}Ŝarĝi ludon
 STR_SAVELOAD_SAVE_SCENARIO                                      :{WHITE}Konservi scenaron
-STR_SAVELOAD_LOAD_SCENARIO                                      :{WHITE}Ŝarĝu scenaron
-STR_SAVELOAD_LOAD_HEIGHTMAP                                     :{WHITE}Ŝarĝu altecmapon
+STR_SAVELOAD_LOAD_SCENARIO                                      :{WHITE}Ŝarĝi scenaron
+STR_SAVELOAD_LOAD_HEIGHTMAP                                     :{WHITE}Ŝarĝi altecmapon
 STR_SAVELOAD_SAVE_HEIGHTMAP                                     :{WHITE}Konservi altecmapon
 STR_SAVELOAD_LOAD_TOWN_DATA                                     :{WHITE}Ŝarĝi urbodatumon
 STR_SAVELOAD_HOME_BUTTON_TOOLTIP                                :{BLACK}Klaku ĉi tie por salti al la nuna defaŭlta konserva dosierujo
@@ -3469,8 +3469,8 @@ STR_SAVELOAD_DELETE_TOOLTIP                                     :{BLACK}Forviŝu
 STR_SAVELOAD_SAVE_BUTTON                                        :{BLACK}Konservi
 STR_SAVELOAD_SAVE_TOOLTIP                                       :{BLACK}Konservi la nunan ludon per la elektita nomo
 STR_SAVELOAD_LOAD_BUTTON                                        :{BLACK}Ŝarĝu
-STR_SAVELOAD_LOAD_TOOLTIP                                       :{BLACK}Ŝarĝu la elektan ludon
-STR_SAVELOAD_LOAD_HEIGHTMAP_TOOLTIP                             :{BLACK}Ŝarĝu la elektitan altecmapon
+STR_SAVELOAD_LOAD_TOOLTIP                                       :{BLACK}Ŝarĝi la elektitan ludon
+STR_SAVELOAD_LOAD_HEIGHTMAP_TOOLTIP                             :{BLACK}Ŝarĝi la elektitan altecmapon
 STR_SAVELOAD_LOAD_TOWN_DATA_TOOLTIP                             :{BLACK}Ŝarĝi la datumon de elektita urbo
 STR_SAVELOAD_DETAIL_CAPTION                                     :{BLACK}Detaloj de la ludo
 STR_SAVELOAD_DETAIL_NOT_AVAILABLE                               :{BLACK}Ne disponeblas informoj
@@ -3493,7 +3493,7 @@ STR_MAPGEN_MAPSIZE_TOOLTIP                                      :{BLACK}Selektu 
 STR_MAPGEN_BY                                                   :{BLACK}*
 STR_MAPGEN_NUMBER_OF_TOWNS                                      :{BLACK}Kiom da urboj:
 STR_MAPGEN_NUMBER_OF_TOWNS_TOOLTIP                              :{BLACK}Elektu densecon de domoj, aŭ specifan nombron
-STR_MAPGEN_TOWN_NAME_LABEL                                      :{BLACK}Urbonomoj
+STR_MAPGEN_TOWN_NAME_LABEL                                      :{BLACK}Urbonomoj:
 STR_MAPGEN_TOWN_NAME_DROPDOWN_TOOLTIP                           :{BLACK}Elektu stilon de urbonomoj
 STR_MAPGEN_DATE                                                 :{BLACK}Dato:
 STR_MAPGEN_DATE_TOOLTIP                                         :{BLACK}Elektu komencan daton
@@ -3516,7 +3516,7 @@ STR_MAPGEN_AVERAGE_HEIGHT                                       :{BLACK}Meznombr
 STR_MAPGEN_SEA_LEVEL                                            :{BLACK}Marnivelo:
 STR_MAPGEN_SEA_LEVEL_TOOLTIP                                    :{BLACK}Elektu marnivelon
 STR_MAPGEN_QUANTITY_OF_RIVERS                                   :{BLACK}Riveroj:
-STR_MAPGEN_SMOOTHNESS                                           :{BLACK}Reguleco:
+STR_MAPGEN_SMOOTHNESS                                           :{BLACK}Glateco:
 STR_MAPGEN_VARIETY                                              :{BLACK}Diverseca distribuo:
 STR_MAPGEN_GENERATE                                             :{WHITE}Generu
 STR_MAPGEN_GENERATE_TOOLTIP                                     :{BLACK}Kreu la mondon kaj ludu OpenTTD!
@@ -3528,12 +3528,12 @@ STR_MAPGEN_GS_SETTINGS                                          :{BLACK}Ludoskri
 STR_MAPGEN_GS_SETTINGS_TOOLTIP                                  :{BLACK}Malfermi ludoskriptajn agordojn
 
 ###length 21
-STR_MAPGEN_TOWN_NAME_ORIGINAL_ENGLISH                           :Angle (Originale)
+STR_MAPGEN_TOWN_NAME_ORIGINAL_ENGLISH                           :Angle (originalaj)
 STR_MAPGEN_TOWN_NAME_FRENCH                                     :France
 STR_MAPGEN_TOWN_NAME_GERMAN                                     :Germane
-STR_MAPGEN_TOWN_NAME_ADDITIONAL_ENGLISH                         :Angle (Aldone)
+STR_MAPGEN_TOWN_NAME_ADDITIONAL_ENGLISH                         :Angle (aldonaj)
 STR_MAPGEN_TOWN_NAME_LATIN_AMERICAN                             :Latin-Amerike
-STR_MAPGEN_TOWN_NAME_SILLY                                      :Angle (Stulte)
+STR_MAPGEN_TOWN_NAME_SILLY                                      :Angle (stultaj)
 STR_MAPGEN_TOWN_NAME_SWEDISH                                    :Svede
 STR_MAPGEN_TOWN_NAME_DUTCH                                      :Nederlande
 STR_MAPGEN_TOWN_NAME_FINNISH                                    :Finne
@@ -3626,11 +3626,11 @@ STR_TOWN_DATA_ERROR_FAILED_TO_FOUND_TOWN                        :Ne povas trovi 
 # NewGRF settings
 STR_NEWGRF_SETTINGS_CAPTION                                     :{WHITE}NewGRF-Agordoj
 STR_NEWGRF_SETTINGS_INFO_TITLE                                  :{WHITE}Detalaj informoj de NewGRF
-STR_NEWGRF_SETTINGS_ACTIVE_LIST                                 :{WHITE}Aktivaj dosieroj de NewGRF
-STR_NEWGRF_SETTINGS_INACTIVE_LIST                               :{WHITE}Malaktiva dosieroj de NewGRF
+STR_NEWGRF_SETTINGS_ACTIVE_LIST                                 :{WHITE}Aktivaj NewGRF-dosieroj
+STR_NEWGRF_SETTINGS_INACTIVE_LIST                               :{WHITE}Malaktivaj NewGRF-dosieroj
 STR_NEWGRF_SETTINGS_SELECT_PRESET                               :{ORANGE}Elektu antaŭaro:
 STR_NEWGRF_FILTER_TITLE                                         :{ORANGE}Filtrilo:
-STR_NEWGRF_SETTINGS_PRESET_LIST_TOOLTIP                         :{BLACK}Ŝarĝu la elektan antaŭaron
+STR_NEWGRF_SETTINGS_PRESET_LIST_TOOLTIP                         :{BLACK}Ŝarĝi la elektan antaŭaron
 STR_NEWGRF_SETTINGS_PRESET_SAVE                                 :{BLACK}Konservi antaŭagordon
 STR_NEWGRF_SETTINGS_PRESET_SAVE_TOOLTIP                         :{BLACK}Konservi la nunan liston kiel antaŭagordo
 STR_NEWGRF_SETTINGS_PRESET_DELETE                               :{BLACK}Forviŝu antaŭaron
@@ -3640,7 +3640,7 @@ STR_NEWGRF_SETTINGS_ADD_FILE_TOOLTIP                            :{BLACK}Aldonu l
 STR_NEWGRF_SETTINGS_RESCAN_FILES                                :{BLACK}Reserĉu dosierojn
 STR_NEWGRF_SETTINGS_RESCAN_FILES_TOOLTIP                        :{BLACK}Ĝisdatigu la liston da haveblaj NewGRF-dosieroj
 STR_NEWGRF_SETTINGS_REMOVE                                      :{BLACK}Forviŝu
-STR_NEWGRF_SETTINGS_REMOVE_TOOLTIP                              :{BLACK}Forviŝu la elektitan dosieron de NewGRF el la listo
+STR_NEWGRF_SETTINGS_REMOVE_TOOLTIP                              :{BLACK}Forviŝu la elektitan NewGRF-dosieron el la listo
 STR_NEWGRF_SETTINGS_MOVEUP                                      :{BLACK}Supren
 STR_NEWGRF_SETTINGS_MOVEUP_TOOLTIP                              :{BLACK}Movu la elektitan NewGRF-dosieron supren en la listo
 STR_NEWGRF_SETTINGS_MOVEDOWN                                    :{BLACK}Malsupren
@@ -3650,7 +3650,7 @@ STR_NEWGRF_SETTINGS_UPGRADE_TOOLTIP                             :{BLACK}Ĝisdati
 STR_NEWGRF_SETTINGS_FILE_TOOLTIP                                :{BLACK}Listo da instalitaj NewGRF-dosieroj
 
 STR_NEWGRF_SETTINGS_SET_PARAMETERS                              :{BLACK}Agordu parametrojn
-STR_NEWGRF_SETTINGS_SHOW_PARAMETERS                             :{BLACK}Montru parametrojn
+STR_NEWGRF_SETTINGS_SHOW_PARAMETERS                             :{BLACK}Montri parametrojn
 STR_NEWGRF_SETTINGS_TOGGLE_PALETTE                              :{BLACK}Baskuligi paletron
 STR_NEWGRF_SETTINGS_TOGGLE_PALETTE_TOOLTIP                      :{BLACK}Baskuli paletroj de elektita NewGRF.{}Uzi ĉi tiun agordon, se grafikoj de NewGRF aspektas rozkolora enlude
 STR_NEWGRF_SETTINGS_APPLY_CHANGES                               :{BLACK}Apliku ŝanĝojn
@@ -3769,7 +3769,7 @@ STR_NEWGRF_CONFIRMATION_TEXT                                    :{YELLOW}Vi ŝan
 
 STR_NEWGRF_DUPLICATE_GRFID                                      :Dosiero ne aldoneblas: duobla NewGRF ID
 STR_NEWGRF_COMPATIBLE_LOADED                                    :{ORANGE}Ne troviĝis apartena dosiero (taŭga NewGRF ŝarĝita)
-STR_NEWGRF_TOO_MANY_NEWGRFS                                     :Ne eblas aldoni dosieron: limo de NewGRF-a dosieroj atingita
+STR_NEWGRF_TOO_MANY_NEWGRFS                                     :Ne eblas aldoni dosieron: limo de NewGRF-aj dosieroj atingita
 
 STR_NEWGRF_COMPATIBLE_LOAD_WARNING                              :Taŭga(j) NewGRF(oj) ŝarĝiĝis por mankaj dosieroj
 STR_NEWGRF_DISABLED_WARNING                                     :Manka(j) NewGRF-dosiero(j) malŝaltiĝis
@@ -3851,7 +3851,7 @@ STR_TOWN_VIEW_TOWN_GROW_STOPPED                                 :{BLACK}La urbo 
 STR_TOWN_VIEW_NOISE_IN_TOWN                                     :{BLACK}Urba brulimo: {ORANGE}{COMMA}{BLACK}  maks: {ORANGE}{COMMA}
 STR_TOWN_VIEW_CENTER_TOOLTIP                                    :{BLACK}Centri ĉefvidon ĉe la urbo. Stir+Klak por malfermi novan vidujon ĉe la urba loko
 STR_TOWN_VIEW_LOCAL_AUTHORITY_BUTTON                            :{BLACK}Lokaj estroj
-STR_TOWN_VIEW_LOCAL_AUTHORITY_TOOLTIP                           :{BLACK}Montru informojn pri lokaj estroj
+STR_TOWN_VIEW_LOCAL_AUTHORITY_TOOLTIP                           :{BLACK}Montri informojn pri lokaj estroj
 STR_TOWN_VIEW_RENAME_TOOLTIP                                    :{BLACK}Ŝanĝu urbonomon
 STR_TOWN_VIEW_CARGO_GRAPH                                       :Ŝarĝodiagramo
 STR_TOWN_VIEW_CARGO_GRAPH_TOOLTIP                               :Montri diagramon de ŝarĝohistorio de urbo
@@ -3870,7 +3870,7 @@ STR_TOWN_VIEW_RENAME_TOWN_BUTTON                                :Alinomi urbon
 # Town local authority window
 STR_LOCAL_AUTHORITY_CAPTION                                     :{WHITE}Lokaj estroj de {TOWN}
 STR_LOCAL_AUTHORITY_ZONE                                        :{BLACK}Zono
-STR_LOCAL_AUTHORITY_ZONE_TOOLTIP                                :{BLACK}Montru la zonon ene de la limoj de la lokaj estroj
+STR_LOCAL_AUTHORITY_ZONE_TOOLTIP                                :{BLACK}Montri la zonon ene de la limoj de la lokaj estroj
 STR_LOCAL_AUTHORITY_COMPANY_RATINGS                             :{BLACK}Takso de transportkompanioj:
 STR_LOCAL_AUTHORITY_COMPANY_RATING                              :{YELLOW}{COMPANY} {COMPANY_NUM}: {ORANGE}{STRING}
 STR_LOCAL_AUTHORITY_ACTIONS_TITLE                               :{BLACK}Haveblaj agoj:
@@ -3997,7 +3997,7 @@ STR_STATION_VIEW_EXCLUSIVE_RIGHTS_SELF                          :{BLACK}Tiu ĉi 
 STR_STATION_VIEW_EXCLUSIVE_RIGHTS_COMPANY                       :{YELLOW}{COMPANY}{BLACK} aĉetis ekskluzivajn transportrajtojn en tiu ĉi urbo.
 
 STR_STATION_VIEW_RATINGS_BUTTON                                 :{BLACK}Takso
-STR_STATION_VIEW_RATINGS_TOOLTIP                                :{BLACK}Montru stacian takson
+STR_STATION_VIEW_RATINGS_TOOLTIP                                :{BLACK}Montri staciajn taksojn
 STR_STATION_VIEW_SUPPLY_RATINGS_TITLE_MONTH                     :{BLACK}Provizado po monato kaj lokaj taksoj:
 STR_STATION_VIEW_SUPPLY_RATINGS_TITLE_MINUTE                    :{BLACK}Provizado po minuto kaj lokaj taksoj:
 STR_STATION_VIEW_CARGO_SUPPLY_RATING                            :{WHITE}{STRING}: {YELLOW}{COMMA} / {STRING} ({COMMA}%)
@@ -4038,10 +4038,10 @@ STR_CARGO_RATING_OUTSTANDING                                    :Elstare bonege
 STR_STATION_VIEW_CENTER_TOOLTIP                                 :{BLACK}Centri ĉefvidon ĉe la stacio. Stir+Klaku por malfermi novan vidujon ĉe la stacioloko
 STR_STATION_VIEW_EDIT_TOOLTIP                                   :{BLACK}Alinomi stacion aŭ movi ŝildon
 
-STR_STATION_VIEW_SCHEDULED_TRAINS_TOOLTIP                       :{BLACK}Montru ĉiujn vagonarojn kun ĉi tiu stacio en la plano
-STR_STATION_VIEW_SCHEDULED_ROAD_VEHICLES_TOOLTIP                :{BLACK}Montru ĉiujn stratveturilojn kun ĉi tiu stacio en la plano
-STR_STATION_VIEW_SCHEDULED_AIRCRAFT_TOOLTIP                     :{BLACK}Montru ĉiujn aviadilojn kun ĉi tiu stacio en la plano
-STR_STATION_VIEW_SCHEDULED_SHIPS_TOOLTIP                        :{BLACK}Montru ĉiujn ŝipojn kun ĉi tiu stacio en la plano
+STR_STATION_VIEW_SCHEDULED_TRAINS_TOOLTIP                       :{BLACK}Montri ĉiujn vagonarojn, enhavantajn ĉi tiun stacion en sia horaro
+STR_STATION_VIEW_SCHEDULED_ROAD_VEHICLES_TOOLTIP                :{BLACK}Montri ĉiujn stratveturilojn, enhavantajn ĉi tiun stacion en sia horaro
+STR_STATION_VIEW_SCHEDULED_AIRCRAFT_TOOLTIP                     :{BLACK}Montri ĉiujn aviadilojn, enhavantajn ĉi tiun stacion en sia horaro
+STR_STATION_VIEW_SCHEDULED_SHIPS_TOOLTIP                        :{BLACK}Montri ĉiujn ŝipojn, enhavantajn ĉi tiun stacion en sia horaro
 
 STR_STATION_VIEW_EDIT_STATION_SIGN                              :{WHITE}Redakti ŝildon de stacio
 
@@ -4401,10 +4401,10 @@ STR_BUY_VEHICLE_SHIP_HIDE_TOGGLE_BUTTON                         :{BLACK}Kaŝu
 STR_BUY_VEHICLE_AIRCRAFT_HIDE_TOGGLE_BUTTON                     :{BLACK}Kaŝu
 
 ###length VEHICLE_TYPES
-STR_BUY_VEHICLE_TRAIN_SHOW_TOGGLE_BUTTON                        :{BLACK}Montru
-STR_BUY_VEHICLE_ROAD_VEHICLE_SHOW_TOGGLE_BUTTON                 :{BLACK}Montru
-STR_BUY_VEHICLE_SHIP_SHOW_TOGGLE_BUTTON                         :{BLACK}Montru
-STR_BUY_VEHICLE_AIRCRAFT_SHOW_TOGGLE_BUTTON                     :{BLACK}Montru
+STR_BUY_VEHICLE_TRAIN_SHOW_TOGGLE_BUTTON                        :{BLACK}Montri
+STR_BUY_VEHICLE_ROAD_VEHICLE_SHOW_TOGGLE_BUTTON                 :{BLACK}Montri
+STR_BUY_VEHICLE_SHIP_SHOW_TOGGLE_BUTTON                         :{BLACK}Montri
+STR_BUY_VEHICLE_AIRCRAFT_SHOW_TOGGLE_BUTTON                     :{BLACK}Montri
 
 ###length VEHICLE_TYPES
 STR_BUY_VEHICLE_TRAIN_HIDE_SHOW_TOGGLE_TOOLTIP                  :{BLACK}Ŝaltu kaŝadon/montradon de vagonara tipo
@@ -4634,10 +4634,10 @@ STR_VEHICLE_VIEW_SHIP_ORDERS_TOOLTIP                            :{BLACK}Montri o
 STR_VEHICLE_VIEW_AIRCRAFT_ORDERS_TOOLTIP                        :{BLACK}Montri ordonojn de la aviadilo. Stir+Klak por montri la horaron.
 
 ###length VEHICLE_TYPES
-STR_VEHICLE_VIEW_TRAIN_SHOW_DETAILS_TOOLTIP                     :{BLACK}Montru vagonarajn detalojn. Stir+Klaku por montri grupon de vagonaro
-STR_VEHICLE_VIEW_ROAD_VEHICLE_SHOW_DETAILS_TOOLTIP              :{BLACK}Montru stratveturilajn detalojn. Stir+Klaku por montri la grupon de veturilo
-STR_VEHICLE_VIEW_SHIP_SHOW_DETAILS_TOOLTIP                      :{BLACK}Montru ŝipajn detalojn. Stir+Klaku por montri la ŝipan grupon
-STR_VEHICLE_VIEW_AIRCRAFT_SHOW_DETAILS_TOOLTIP                  :{BLACK}Montru aviadilajn detalojn. Stir+Klaku por montri grupon de aviadilo
+STR_VEHICLE_VIEW_TRAIN_SHOW_DETAILS_TOOLTIP                     :{BLACK}Montri vagonarajn detalojn. Stir+Klaku por montri grupon de vagonaro
+STR_VEHICLE_VIEW_ROAD_VEHICLE_SHOW_DETAILS_TOOLTIP              :{BLACK}Montri stratveturilajn detalojn. Stir+Klaku por montri la grupon de veturilo
+STR_VEHICLE_VIEW_SHIP_SHOW_DETAILS_TOOLTIP                      :{BLACK}Montri ŝipajn detalojn. Stir+Klaku por montri la ŝipan grupon
+STR_VEHICLE_VIEW_AIRCRAFT_SHOW_DETAILS_TOOLTIP                  :{BLACK}Montri aviadilajn detalojn. Stir+Klaku por montri grupon de aviadilo
 
 ###length VEHICLE_TYPES
 STR_VEHICLE_VIEW_TRAIN_STATUS_START_STOP_TOOLTIP                :{BLACK}Nuna ago de la vagonaro - klaku por haltigi/ekigi la vagonaron
@@ -4744,13 +4744,13 @@ STR_VEHICLE_DETAILS_CARGO_FROM                                  :{LTBLUE}{CARGO_
 STR_VEHICLE_DETAILS_CARGO_FROM_MULT                             :{LTBLUE}{CARGO_LONG} de {STATION} (x{NUM})
 
 STR_VEHICLE_DETAIL_TAB_CARGO                                    :{BLACK}Ŝarĝo
-STR_VEHICLE_DETAILS_TRAIN_CARGO_TOOLTIP                         :{BLACK}Montru detalojn de portata ŝarĝo
+STR_VEHICLE_DETAILS_TRAIN_CARGO_TOOLTIP                         :{BLACK}Montri detalojn de portata ŝarĝo
 STR_VEHICLE_DETAIL_TAB_INFORMATION                              :{BLACK}Informoj
-STR_VEHICLE_DETAILS_TRAIN_INFORMATION_TOOLTIP                   :{BLACK}Montru detalojn de vagonaroj
+STR_VEHICLE_DETAILS_TRAIN_INFORMATION_TOOLTIP                   :{BLACK}Montri detalojn de vagonaroj
 STR_VEHICLE_DETAIL_TAB_CAPACITIES                               :{BLACK}Kapabloj
-STR_VEHICLE_DETAILS_TRAIN_CAPACITIES_TOOLTIP                    :{BLACK}Montru kapablojn de ĉiu veturilo
+STR_VEHICLE_DETAILS_TRAIN_CAPACITIES_TOOLTIP                    :{BLACK}Montri kapablojn de ĉiu veturilo
 STR_VEHICLE_DETAIL_TAB_TOTAL_CARGO                              :{BLACK}Tuta Ŝarĝo
-STR_VEHICLE_DETAILS_TRAIN_TOTAL_CARGO_TOOLTIP                   :{BLACK}Montru tutan kapablon de vagonaro, dividite laŭ ŝarĝtipo
+STR_VEHICLE_DETAILS_TRAIN_TOTAL_CARGO_TOOLTIP                   :{BLACK}Montri tutan kapablon de vagonaro, dividite laŭ ŝarĝtipo
 
 STR_VEHICLE_DETAILS_TRAIN_ARTICULATED_RV_CAPACITY               :{BLACK}Kapacito: {LTBLUE}{STRING}
 
@@ -4877,7 +4877,7 @@ STR_ORDER_CONDITIONAL                                           :Kondiĉe transs
 STR_ORDER_SHARE                                                 :Kunhavu ordonojn
 STR_ORDERS_GO_TO_TOOLTIP                                        :{BLACK}Enigi novan ordonon antaŭ la elektita ordono, aŭ aldoni fine de la listo. Stir+Klaku sur la stacion por ordono 'plenŝargu ia kargo', sur la vojpunkto por maligi la agordon 'ne haltu defaŭlte', aŭ sur veturiltenejo por ordono 'distancigi'. Klaku sur alia veturilo por kopii ties ordonojn, aŭ Stir+Klaku por kunhavigi ordonojn. Veturilteneja ordono malebligas aŭtomatan prizorgadon de la veturilo
 
-STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP                  :{BLACK}Montru ĉiujn veturilojn kiuj dividas ĉi tiun planon
+STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP                  :{BLACK}Montri ĉiujn veturilojn, kiuj dividas ĉi tiun planon
 
 # String parts to build the order string
 STR_ORDER_GO_TO_WAYPOINT                                        :Iru laŭ {WAYPOINT}
@@ -5070,9 +5070,9 @@ STR_AI_CONFIG_GAMESCRIPT                                        :{SILVER}Ludoskr
 STR_AI_CONFIG_GAMESCRIPT_PARAM                                  :{SILVER}Parametroj
 STR_AI_CONFIG_AI                                                :{SILVER}AIj
 
-STR_AI_CONFIG_CHANGE_AI                                         :{BLACK}Elektu AIon
-STR_AI_CONFIG_CHANGE_GAMESCRIPT                                 :{BLACK}Elektu ludoskripton
-STR_AI_CONFIG_CHANGE_TOOLTIP                                    :{BLACK}Ŝarĝu alian skripton. Stir+Klak por montri ĉiujn haveblajn versiojn
+STR_AI_CONFIG_CHANGE_AI                                         :{BLACK}Elekti AIon
+STR_AI_CONFIG_CHANGE_GAMESCRIPT                                 :{BLACK}Elekti ludoskripton
+STR_AI_CONFIG_CHANGE_TOOLTIP                                    :{BLACK}Ŝarĝi alian skripton. Stir+Klak por montri ĉiujn haveblajn versiojn
 STR_AI_CONFIG_CONFIGURE                                         :{BLACK}Agordi
 STR_AI_CONFIG_CONFIGURE_TOOLTIP                                 :{BLACK}Agordi parametroj de la skripto
 
@@ -5100,7 +5100,7 @@ STR_SCREENSHOT_MINIMAP_SCREENSHOT                               :{BLACK}Ekrankap
 # Script Parameters
 STR_AI_SETTINGS_CAPTION_AI                                      :{WHITE}Agordoj de AI
 STR_AI_SETTINGS_CAPTION_GAMESCRIPT                              :{WHITE}Agordoj de ludoskripto
-STR_AI_SETTINGS_RESET                                           :{BLACK}Reŝargo
+STR_AI_SETTINGS_RESET                                           :{BLACK}Restarigi
 STR_AI_SETTINGS_SETTING                                         :{STRING}: {ORANGE}{STRING}
 
 
@@ -5113,11 +5113,11 @@ STR_TEXTFILE_NAVFORWARD_TOOLTIP                                 :{BLACK}Iri anta
 STR_TEXTFILE_WRAP_TEXT                                          :{WHITE}Faldi tekstoliniojn
 STR_TEXTFILE_WRAP_TEXT_TOOLTIP                                  :{BLACK}Faldu tekstoliniojn en la fenestro por ke ĉio estu videbla sen rulumado
 STR_TEXTFILE_VIEW_README                                        :{BLACK}"Legu min"
-STR_TEXTFILE_VIEW_README_TOOLTIP                                :Montru la dosieron "legu min" de tiu ĉi enhavo
+STR_TEXTFILE_VIEW_README_TOOLTIP                                :Montri la dosieron "legu min" de tiu ĉi enhavo
 STR_TEXTFILE_VIEW_CHANGELOG                                     :{BLACK}Ŝanĝarĥivo
-STR_TEXTFILE_VIEW_CHANGELOG_TOOLTIP                             :Montru la ŝanĝarĥivon de tiu ĉi enhavo
+STR_TEXTFILE_VIEW_CHANGELOG_TOOLTIP                             :Montri la ŝanĝarĥivon de tiu ĉi enhavo
 STR_TEXTFILE_VIEW_LICENCE                                       :{BLACK}Licenco
-STR_TEXTFILE_VIEW_LICENCE_TOOLTIP                               :Montru la permesilon de tiu ĉi enhavo
+STR_TEXTFILE_VIEW_LICENCE_TOOLTIP                               :Montri la licencon aŭ permesilon de tiu ĉi enhavo
 ###length 5
 STR_TEXTFILE_README_CAPTION                                     :{WHITE}{STRING} legumin de {STRING}
 STR_TEXTFILE_CHANGELOG_CAPTION                                  :{WHITE}{STRING}-a ŝanĝarĥivo de {STRING}

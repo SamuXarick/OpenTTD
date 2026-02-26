@@ -2984,7 +2984,7 @@ STR_NETWORK_ERROR_WRONG_PASSWORD                                :Złe hasło
 STR_NETWORK_ERROR_NOT_ON_ALLOW_LIST                             :Nie ma cię na liście dopuszczonych klientów
 STR_NETWORK_ERROR_SERVER_FULL                                   :Serwer jest pełny
 STR_NETWORK_ERROR_SERVER_BANNED                                 :Masz zakaz dostępu do tego serwera
-STR_NETWORK_ERROR_KICKED                                        :{WHITE}Wyrzucono cię z rozgrywki
+STR_NETWORK_ERROR_KICKED                                        :Wyrzucono cię z rozgrywki
 STR_NETWORK_ERROR_KICK_MESSAGE                                  :{WHITE}Powód: {STRING}
 STR_NETWORK_ERROR_CHEATER                                       :{WHITE}Ułatwienia są niedozwolone na tym serwerze
 STR_NETWORK_ERROR_TOO_MANY_COMMANDS                             :{WHITE}Wysyłano zbyt dużo komend na serwer
@@ -3125,7 +3125,7 @@ STR_CONTENT_DOWNLOAD_PROGRESS_SIZE                              :{WHITE}Pobrano 
 STR_CONTENT_ERROR_COULD_NOT_CONNECT                             :Nie można połączyć się z serwerem dodatków...
 STR_CONTENT_ERROR_COULD_NOT_DOWNLOAD                            :Pobieranie nie powiodło się...
 STR_CONTENT_ERROR_COULD_NOT_DOWNLOAD_FILE_NOT_WRITABLE          :plik tylko do odczytu
-STR_CONTENT_ERROR_COULD_NOT_EXTRACT                             :{WHITE}Nie udało się dekompresować pobranego pliku
+STR_CONTENT_ERROR_COULD_NOT_EXTRACT                             :Nie udało się rozpakować pobranego pliku
 
 STR_MISSING_GRAPHICS_SET_CAPTION                                :{WHITE}Brak grafiki
 STR_MISSING_GRAPHICS_SET_MESSAGE                                :{BLACK}OpenTTD potrzebuje grafiki do poprawnego działania, ale żadne nie zostały znalezione. Czy zgadzasz się, żeby OpenTTD pobrał i zainstalował grafikę?
@@ -5443,7 +5443,7 @@ STR_ERROR_COULD_NOT_CREATE_TOWN                                 :Generowanie map
 STR_ERROR_NO_TOWN_IN_SCENARIO                                   :{WHITE}... nie ma żadnego miasta w scenariuszu
 
 STR_ERROR_PNGMAP                                                :Nie można wczytać krajobrazu z PNG...
-STR_ERROR_PNGMAP_FILE_NOT_FOUND                                 :{WHITE}... nie znaleziono pliku
+STR_ERROR_PNGMAP_FILE_NOT_FOUND                                 :nie znaleziono pliku
 STR_ERROR_PNGMAP_IMAGE_TYPE                                     :{WHITE}... nie można konwertować typu obrazu. Wymagany 8- lub 24-bitowy PNG
 STR_ERROR_PNGMAP_MISC                                           :{WHITE}... coś poszło nie tak (prawdopodobnie zepsuty plik)
 
@@ -5477,14 +5477,14 @@ STR_ERROR_NOT_ENOUGH_CASH_REQUIRES_CURRENCY                     :za mało pieni�
 STR_ERROR_FLAT_LAND_REQUIRED                                    :wymagany płaski teren
 STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION                        :teren pochylony w złym kierunku
 STR_ERROR_CAN_T_DO_THIS                                         :{WHITE}Nie można tego zrobić...
-STR_ERROR_BUILDING_MUST_BE_DEMOLISHED                           :należy najpierw zburzyć budynek
+STR_ERROR_BUILDING_MUST_BE_DEMOLISHED                           :najpierw należy zburzyć budynek
 STR_ERROR_BUILDING_IS_PROTECTED                                 :budynek jest chroniony
-STR_ERROR_CAN_T_CLEAR_THIS_AREA                                 :{WHITE}Nie można wyczyścić terenu...
+STR_ERROR_CAN_T_CLEAR_THIS_AREA                                 :Nie można wyczyścić terenu...
 STR_ERROR_SITE_UNSUITABLE                                       :nieodpowiednie miejsce
 STR_ERROR_ALREADY_BUILT                                         :już zbudowano
 STR_ERROR_OWNED_BY                                              :{WHITE}... własność {STRING.d}
 STR_ERROR_AREA_IS_OWNED_BY_ANOTHER                              :teren jest własnością innej firmy
-STR_ERROR_TERRAFORM_LIMIT_REACHED                               :{WHITE}... osiągnięto limit kształtowania terenu
+STR_ERROR_TERRAFORM_LIMIT_REACHED                               :osiągnięto limit kształtowania terenu
 STR_ERROR_CLEARING_LIMIT_REACHED                                :{WHITE}... osiągnięto limit czyszczenia pól
 STR_ERROR_TREE_PLANT_LIMIT_REACHED                              :{WHITE}... wykorzystano limit sadzenia drzew
 STR_ERROR_NAME_MUST_BE_UNIQUE                                   :nazwa nie może się powtarzać
@@ -5506,7 +5506,7 @@ STR_ERROR_ALREADY_AT_SEA_LEVEL                                  :już na poziomi
 STR_ERROR_TOO_HIGH                                              :zbyt wysoko
 STR_ERROR_ALREADY_LEVELLED                                      :już wyrównany
 STR_ERROR_BRIDGE_TOO_HIGH_AFTER_LOWER_LAND                      :most nad nim byłby zbyt wysoko.
-STR_ERROR_MUST_DEMOLISH_RIVER_FIRST                             :{WHITE}Należy najpierw usunąć rzekę
+STR_ERROR_MUST_DEMOLISH_RIVER_FIRST                             :najpierw należy usunąć rzekę
 
 # Company related errors
 STR_ERROR_CAN_T_CHANGE_COMPANY_NAME                             :Nie można zmienić nazwy firmy...
@@ -5517,8 +5517,8 @@ STR_ERROR_CAN_T_BORROW_ANY_MORE_MONEY                           :Nie można poż
 STR_ERROR_LOAN_ALREADY_REPAID                                   :pożyczka już jest spłacona
 STR_ERROR_CURRENCY_REQUIRED                                     :{WHITE}...{CURRENCY_LONG} wymagane
 STR_ERROR_CAN_T_REPAY_LOAN                                      :{WHITE}Nie można zwrócić pożyczki...
-STR_ERROR_INSUFFICIENT_FUNDS                                    :{WHITE}Nie możesz wydać pieniędzy, które są pożyczone z banku...
-STR_ERROR_CAN_T_GIVE_MONEY                                      :Nie możesz przekazać pieniędzy tej firmie...
+STR_ERROR_INSUFFICIENT_FUNDS                                    :Nie można przekazać pieniędzy pożyczonych z banku...
+STR_ERROR_CAN_T_GIVE_MONEY                                      :Nie można przekazać pieniędzy tej firmie...
 STR_ERROR_CAN_T_BUY_COMPANY                                     :Nie można kupić firmy...
 STR_ERROR_CAN_T_BUILD_COMPANY_HEADQUARTERS                      :Nie można zbudować siedziby firmy...
 
@@ -5542,7 +5542,7 @@ STR_ERROR_CAN_T_BUILD_HERE                                      :Nie można tuta
 STR_ERROR_CAN_T_CONSTRUCT_THIS_INDUSTRY                         :Nie można tutaj zbudować przedsiębiorstwa tego typu...
 STR_ERROR_CAN_T_PROSPECT_INDUSTRY                               :{WHITE}Nie można znaleźć przedsiębiorstwa...
 STR_ERROR_INDUSTRY_TOO_CLOSE                                    :zbyt blisko innego przedsiębiorstwa
-STR_ERROR_MUST_FOUND_TOWN_FIRST                                 :{WHITE}... należy najpierw wybudować miasto
+STR_ERROR_MUST_FOUND_TOWN_FIRST                                 :najpierw należy wybudować miasto
 STR_ERROR_ONLY_ONE_ALLOWED_PER_TOWN                             :dozwolone jedno na miasto
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_TOWNS_WITH_POPULATION_OF_1200    :można zbudować jedynie w miastach o populacji przynajmniej 1200
 STR_ERROR_CAN_ONLY_BE_BUILT_IN_RAINFOREST                       :można zbudować tylko na obszarach lasów deszczowych
@@ -5555,7 +5555,7 @@ STR_ERROR_FOREST_CAN_ONLY_BE_PLANTED                            :las może być 
 STR_ERROR_CAN_ONLY_BE_BUILT_ABOVE_SNOW_LINE                     :można zbudować tylko powyżej linii śniegu
 STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :można zbudować tylko poniżej linii śniegu
 
-STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :{WHITE}Ufundowanie pechowo nie powiodło się; spróbuj ponownie
+STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :ufundowanie pechowo nie powiodło się; spróbuj ponownie
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :nie ma odpowiednich miejsc do poszukiwań takiego przedsiębiorstwa
 STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :nie ma odpowiednich miejsc dla przedsiębiorstw „{STRING}”
 STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :zmień parametry tworzenia map, żeby uzyskać lepszą mapę
@@ -5588,21 +5588,21 @@ STR_ERROR_DRIVE_THROUGH_JUNCTION                                :przystanki prze
 
 # Station destruction related errors
 STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :Nie można usunąć części stacji...
-STR_ERROR_MUST_REMOVE_RAILWAY_STATION_FIRST                     :należy najpierw usunąć stację kolejową
+STR_ERROR_MUST_REMOVE_RAILWAY_STATION_FIRST                     :najpierw należy zburzyć stację kolejową
 STR_ERROR_CAN_T_REMOVE_BUS_STATION                              :Nie można usunąć przystanku autobusowego...
 STR_ERROR_CAN_T_REMOVE_TRUCK_STATION                            :Nie można usunąć stacji ciężarówek...
 STR_ERROR_CAN_T_REMOVE_PASSENGER_TRAM_STATION                   :Nie można usunąć przystanku tramwajowego...
 STR_ERROR_CAN_T_REMOVE_CARGO_TRAM_STATION                       :Nie można usunąć tramwajowej stacji załadunkowej...
-STR_ERROR_MUST_REMOVE_ROAD_STOP_FIRST                           :{WHITE}Należy najpierw usunąć przystanek
-STR_ERROR_THERE_IS_NO_STATION                                   :{WHITE}...brak stacji
+STR_ERROR_MUST_REMOVE_ROAD_STOP_FIRST                           :najpierw należy zburzyć przystanek
+STR_ERROR_THERE_IS_NO_STATION                                   :brak stacji
 
-STR_ERROR_MUST_DEMOLISH_RAILROAD                                :{WHITE}Należy najpierw usunąć stację kolejową
-STR_ERROR_MUST_DEMOLISH_BUS_STATION_FIRST                       :należy najpierw usunąć przystanek autobusowy
-STR_ERROR_MUST_DEMOLISH_TRUCK_STATION_FIRST                     :należy najpierw usunąć stację ciężarówek
-STR_ERROR_MUST_DEMOLISH_PASSENGER_TRAM_STATION_FIRST            :{WHITE}Najpierw musisz zburzyć przystanek tramwajowy
-STR_ERROR_MUST_DEMOLISH_CARGO_TRAM_STATION_FIRST                :{WHITE}Najpierw musisz zburzyć tramwajową stację załadunkową
-STR_ERROR_MUST_DEMOLISH_DOCK_FIRST                              :{WHITE}Należy najpierw usunąć port
-STR_ERROR_MUST_DEMOLISH_AIRPORT_FIRST                           :należy najpierw usunąć lotnisko
+STR_ERROR_MUST_DEMOLISH_RAILROAD                                :najpierw należy zburzyć stację kolejową
+STR_ERROR_MUST_DEMOLISH_BUS_STATION_FIRST                       :najpierw należy zburzyć przystanek autobusowy
+STR_ERROR_MUST_DEMOLISH_TRUCK_STATION_FIRST                     :najpierw należy zburzyć stację ciężarówek
+STR_ERROR_MUST_DEMOLISH_PASSENGER_TRAM_STATION_FIRST            :najpierw należy zburzyć przystanek tramwajowy
+STR_ERROR_MUST_DEMOLISH_CARGO_TRAM_STATION_FIRST                :najpierw należy zburzyć tramwajową stację załadunkową
+STR_ERROR_MUST_DEMOLISH_DOCK_FIRST                              :najpierw należy zburzyć port
+STR_ERROR_MUST_DEMOLISH_AIRPORT_FIRST                           :najpierw należy zburzyć lotnisko
 
 # Waypoint related errors
 STR_ERROR_WAYPOINT_ADJOINS_MORE_THAN_ONE_EXISTING               :przylega do więcej niż jednego istniejącego posterunku
@@ -5616,8 +5616,8 @@ STR_ERROR_CAN_T_MOVE_WAYPOINT_NAME                              :Nie można prze
 
 STR_ERROR_CAN_T_REMOVE_RAIL_WAYPOINT                            :Nie można stąd usunąć posterunku kolejowego...
 STR_ERROR_CAN_T_REMOVE_ROAD_WAYPOINT                            :Nie można stąd usunąć posterunku drogowego...
-STR_ERROR_MUST_REMOVE_RAILWAYPOINT_FIRST                        :{WHITE}Należy najpierw usunąć posterunek kolejowy
-STR_ERROR_MUST_REMOVE_ROADWAYPOINT_FIRST                        :należy najpierw usunąć posterunek drogowy
+STR_ERROR_MUST_REMOVE_RAILWAYPOINT_FIRST                        :najpierw należy zburzyć posterunek kolejowy
+STR_ERROR_MUST_REMOVE_ROADWAYPOINT_FIRST                        :najpierw należy zburzyć posterunek drogowy
 STR_ERROR_BUOY_IN_THE_WAY                                       :boja na drodze
 STR_ERROR_BUOY_IS_IN_USE                                        :boja w użyciu przez inna firmę!
 
@@ -5663,9 +5663,9 @@ STR_ERROR_AUTOREPLACE_INCOMPATIBLE_REFIT                        :Nowy pojazd nie
 
 # Rail construction errors
 STR_ERROR_IMPOSSIBLE_TRACK_COMBINATION                          :{WHITE}Niemożliwa kombinacja torów
-STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :{WHITE}Należy najpierw usunąć sygnalizację
+STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :najpierw należy usunąć sygnalizację
 STR_ERROR_NO_SUITABLE_RAILROAD_TRACK                            :brak odpowiednich torów kolejowych
-STR_ERROR_MUST_REMOVE_RAILROAD_TRACK                            :należy najpierw usunąć tory
+STR_ERROR_MUST_REMOVE_RAILROAD_TRACK                            :najpierw należy zburzyć tory
 STR_ERROR_CROSSING_ON_ONEWAY_ROAD                               :droga jest jednokierunkowa lub zablokowana
 STR_ERROR_CROSSING_DISALLOWED_RAIL                              :przejazdy kolejowe nie są dozwolone dla tego typu torów
 STR_ERROR_CROSSING_DISALLOWED_ROAD                              :przejazdy kolejowe nie są dozwolone dla tego typu drogi
@@ -5674,20 +5674,20 @@ STR_ERROR_CAN_T_BUILD_RAILROAD_TRACK                            :Nie można tuta
 STR_ERROR_CAN_T_REMOVE_RAILROAD_TRACK                           :Nie można stąd usunąć torów...
 STR_ERROR_CAN_T_REMOVE_SIGNALS_FROM                             :Nie można stąd usunąć sygnałów...
 STR_ERROR_SIGNAL_CAN_T_CONVERT_SIGNALS_HERE                     :Nie można tutaj zmienić sygnałów...
-STR_ERROR_THERE_IS_NO_RAILROAD_TRACK                            :{WHITE}... brak torów kolejowych
+STR_ERROR_THERE_IS_NO_RAILROAD_TRACK                            :brak torów kolejowych
 STR_ERROR_THERE_ARE_NO_SIGNALS                                  :{WHITE}... brak sygnałów
 
 STR_ERROR_CAN_T_CONVERT_RAIL                                    :Nie można zmienić typu torów w tym miejscu...
 
 # Road construction errors
-STR_ERROR_MUST_REMOVE_ROAD_FIRST                                :należy najpierw usunąć drogę
+STR_ERROR_MUST_REMOVE_ROAD_FIRST                                :najpierw należy zburzyć drogę
 STR_ERROR_ONEWAY_ROADS_CAN_T_HAVE_JUNCTION                      :drogi jednokierunkowe nie mogą mieć skrzyżowań
 STR_ERROR_CAN_T_BUILD_ROAD_HERE                                 :Nie można tutaj zbudować drogi...
 STR_ERROR_CAN_T_BUILD_TRAMWAY_HERE                              :Nie można tutaj zbudować torowiska...
 STR_ERROR_CAN_T_REMOVE_ROAD_FROM                                :Nie można stąd usunąć drogi...
 STR_ERROR_CAN_T_REMOVE_TRAMWAY_FROM                             :Nie można stąd usunąć torowiska...
-STR_ERROR_THERE_IS_NO_ROAD                                      :{WHITE}...brak drogi
-STR_ERROR_THERE_IS_NO_TRAMWAY                                   :{WHITE}...brak torowiska tramwajowego
+STR_ERROR_THERE_IS_NO_ROAD                                      :brak drogi
+STR_ERROR_THERE_IS_NO_TRAMWAY                                   :brak torowiska tramwajowego
 STR_ERROR_CAN_T_CONVERT_ROAD                                    :Nie można zmienić typu drogi w tym miejscu...
 STR_ERROR_CAN_T_CONVERT_TRAMWAY                                 :Nie można zmienić typu torów tramwajowych w tym miejscu...
 STR_ERROR_NO_SUITABLE_ROAD                                      :brak odpowiedniej drogi
@@ -5702,7 +5702,7 @@ STR_ERROR_CAN_T_BUILD_ON_WATER                                  :nie można zbud
 STR_ERROR_CAN_T_BUILD_ON_SEA                                    :nie można zbudować na otwartym morzu
 STR_ERROR_CAN_T_BUILD_ON_CANAL                                  :nie można zbudować na kanale
 STR_ERROR_CAN_T_BUILD_ON_RIVER                                  :nie można budować na rzece
-STR_ERROR_MUST_DEMOLISH_CANAL_FIRST                             :należy najpierw usunąć kanał
+STR_ERROR_MUST_DEMOLISH_CANAL_FIRST                             :najpierw należy usunąć kanał
 STR_ERROR_CAN_T_BUILD_AQUEDUCT_HERE                             :Nie można tutaj zbudować akweduktu...
 
 # Tree related errors
@@ -5712,7 +5712,7 @@ STR_ERROR_CAN_T_PLANT_TREE_HERE                                 :Nie można posa
 
 # Bridge related errors
 STR_ERROR_CAN_T_BUILD_BRIDGE_HERE                               :Nie można tutaj zbudować mostu...
-STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST                            :należy najpierw usunąć most
+STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST                            :najpierw należy zburzyć most
 STR_ERROR_CAN_T_START_AND_END_ON                                :{WHITE}Nie można zaczynać i kończyć w tym samym miejscu
 STR_ERROR_BRIDGEHEADS_NOT_SAME_HEIGHT                           :końce mostu byłyby na innej wysokości
 STR_ERROR_BRIDGE_TOO_LOW_FOR_TERRAIN                            :most byłby zbyt nisko dla tego terenu
@@ -5732,16 +5732,16 @@ STR_ERROR_BRIDGE_TOO_LOW_FOR_LOCK                               :most jest o {HE
 # Tunnel related errors
 STR_ERROR_CAN_T_BUILD_TUNNEL_HERE                               :Nie można tutaj zbudować tunelu...
 STR_ERROR_SITE_UNSUITABLE_FOR_TUNNEL                            :nieodpowiednie miejsce na wyjście tunelu
-STR_ERROR_MUST_DEMOLISH_TUNNEL_FIRST                            :{WHITE}Należy najpierw usunąć tunel
+STR_ERROR_MUST_DEMOLISH_TUNNEL_FIRST                            :najpierw należy zburzyć tunel
 STR_ERROR_ANOTHER_TUNNEL_IN_THE_WAY                             :inny tunel na drodze
-STR_ERROR_TUNNEL_THROUGH_MAP_BORDER                             :{WHITE}Koniec tunelu poza mapą
+STR_ERROR_TUNNEL_THROUGH_MAP_BORDER                             :tunel kończyłby się poza mapą
 STR_ERROR_UNABLE_TO_EXCAVATE_LAND                               :nie można wydrążyć drugiego końca tunelu
 STR_ERROR_TUNNEL_TOO_LONG                                       :{WHITE}... tunel jest za długi
 
 # Object related errors
 STR_ERROR_TOO_MANY_OBJECTS                                      :zbyt wiele obiektów
 STR_ERROR_CAN_T_BUILD_OBJECT                                    :Nie można zbudować obiektu...
-STR_ERROR_OBJECT_IN_THE_WAY                                     :{WHITE}Obiekt na drodze
+STR_ERROR_OBJECT_IN_THE_WAY                                     :obiekt na drodze
 STR_ERROR_COMPANY_HEADQUARTERS_IN                               :siedziba firmy na drodze
 STR_ERROR_CAN_T_PURCHASE_THIS_LAND                              :Nie można nabyć tego terenu...
 STR_ERROR_YOU_ALREADY_OWN_IT                                    :już to posiadasz!
@@ -5760,14 +5760,14 @@ STR_ERROR_GROUP_CAN_T_ADD_SHARED_VEHICLE                        :Nie można doda
 # Generic vehicle errors
 
 ###length VEHICLE_TYPES
-STR_ERROR_TRAIN_IN_THE_WAY                                      :{WHITE}Pociąg na drodze
+STR_ERROR_TRAIN_IN_THE_WAY                                      :pociąg na drodze
 STR_ERROR_ROAD_VEHICLE_IN_THE_WAY                               :pojazd na drodze
 STR_ERROR_SHIP_IN_THE_WAY                                       :statek na drodze
 STR_ERROR_AIRCRAFT_IN_THE_WAY                                   :samolot na drodze
 
 ###length VEHICLE_TYPES
 STR_ERROR_RAIL_VEHICLE_NOT_AVAILABLE                            :pojazd jest niedostępny
-STR_ERROR_ROAD_VEHICLE_NOT_AVAILABLE                            :{WHITE}Pojazd jest niedostępny
+STR_ERROR_ROAD_VEHICLE_NOT_AVAILABLE                            :pojazd jest niedostępny
 STR_ERROR_SHIP_NOT_AVAILABLE                                    :{WHITE}Statek jest niedostępny
 STR_ERROR_AIRCRAFT_NOT_AVAILABLE                                :samolot jest niedostępny
 
@@ -5835,7 +5835,7 @@ STR_ERROR_CAN_T_CLONE_VEHICLE_LIST                              :nie wszystkie p
 STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL                          :Żadne pojazdy nie będą dostępne
 STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL_EXPLANATION              :Zmień konfigurację swoich NewGRF-ów
 STR_ERROR_NO_VEHICLES_AVAILABLE_YET                             :Obecnie żaden pojazd nie jest dostępny
-STR_ERROR_NO_VEHICLES_AVAILABLE_YET_EXPLANATION                 :Zacznij grę po {DATE_SHORT} albo użyj zestawu NewGRF, który zawiera starsze pojazdy
+STR_ERROR_NO_VEHICLES_AVAILABLE_YET_EXPLANATION                 :Zacznij grę po {DATE_SHORT} albo użyj zestawu NewGRF, który zawiera wczesne pojazdy
 
 STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_AT_ALL                    :Brak dostępnych typów dróg miejskich
 STR_ERROR_NO_TOWN_ROADTYPES_AVAILABLE_AT_ALL_EXPLANATION        :Zmień konfigurację NewGRF
