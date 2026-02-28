@@ -5358,8 +5358,8 @@ STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :можно ст
 
 STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :геологоразведка не принесла результатов; попробуйте снова.
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :нет подходящего места для проведения геологоразведки
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :нет подходящего места для {STRING.gen}
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :измените настройки создания карты для получения более подходящей карты
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :Нет подходящего места для {STRING.gen}
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :Измените настройки создания карты для получения более подходящей карты
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :Здесь невозможно построить железнодорожную станцию...

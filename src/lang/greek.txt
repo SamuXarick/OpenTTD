@@ -5272,8 +5272,8 @@ STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :μπορεί ν
 
 STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :η χρηματοδότηση απέτυχε να φέρει αποτελέσματα λόγω κακής τύχης· δοκιμάστε ξάνα
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :δεν βρέθηκαν κατάλληλες τοποθεσίες για προοπτική για αυτή τη βιομηχανία
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :δεν βρέθηκαν κατάλληλες τοποθεσίες για βιομηχανίες τύπου '{STRING}'
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :αλλαγή παραμέτρων δημιουργίας χάρτη για τη λήψη καλύτερου χάρτη
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :Δεν βρέθηκαν κατάλληλες τοποθεσίες για βιομηχανίες τύπου '{STRING}'
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :Αλλαγή παραμέτρων δημιουργίας χάρτη για τη λήψη καλύτερου χάρτη
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :Δεν μπορεί να κατασκευαστεί σταθμός τρένων εδώ...

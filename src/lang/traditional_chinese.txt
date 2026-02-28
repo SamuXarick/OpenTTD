@@ -5172,7 +5172,7 @@ STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :只能在雪線
 STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :由於運氣差，勘探失敗，請重試
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :無適當地點勘探此類工業
 STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :無適當地點興建「{STRING}」工業
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :請更改參數以產生較佳的場景地圖
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :請更改參數以產生較佳的地圖場景
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :無法在此興建鐵道車站……

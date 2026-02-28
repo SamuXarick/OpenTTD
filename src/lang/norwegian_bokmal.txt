@@ -2595,15 +2595,15 @@ STR_NETWORK_ERROR_NEWGRF_MISMATCH                               :{WHITE}Kunne ik
 STR_NETWORK_ERROR_DESYNC                                        :{WHITE}Synkronisering av nettverksspill mislyktes
 STR_NETWORK_ERROR_LOSTCONNECTION                                :{WHITE}Mistet tilkobling til nettverksspill
 STR_NETWORK_ERROR_SAVEGAMEERROR                                 :{WHITE}Kunne ikke laste inn lagret spill
-STR_NETWORK_ERROR_SERVER_START                                  :{WHITE}Kunne ikke starte tjeneren
-STR_NETWORK_ERROR_SERVER_ERROR                                  :{WHITE}Forbindelsen ble brutt pga. en protokollfeil
-STR_NETWORK_ERROR_BAD_PLAYER_NAME                               :{WHITE}Spillernavnet ditt er ikke angitt. Navnet kan angis øverst i flerspillervinduet
+STR_NETWORK_ERROR_SERVER_START                                  :Kunne ikke starte tjeneren
+STR_NETWORK_ERROR_SERVER_ERROR                                  :Forbindelsen ble brutt pga. en protokollfeil
+STR_NETWORK_ERROR_BAD_PLAYER_NAME                               :Spillernavnet ditt er ikke angitt. Navnet kan angis øverst i flerspillervinduet
 STR_NETWORK_ERROR_BAD_SERVER_NAME                               :{WHITE}Du har ikke valgt tjenernavn. Navnet kan velges øverst i flerspillervinduet
 STR_NETWORK_ERROR_WRONG_REVISION                                :{WHITE}Klientversjonen er ikke den samme som tjenerversjonen
 STR_NETWORK_ERROR_WRONG_PASSWORD                                :{WHITE}Feil passord
 STR_NETWORK_ERROR_NOT_ON_ALLOW_LIST                             :{WHITE}Du står ikke på listen over tillatte klienter
-STR_NETWORK_ERROR_SERVER_FULL                                   :{WHITE}Tjeneren er full
-STR_NETWORK_ERROR_SERVER_BANNED                                 :{WHITE}Du er bannlyst fra denne tjeneren
+STR_NETWORK_ERROR_SERVER_FULL                                   :Tjeneren er full
+STR_NETWORK_ERROR_SERVER_BANNED                                 :Du er bannlyst fra denne tjeneren
 STR_NETWORK_ERROR_KICKED                                        :{WHITE}Du ble kastet ut av spillet
 STR_NETWORK_ERROR_KICK_MESSAGE                                  :{WHITE}Grunn: {STRING}
 STR_NETWORK_ERROR_CHEATER                                       :{WHITE}Juksing er ikke tillatt på denne tjeneren

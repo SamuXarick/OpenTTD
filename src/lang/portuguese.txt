@@ -5173,7 +5173,7 @@ STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :só se pode con
 STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :Por azar o financiamento da prospeção falhou; tente novamente
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :não havia locais adequados para prospetar esta indústria
 STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :Não foram encontrados locais adequados para indústrias do tipo '{STRING}'
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :altera os parâmetros de geração do mapa para obter um mapa melhor
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :Altera os parâmetros de geração do mapa para obter um mapa melhor
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :Não é possível construir estação ferroviária aqui...

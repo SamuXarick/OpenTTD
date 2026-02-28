@@ -5171,8 +5171,8 @@ STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :voidaan rakenta
 
 STR_ERROR_PROSPECTING_WAS_UNLUCKY                               :rahoittamasi koekaivaus epäonnistui; yritä uudelleen
 STR_ERROR_NO_SUITABLE_PLACES_FOR_PROSPECTING                    :ei ollut sopivia paikkoja tämän teollisuuslaitoksen koekaivauksille
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :ei ollut sopivia paikkoja ”{STRING}”-teollisuuslaitoksille
-STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :muuta kartan parametreja saadaksesi paremman kartan
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES                     :Ei sopivia paikkoja ”{STRING}”-teollisuuslaitoksille
+STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION         :Muuta kartan parametreja saadaksesi paremman kartan
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :Tähän ei voi rakentaa rautatieasemaa…
@@ -5494,7 +5494,7 @@ STR_ERROR_NO_DOCK                                               :Tässä ei ole 
 STR_ERROR_NO_AIRPORT                                            :Tässä ei ole lento- tai helikopterikenttää
 STR_ERROR_NO_STOP_COMPATIBLE_ROAD_TYPE                          :Ei ole pysäkkejä sopivalla tien tyypillä
 STR_ERROR_NO_STOP_COMPATIBLE_TRAM_TYPE                          :Ei ole pysäkkejä sopivalla raitiotien tyypillä
-STR_ERROR_NO_STOP_ARTICULATED_VEHICLE                           :Ei ole nivelajoneuvoille sopivia pysäkkejä.{}Nivelletyt ajoneuvot vaativat pysäkin, joka ei ole kääntöpysäkki vaan läpiajettava
+STR_ERROR_NO_STOP_ARTICULATED_VEHICLE                           :Ei nivelajoneuvoille sopivia pysäkkejä.{}Nivelletyt ajoneuvot vaativat pysäkin, joka ei ole kääntöpysäkki vaan läpiajettava
 STR_ERROR_AIRPORT_NO_PLANES                                     :Tämä lentokone ei voi laskeutua tälle helikopterikentälle
 STR_ERROR_AIRPORT_NO_HELICOPTERS                                :Tämä helikopteri ei voi laskeutua tälle lentokentälle
 STR_ERROR_NO_RAIL_WAYPOINT                                      :Tässä ei ole rautatien reittipistettä
