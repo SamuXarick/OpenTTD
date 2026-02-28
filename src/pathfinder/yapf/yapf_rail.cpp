@@ -345,7 +345,7 @@ public:
 			pf2.DisableCache(true);
 			result1 = pf2.FindNearestSafeTile(v, t1, td, override_railtype, false);
 			if (result1 != result2) {
-				Debug(desync, 2, "warning: FindSafeTile cache mismatch: {} vs {}", result2 ? "T" : "F", result1 ? "T" : "F");
+				Debug(desync, 2, "warning: FindSafeTile cache mismatch: {} vs {} (train {}, company {}, tile {})", result2 ? "T" : "F", result1 ? "T" : "F", v->unitnumber, v->owner, v->tile);
 				DumpState(pf1, pf2);
 			}
 		}
@@ -375,7 +375,9 @@ public:
 			this->FindSafePositionOnNode(prev);
 		}
 
-		return dont_reserve || this->TryReservePath(nullptr, node->GetLastTile());
+		bool res = this->TryReservePath(nullptr, node->GetLastTile());
+		if (res && dont_reserve) FreeTrainTrackReservation(v, true);
+		return res;
 	}
 };
 
