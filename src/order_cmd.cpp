@@ -245,6 +245,17 @@ void Order::AssignOrder(const Order &other)
 	this->max_speed   = other.max_speed;
 }
 
+void OrderList::CountOrderList(const Vehicle *v, int delta)
+{
+	VehicleList &order_lists = Company::Get(v->owner)->order_lists[v->type];
+	auto it = std::ranges::find(order_lists, v);
+	if (delta == 1) {
+		if (it == std::end(order_lists)) order_lists.push_back(v);
+	} else {
+		if (it != std::end(order_lists)) order_lists.erase(it);
+	}
+}
+
 /**
  * Recomputes everything.
  * @param v one of vehicle that is using this orderlist
@@ -252,6 +263,7 @@ void Order::AssignOrder(const Order &other)
 void OrderList::Initialize(Vehicle *v)
 {
 	this->first_shared = v;
+	this->CountOrderList(this->GetFirstSharedVehicle(), 1);
 
 	this->num_manual_orders = 0;
 	this->num_vehicles = 1;
@@ -266,7 +278,9 @@ void OrderList::Initialize(Vehicle *v)
 
 	for (Vehicle *u = this->first_shared->PreviousShared(); u != nullptr; u = u->PreviousShared()) {
 		++this->num_vehicles;
+		this->CountOrderList(this->GetFirstSharedVehicle(), -1);
 		this->first_shared = u;
+		this->CountOrderList(this->GetFirstSharedVehicle(), 1);
 	}
 
 	for (const Vehicle *u = v->NextShared(); u != nullptr; u = u->NextShared()) ++this->num_vehicles;
@@ -475,7 +489,11 @@ void OrderList::MoveOrder(VehicleOrderID from, VehicleOrderID to)
 void OrderList::RemoveVehicle(Vehicle *v)
 {
 	--this->num_vehicles;
-	if (v == this->first_shared) this->first_shared = v->NextShared();
+	if (v == this->first_shared) {
+		this->CountOrderList(this->GetFirstSharedVehicle(), -1);
+		this->first_shared = v->NextShared();
+		this->CountOrderList(this->GetFirstSharedVehicle(), 1);
+	}
 }
 
 /**

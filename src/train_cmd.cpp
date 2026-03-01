@@ -673,6 +673,7 @@ static CommandCost CmdBuildRailWagon(DoCommandFlags flags, TileIndex tile, const
 		v->SetWagon();
 
 		v->SetFreeWagon();
+		CountFreeWagon(v, 1);
 		InvalidateWindowData(WC_VEHICLE_DEPOT, v->tile);
 
 		v->cargo_type = e->GetDefaultCargoType();
@@ -1305,6 +1306,8 @@ CommandCost CmdMoveRailVehicle(DoCommandFlags flags, VehicleID src_veh, VehicleI
 	 * src->GetFirst() always yields non-nullptr, so eventually original_src_head != nullptr as well. */
 	bool original_src_head_front_engine = original_src_head->IsFrontEngine();
 	bool original_dst_head_front_engine = original_dst_head != nullptr && original_dst_head->IsFrontEngine();
+	bool original_src_head_free_wagon = original_src_head->IsFreeWagon();
+	bool original_dst_head_free_wagon = original_dst_head != nullptr && original_dst_head->IsFreeWagon();
 
 	/* (Re)arrange the trains in the wanted arrangement. */
 	ArrangeTrains(&dst_head, dst, &src_head, src, move_chain);
@@ -1327,6 +1330,8 @@ CommandCost CmdMoveRailVehicle(DoCommandFlags flags, VehicleID src_veh, VehicleI
 		/* Remove old heads from the statistics */
 		if (original_src_head_front_engine) GroupStatistics::CountVehicle(original_src_head, -1);
 		if (original_dst_head_front_engine) GroupStatistics::CountVehicle(original_dst_head, -1);
+		if (original_src_head_free_wagon) CountFreeWagon(original_src_head, -1);
+		if (original_dst_head_free_wagon) CountFreeWagon(original_dst_head, -1);
 
 		/* First normalise the sub types of the chains. */
 		NormaliseSubtypes(src_head);
@@ -1388,8 +1393,14 @@ CommandCost CmdMoveRailVehicle(DoCommandFlags flags, VehicleID src_veh, VehicleI
 
 		/* Add new heads to statistics.
 		 * This should be done after NormaliseTrainHead due to engine total limit checks in GetFreeUnitNumber. */
-		if (src_head != nullptr && src_head->IsFrontEngine()) GroupStatistics::CountVehicle(src_head, 1);
-		if (dst_head != nullptr && dst_head->IsFrontEngine()) GroupStatistics::CountVehicle(dst_head, 1);
+		if (src_head != nullptr) {
+			if (src_head->IsFrontEngine()) GroupStatistics::CountVehicle(src_head, 1);
+			if (src_head->IsFreeWagon()) CountFreeWagon(src_head, 1);
+		}
+		if (dst_head != nullptr) {
+			if (dst_head->IsFrontEngine()) GroupStatistics::CountVehicle(dst_head, 1);
+			if (dst_head->IsFreeWagon()) CountFreeWagon(dst_head, 1);
+		}
 
 		if (!flags.Test(DoCommandFlag::NoCargoCapacityCheck)) {
 			CheckCargoCapacity(src_head);
@@ -1439,6 +1450,9 @@ CommandCost CmdSellRailWagon(DoCommandFlags flags, Vehicle *t, bool sell_chain, 
 	Train *new_head = first;
 	Train *sell_head = nullptr;
 
+	Train *original_first_head = first;
+	bool first_free_wagon = first->IsFreeWagon();
+
 	/* Split the train in the wanted way. */
 	ArrangeTrains(&sell_head, nullptr, &new_head, v, sell_chain);
 
@@ -1461,6 +1475,8 @@ CommandCost CmdSellRailWagon(DoCommandFlags flags, Vehicle *t, bool sell_chain, 
 
 	/* do it? */
 	if (flags.Test(DoCommandFlag::Execute)) {
+		if (first_free_wagon) CountFreeWagon(original_first_head, -1);
+
 		/* First normalise the sub types of the chain. */
 		NormaliseSubtypes(new_head);
 
@@ -1482,6 +1498,8 @@ CommandCost CmdSellRailWagon(DoCommandFlags flags, Vehicle *t, bool sell_chain, 
 
 		/* We need to update the information about the train. */
 		NormaliseTrainHead(new_head);
+
+		if (new_head != nullptr && new_head->IsFreeWagon()) CountFreeWagon(new_head, 1);
 
 		/* We are undoubtedly changing something in the depot and train list. */
 		InvalidateWindowData(WC_VEHICLE_DEPOT, v->tile);

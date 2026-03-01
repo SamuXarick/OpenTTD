@@ -843,6 +843,8 @@ void Vehicle::PreDestructor()
 
 		if (this->owner == _local_company) InvalidateAutoreplaceWindow(this->engine_type, this->group_id);
 		DeleteGroupHighlightOfVehicle(this);
+
+		if (this->type == VEH_TRAIN && Train::From(this)->IsFreeWagon()) CountFreeWagon(this, -1);
 	}
 
 	Company::Get(this->owner)->freeunits[this->type].ReleaseID(this->unitnumber);
