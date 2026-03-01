@@ -14,6 +14,7 @@
 
 /** Widgets of the #AIConfigWindow class. */
 enum AIConfigWidgets : WidgetID {
+	WID_AIC_CAPTION,          ///< Caption of the window.
 	WID_AIC_BACKGROUND,       ///< Window background.
 	WID_AIC_DECREASE_NUMBER,  ///< Decrease the number of AIs.
 	WID_AIC_INCREASE_NUMBER,  ///< Increase the number of AIs.
@@ -22,12 +23,12 @@ enum AIConfigWidgets : WidgetID {
 	WID_AIC_INCREASE_INTERVAL,///< Increase the interval.
 	WID_AIC_INTERVAL,         ///< Interval between time AIs start.
 	WID_AIC_LIST,             ///< List with currently selected AIs.
-	WID_AIC_SCROLLBAR,        ///< Scrollbar to scroll through the selected AIs.
 	WID_AIC_MOVE_UP,          ///< Move up button.
 	WID_AIC_MOVE_DOWN,        ///< Move down button.
 	WID_AIC_CHANGE,           ///< Select another AI button.
 	WID_AIC_CONFIGURE,        ///< Change AI settings button.
 	WID_AIC_OPEN_URL,         ///< Open AI URL.
+	WID_AIC_START_STOP_TOGGLE, ///< Start AI or Stop AI button.
 	WID_AIC_TEXTFILE,         ///< Open AI readme, changelog (+1) or license (+2).
 	WID_AIC_CONTENT_DOWNLOAD = WID_AIC_TEXTFILE + TFT_CONTENT_END, ///< Download content button.
 };
