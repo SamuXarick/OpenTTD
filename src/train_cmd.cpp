@@ -2422,7 +2422,7 @@ static void ClearPathReservation(const Train *v, TileIndex tile, Trackdir track_
  * Free the reserved path in front of a vehicle.
  * @param v %Train owning the reserved path.
  */
-void FreeTrainTrackReservation(const Train *v, bool skip_first_tile)
+void FreeTrainTrackReservation(const Train *v)
 {
 	assert(v->IsFrontEngine());
 
@@ -2450,11 +2450,6 @@ void FreeTrainTrackReservation(const Train *v, bool skip_first_tile)
 		assert(bits == TRACKDIR_BIT_NONE);
 
 		if (!IsValidTrackdir(td)) break;
-
-		if (skip_first_tile) {
-			skip_first_tile = false;
-			continue;
-		}
 
 		if (IsTileType(tile, TileType::Railway)) {
 			if (HasSignalOnTrackdir(tile, td) && !IsPbsSignal(GetSignalType(tile, TrackdirToTrack(td)))) {
