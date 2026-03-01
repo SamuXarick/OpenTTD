@@ -625,7 +625,7 @@ STR_NEWS_MENU_DELETE_ALL_MESSAGES                               :Forigu ĉiujn m
 # About menu
 STR_ABOUT_MENU_LAND_BLOCK_INFO                                  :Landkvadrataj informoj
 STR_ABOUT_MENU_HELP                                             :Helpo & manlibroj
-STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Baskuligi Konzolon
+STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Baskuligi konzolon
 STR_ABOUT_MENU_AI_DEBUG                                         :AI/Ludoskripta sencimigo
 STR_ABOUT_MENU_SCREENSHOT                                       :Ekranfoto
 STR_ABOUT_MENU_SHOW_FRAMERATE                                   :Montri bildrapidon
