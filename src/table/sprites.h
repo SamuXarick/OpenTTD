@@ -157,6 +157,13 @@ static const SpriteID SPR_TOWN_RATING_APPALLING      = SPR_OPENTTD_BASE + 163;
 static const SpriteID SPR_TOWN_RATING_MEDIOCRE       = SPR_OPENTTD_BASE + 164;
 static const SpriteID SPR_TOWN_RATING_GOOD           = SPR_OPENTTD_BASE + 165;
 
+/** AI/Game Script window */
+static const SpriteID SPR_SCRIPT_DEAD     = SPR_TOWN_RATING_APPALLING; // re-using SPR_TOWN_RATING_APPALLING
+static const SpriteID SPR_SCRIPT_ELIGIBLE = SPR_TOWN_RATING_MEDIOCRE;  // re-using SPR_TOWN_RATING_MEDIOCRE
+static const SpriteID SPR_SCRIPT_ALIVE    = SPR_TOWN_RATING_GOOD;      // re-using SPR_TOWN_RATING_GOOD
+static const SpriteID SPR_SCRIPT_HUMAN    = SPR_WARNING_SIGN;          // re-using SPR_WARNING_SIGN
+static const SpriteID SPR_SCRIPT_RANDOM   = SPR_UNREAD_NEWS;           // re-using SPR_UNREAD_NEWS
+
 static const SpriteID SPR_IMG_SWITCH_TOOLBAR = SPR_OPENTTD_BASE + 144;
 
 static const SpriteID SPR_IMG_DELETE_LEFT            = SPR_OPENTTD_BASE + 166;
